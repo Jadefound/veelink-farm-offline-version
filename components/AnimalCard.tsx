@@ -1,21 +1,39 @@
 import React from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
+import { Edit } from "lucide-react-native";
 import { Animal } from "@/types";
 import { formatDate, calculateAge } from "@/utils/helpers";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
 import Card from "./Card";
+import { useRouter } from "expo-router";
 
 interface AnimalCardProps {
   animal: Animal;
   onPress: (animal: Animal) => void;
+  onEdit?: (animal: Animal) => void;
   compact?: boolean;
 }
 
-export default function AnimalCard({ animal, onPress, compact = false }: AnimalCardProps) {
+export default function AnimalCard({
+  animal,
+  onPress,
+  onEdit,
+  compact = false,
+}: AnimalCardProps) {
   const { isDarkMode } = useThemeStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
+  const router = useRouter();
+
+  const handleEdit = (e: any) => {
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit(animal);
+    } else {
+      router.push(`/animal/edit/${animal.id}`);
+    }
+  };
 
   // Get species-specific image
   const getAnimalImage = (species: string) => {
@@ -70,10 +88,29 @@ export default function AnimalCard({ animal, onPress, compact = false }: AnimalC
             transition={200}
           />
           <View style={styles.compactContent}>
-            <Text style={[styles.compactId, { color: colors.text }]}>ID: {animal.identificationNumber}</Text>
-            <Text style={[styles.compactSpecies, { color: colors.muted }]}>{animal.species} • {animal.breed}</Text>
+            <Text style={[styles.compactId, { color: colors.text }]}>
+              ID: {animal.identificationNumber}
+            </Text>
+            <Text style={[styles.compactSpecies, { color: colors.muted }]}>
+              {animal.species} • {animal.breed}
+            </Text>
           </View>
-          <View style={[styles.compactStatusBadge, { backgroundColor: getStatusColor(animal.status) }]}>
+          <TouchableOpacity
+            style={[
+              styles.compactEditButton,
+              { backgroundColor: colors.surface },
+            ]}
+            onPress={handleEdit}
+            activeOpacity={0.7}
+          >
+            <Edit size={16} color={colors.tint} />
+          </TouchableOpacity>
+          <View
+            style={[
+              styles.compactStatusBadge,
+              { backgroundColor: getStatusColor(animal.status) },
+            ]}
+          >
             <Text style={styles.compactStatusText}>{animal.status}</Text>
           </View>
         </View>
@@ -92,38 +129,77 @@ export default function AnimalCard({ animal, onPress, compact = false }: AnimalC
             transition={200}
           />
           <View style={styles.headerContent}>
-            <Text style={[styles.id, { color: colors.text }]}>ID: {animal.identificationNumber}</Text>
-            <Text style={[styles.species, { color: colors.muted }]}>{animal.species}</Text>
+            <Text style={[styles.id, { color: colors.text }]}>
+              ID: {animal.identificationNumber}
+            </Text>
+            <Text style={[styles.species, { color: colors.muted }]}>
+              {animal.species}
+            </Text>
           </View>
+          <TouchableOpacity
+            style={[styles.editButton, { backgroundColor: colors.surface }]}
+            onPress={handleEdit}
+            activeOpacity={0.7}
+          >
+            <Edit size={20} color={colors.tint} />
+          </TouchableOpacity>
         </View>
-        
+
         <View style={styles.details}>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.muted }]}>Breed:</Text>
-            <Text style={[styles.detailValue, { color: colors.text }]}>{animal.breed}</Text>
+            <Text style={[styles.detailLabel, { color: colors.muted }]}>
+              Breed:
+            </Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {animal.breed}
+            </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.muted }]}>Gender:</Text>
-            <Text style={[styles.detailValue, { color: colors.text }]}>{animal.gender}</Text>
+            <Text style={[styles.detailLabel, { color: colors.muted }]}>
+              Gender:
+            </Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {animal.gender}
+            </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.muted }]}>Age:</Text>
-            <Text style={[styles.detailValue, { color: colors.text }]}>{calculateAge(animal.birthDate)}</Text>
+            <Text style={[styles.detailLabel, { color: colors.muted }]}>
+              Age:
+            </Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {calculateAge(animal.birthDate)}
+            </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.muted }]}>Weight:</Text>
-            <Text style={[styles.detailValue, { color: colors.text }]}>{animal.weight} {animal.weightUnit}</Text>
+            <Text style={[styles.detailLabel, { color: colors.muted }]}>
+              Weight:
+            </Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
+              {animal.weight} {animal.weightUnit}
+            </Text>
           </View>
         </View>
-        
-        <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(animal.status) }]}>
+
+        <View
+          style={[
+            styles.footer,
+            { borderTopColor: colors.border, backgroundColor: colors.surface },
+          ]}
+        >
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(animal.status) },
+            ]}
+          >
             <Text style={styles.statusText}>{animal.status}</Text>
           </View>
-          <Text style={[styles.date, { color: colors.muted }]}>Added: {formatDate(animal.createdAt)}</Text>
+          <Text style={[styles.date, { color: colors.muted }]}>
+            Added: {formatDate(animal.createdAt)}
+          </Text>
         </View>
       </Card>
     </TouchableOpacity>
@@ -154,6 +230,14 @@ const styles = StyleSheet.create({
   headerContent: {
     flex: 1,
     padding: 16,
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 16,
   },
   id: {
     fontSize: 18,
@@ -225,6 +309,14 @@ const styles = StyleSheet.create({
   },
   compactContent: {
     flex: 1,
+  },
+  compactEditButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
   compactId: {
     fontSize: 16,

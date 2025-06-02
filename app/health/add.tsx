@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronDown } from "lucide-react-native";
@@ -20,15 +21,17 @@ import Colors from "@/constants/colors";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import FarmSelector from "@/components/FarmSelector";
+import TopNavigation from "@/components/TopNavigation";
+import Card from "@/components/Card";
 
 export default function AddHealthRecordScreen() {
-  const { animalId } = useLocalSearchParams<{ animalId?: string }>();
+  const { animalId } = useLocalSearchParams<{ animalId: string }>();
   const router = useRouter();
-  
+
   const { createHealthRecord, isLoading, error } = useHealthStore();
   const { farms, currentFarm, setCurrentFarm } = useFarmStore();
   const { animals, fetchAnimals } = useAnimalStore();
-  
+
   const [selectedAnimalId, setSelectedAnimalId] = useState(animalId || "");
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
   const [showAnimalPicker, setShowAnimalPicker] = useState(false);
@@ -43,39 +46,39 @@ export default function AddHealthRecordScreen() {
   const [cost, setCost] = useState("");
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState("");
-  
+
   useEffect(() => {
     if (currentFarm) {
       fetchAnimals(currentFarm.id);
     }
   }, [currentFarm]);
-  
+
   useEffect(() => {
     if (selectedAnimalId && animals.length > 0) {
       const animal = animals.find(a => a.id === selectedAnimalId);
       setSelectedAnimal(animal);
     }
   }, [selectedAnimalId, animals]);
-  
+
   const handleCreateHealthRecord = async () => {
     if (!currentFarm) {
       setFormError("Please select a farm");
       return;
     }
-    
+
     if (!selectedAnimalId) {
       setFormError("Please select an animal");
       return;
     }
-    
+
     // Validate form
     if (!type || !date || !description) {
       setFormError("Please fill in all required fields");
       return;
     }
-    
+
     setFormError("");
-    
+
     try {
       await createHealthRecord({
         farmId: currentFarm.id,
@@ -91,150 +94,152 @@ export default function AddHealthRecordScreen() {
         cost: parseFloat(cost) || 0,
         notes,
       });
-      
+
       router.back();
     } catch (error: any) {
       setFormError(error.message || "Failed to create health record");
     }
   };
-  
+
   const handleSelectAnimal = (animal: any) => {
     setSelectedAnimalId(animal.id);
     setSelectedAnimal(animal);
     setShowAnimalPicker(false);
   };
-  
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={100}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Add Health Record</Text>
-        
-        {(error || formError) && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error || formError}</Text>
+    <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
+      <TopNavigation />
+
+      <ScrollView contentContainerStyle={styles.contentContainer}>
+        <Card style={[styles.formCard, { backgroundColor: Colors.light.card }]}>
+          <Text style={[styles.title, { color: Colors.light.text }]}>
+            Add Health Record
+          </Text>
+
+          {(error || formError) && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error || formError}</Text>
+            </View>
+          )}
+
+          <FarmSelector
+            farms={farms}
+            selectedFarm={currentFarm}
+            onSelectFarm={setCurrentFarm}
+            onAddFarm={() => router.push("/farm/add")}
+          />
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Animal *</Text>
+            <TouchableOpacity
+              style={styles.animalSelector}
+              onPress={() => setShowAnimalPicker(true)}
+            >
+              <Text style={styles.animalSelectorText}>
+                {selectedAnimal
+                  ? `ID: ${selectedAnimal.identificationNumber} (${selectedAnimal.species})`
+                  : "Select an animal"
+                }
+              </Text>
+              <ChevronDown size={20} color={Colors.light.text} />
+            </TouchableOpacity>
           </View>
-        )}
-        
-        <FarmSelector
-          farms={farms}
-          selectedFarm={currentFarm}
-          onSelectFarm={setCurrentFarm}
-          onAddFarm={() => router.push("/farm/add")}
-        />
-        
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Animal *</Text>
-          <TouchableOpacity
-            style={styles.animalSelector}
-            onPress={() => setShowAnimalPicker(true)}
-          >
-            <Text style={styles.animalSelectorText}>
-              {selectedAnimal 
-                ? `ID: ${selectedAnimal.identificationNumber} (${selectedAnimal.species})`
-                : "Select an animal"
-              }
-            </Text>
-            <ChevronDown size={20} color={Colors.light.text} />
-          </TouchableOpacity>
-        </View>
-        
-        <Input
-          label="Record Type *"
-          placeholder="e.g., Vaccination, Treatment, Checkup"
-          value={type}
-          onChangeText={(text) => setType(text as HealthRecordType)}
-        />
-        
-        <Input
-          label="Date *"
-          placeholder="YYYY-MM-DD"
-          value={date}
-          onChangeText={setDate}
-        />
-        
-        <Input
-          label="Description *"
-          placeholder="Enter description"
-          value={description}
-          onChangeText={setDescription}
-        />
-        
-        <Input
-          label="Diagnosis"
-          placeholder="Enter diagnosis"
-          value={diagnosis}
-          onChangeText={setDiagnosis}
-        />
-        
-        <Input
-          label="Treatment"
-          placeholder="Enter treatment"
-          value={treatment}
-          onChangeText={setTreatment}
-        />
-        
-        <Input
-          label="Medication"
-          placeholder="Enter medication"
-          value={medication}
-          onChangeText={setMedication}
-        />
-        
-        <Input
-          label="Dosage"
-          placeholder="Enter dosage"
-          value={dosage}
-          onChangeText={setDosage}
-        />
-        
-        <Input
-          label="Veterinarian"
-          placeholder="Enter veterinarian name"
-          value={veterinarian}
-          onChangeText={setVeterinarian}
-        />
-        
-        <Input
-          label="Cost"
-          placeholder="Enter cost"
-          keyboardType="numeric"
-          value={cost}
-          onChangeText={setCost}
-        />
-        
-        <Input
-          label="Notes"
-          placeholder="Enter any additional notes"
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-          value={notes}
-          onChangeText={setNotes}
-          inputStyle={styles.notesInput}
-        />
-        
-        <View style={styles.buttonContainer}>
+
+          <Input
+            label="Record Type *"
+            placeholder="e.g., Vaccination, Treatment, Checkup"
+            value={type}
+            onChangeText={(text) => setType(text as HealthRecordType)}
+          />
+
+          <Input
+            label="Date *"
+            placeholder="YYYY-MM-DD"
+            value={date}
+            onChangeText={setDate}
+          />
+
+          <Input
+            label="Description *"
+            placeholder="Enter description"
+            value={description}
+            onChangeText={setDescription}
+          />
+
+          <Input
+            label="Diagnosis"
+            placeholder="Enter diagnosis"
+            value={diagnosis}
+            onChangeText={setDiagnosis}
+          />
+
+          <Input
+            label="Treatment"
+            placeholder="Enter treatment"
+            value={treatment}
+            onChangeText={setTreatment}
+          />
+
+          <Input
+            label="Medication"
+            placeholder="Enter medication"
+            value={medication}
+            onChangeText={setMedication}
+          />
+
+          <Input
+            label="Dosage"
+            placeholder="Enter dosage"
+            value={dosage}
+            onChangeText={setDosage}
+          />
+
+          <Input
+            label="Veterinarian"
+            placeholder="Enter veterinarian name"
+            value={veterinarian}
+            onChangeText={setVeterinarian}
+          />
+
+          <Input
+            label="Cost"
+            placeholder="Enter cost"
+            keyboardType="numeric"
+            value={cost}
+            onChangeText={setCost}
+          />
+
+          <Input
+            label="Notes"
+            placeholder="Enter any additional notes"
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            value={notes}
+            onChangeText={setNotes}
+            inputStyle={styles.notesInput}
+          />
+        </Card>
+
+        <View style={styles.actionsContainer}>
           <Button
             title="Cancel"
             onPress={() => router.back()}
             variant="outline"
-            style={styles.button}
+            style={styles.actionButton}
           />
-          
+
           <Button
-            title="Add Record"
+            title="Save"
             onPress={handleCreateHealthRecord}
+            variant="primary"
+            style={styles.actionButton}
             loading={isLoading}
-            disabled={isLoading}
-            style={styles.button}
           />
         </View>
       </ScrollView>
-      
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -249,7 +254,7 @@ export default function AddHealthRecordScreen() {
                 <Text style={styles.closeButton}>Close</Text>
               </TouchableOpacity>
             </View>
-            
+
             {animals.length > 0 ? (
               <FlatList
                 data={animals}
@@ -278,23 +283,32 @@ export default function AddHealthRecordScreen() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
   },
-  scrollContent: {
-    padding: 16,
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  formCard: {
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   title: {
     fontSize: 24,
-    fontWeight: "600",
-    color: Colors.light.text,
-    marginBottom: 24,
+    fontWeight: "700",
+    marginBottom: 20,
   },
   errorContainer: {
     backgroundColor: Colors.light.danger + "20",
@@ -335,14 +349,12 @@ const styles = StyleSheet.create({
     height: 100,
     paddingTop: 12,
   },
-  buttonContainer: {
+  actionsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 24,
-    marginBottom: 40,
-    gap: 12,
+    gap: 16,
   },
-  button: {
+  actionButton: {
     flex: 1,
   },
   modalOverlay: {

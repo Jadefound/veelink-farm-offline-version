@@ -1,40 +1,112 @@
 import React from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert, Switch } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Switch,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { LogOut, User, Building2, Info, Shield, Bell, Moon, PawPrint, FileBarChart } from "lucide-react-native";
+import {
+  LogOut,
+  User,
+  Building2,
+  Info,
+  Shield,
+  Bell,
+  Moon,
+  PawPrint,
+  FileBarChart,
+  Database,
+  Trash2,
+} from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
 import Card from "@/components/Card";
+import { loadMockData, clearAllData } from "@/utils/mockData";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
-  
+
   const colors = isDarkMode ? Colors.dark : Colors.light;
-  
+
   const handleLogout = () => {
+    Alert.alert("Confirm Logout", "Are you sure you want to log out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        onPress: async () => {
+          await logout();
+          router.replace("/auth/login");
+        },
+        style: "destructive",
+      },
+    ]);
+  };
+
+  const handleLoadMockData = () => {
     Alert.alert(
-      "Confirm Logout",
-      "Are you sure you want to log out?",
+      "Load Mock Data",
+      "This will add sample farms, animals, transactions, and health records to your app. Continue?",
       [
         {
           text: "Cancel",
           style: "cancel",
         },
         {
-          text: "Logout",
+          text: "Load Data",
           onPress: async () => {
-            await logout();
-            router.replace("/auth/login");
+            const success = await loadMockData();
+            if (success) {
+              Alert.alert(
+                "Success",
+                "Mock data loaded successfully! You can now explore the app with sample data."
+              );
+            } else {
+              Alert.alert(
+                "Error",
+                "Failed to load mock data. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearAllData = () => {
+    Alert.alert(
+      "Clear All Data",
+      "⚠️ WARNING: This will permanently delete ALL your data including farms, animals, transactions, and health records. This action cannot be undone!",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Clear All Data",
+          onPress: async () => {
+            const success = await clearAllData();
+            if (success) {
+              Alert.alert("Success", "All data cleared successfully!");
+            } else {
+              Alert.alert("Error", "Failed to clear data. Please try again.");
+            }
           },
           style: "destructive",
         },
       ]
     );
   };
-  
+
   const settingsSections = [
     {
       title: "Account",
@@ -42,12 +114,14 @@ export default function SettingsScreen() {
         {
           icon: <User size={20} color={colors.text} />,
           title: "Profile",
-          onPress: () => Alert.alert("Profile", "Profile settings would go here"),
+          onPress: () =>
+            Alert.alert("Profile", "Profile settings would go here"),
         },
         {
           icon: <Shield size={20} color={colors.text} />,
           title: "Privacy & Security",
-          onPress: () => Alert.alert("Privacy", "Privacy settings would go here"),
+          onPress: () =>
+            Alert.alert("Privacy", "Privacy settings would go here"),
         },
       ],
     },
@@ -57,17 +131,26 @@ export default function SettingsScreen() {
         {
           icon: <PawPrint size={20} color={colors.text} />,
           title: "Animal Preferences",
-          onPress: () => Alert.alert("Animal Settings", "Animal management preferences would go here"),
+          onPress: () =>
+            Alert.alert(
+              "Animal Settings",
+              "Animal management preferences would go here"
+            ),
         },
         {
           icon: <Building2 size={20} color={colors.text} />,
           title: "Farm Settings",
-          onPress: () => Alert.alert("Farm Settings", "Farm management settings would go here"),
+          onPress: () =>
+            Alert.alert(
+              "Farm Settings",
+              "Farm management settings would go here"
+            ),
         },
         {
           icon: <Bell size={20} color={colors.text} />,
           title: "Health Reminders",
-          onPress: () => Alert.alert("Reminders", "Set up health care reminders"),
+          onPress: () =>
+            Alert.alert("Reminders", "Set up health care reminders"),
         },
       ],
     },
@@ -94,52 +177,86 @@ export default function SettingsScreen() {
       ],
     },
     {
+      title: "Developer Tools",
+      items: [
+        {
+          icon: <Database size={20} color={colors.text} />,
+          title: "Load Mock Data",
+          onPress: handleLoadMockData,
+        },
+        {
+          icon: <Trash2 size={20} color={colors.text} />,
+          title: "Clear All Data",
+          onPress: handleClearAllData,
+        },
+      ],
+    },
+    {
       title: "About",
       items: [
         {
           icon: <Info size={20} color={colors.text} />,
           title: "About Veelink Farm",
-          onPress: () => Alert.alert("About", "Veelink Farm is a comprehensive farm animal management app for livestock tracking, health records, and financial management."),
+          onPress: () =>
+            Alert.alert(
+              "About",
+              "Veelink Farm is a comprehensive farm animal management app for livestock tracking, health records, and financial management."
+            ),
         },
       ],
     },
   ];
-  
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <Card style={{ ...styles.profileCard, backgroundColor: colors.card }}>
           <View style={styles.profileInfo}>
-            <View style={[styles.profileAvatar, { backgroundColor: colors.tint }]}>
+            <View
+              style={[styles.profileAvatar, { backgroundColor: colors.tint }]}
+            >
               <Text style={styles.avatarText}>
                 {user?.name?.charAt(0) || "U"}
               </Text>
             </View>
             <View style={styles.profileDetails}>
-              <Text style={[styles.profileName, { color: colors.text }]}>{user?.name || "User"}</Text>
-              <Text style={[styles.profileEmail, { color: colors.muted }]}>{user?.email || "user@example.com"}</Text>
+              <Text style={[styles.profileName, { color: colors.text }]}>
+                {user?.name || "User"}
+              </Text>
+              <Text style={[styles.profileEmail, { color: colors.muted }]}>
+                {user?.email || "user@example.com"}
+              </Text>
             </View>
           </View>
         </Card>
-        
+
         {settingsSections.map((section, sectionIndex) => (
           <View key={sectionIndex} style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>{section.title}</Text>
-            <Card style={{ ...styles.sectionCard, backgroundColor: colors.card }}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              {section.title}
+            </Text>
+            <Card
+              style={{ ...styles.sectionCard, backgroundColor: colors.card }}
+            >
               {section.items.map((item, itemIndex) => (
                 <TouchableOpacity
                   key={itemIndex}
                   style={[
                     styles.settingItem,
-                    itemIndex < section.items.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 },
+                    itemIndex < section.items.length - 1 && {
+                      borderBottomColor: colors.border,
+                      borderBottomWidth: 1,
+                    },
                   ]}
                   onPress={item.onPress}
                 >
                   <View style={styles.settingIcon}>{item.icon}</View>
-                  <Text style={[styles.settingTitle, { color: colors.text }]}>{item.title}</Text>
-                  {'showSwitch' in item && item.showSwitch && (
+                  <Text style={[styles.settingTitle, { color: colors.text }]}>
+                    {item.title}
+                  </Text>
+                  {"showSwitch" in item && item.showSwitch && (
                     <Switch
-                      value={'switchValue' in item ? item.switchValue : false}
+                      value={"switchValue" in item ? item.switchValue : false}
                       onValueChange={item.onPress}
                       trackColor={{ false: colors.border, true: colors.tint }}
                       thumbColor={item.switchValue ? "white" : colors.muted}
@@ -150,16 +267,23 @@ export default function SettingsScreen() {
             </Card>
           </View>
         ))}
-        
-        <TouchableOpacity 
-          style={[styles.logoutButton, { backgroundColor: colors.card, borderColor: colors.danger }]} 
+
+        <TouchableOpacity
+          style={[
+            styles.logoutButton,
+            { backgroundColor: colors.card, borderColor: colors.danger },
+          ]}
           onPress={handleLogout}
         >
           <LogOut size={20} color={colors.danger} />
-          <Text style={[styles.logoutText, { color: colors.danger }]}>Logout</Text>
+          <Text style={[styles.logoutText, { color: colors.danger }]}>
+            Logout
+          </Text>
         </TouchableOpacity>
-        
-        <Text style={[styles.versionText, { color: colors.muted }]}>Veelink Farm v2.0.0</Text>
+
+        <Text style={[styles.versionText, { color: colors.muted }]}>
+          Veelink Farm v2.0.0
+        </Text>
       </ScrollView>
     </View>
   );

@@ -1,7 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, FlatList, RefreshControl, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, TrendingUp, TrendingDown, DollarSign } from "lucide-react-native";
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+} from "lucide-react-native";
 import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
@@ -14,47 +28,73 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
 import StatCard from "@/components/StatCard";
 import Card from "@/components/Card";
+import Button from "@/components/Button";
 
 export default function FinancialScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  
-  const { transactions, fetchTransactions, getFinancialStats, isLoading } = useFinancialStore();
+  const [assetStats, setAssetStats] = useState({
+    totalAnimalAssets: 0,
+    totalAcquisitionCost: 0,
+    assetAppreciation: 0,
+    animalCount: 0,
+    averageAnimalValue: 0,
+  });
+
+  const {
+    transactions,
+    fetchTransactions,
+    getFinancialStats,
+    getAssetStats,
+    isLoading,
+  } = useFinancialStore();
   const { farms, currentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
-  
+
   const colors = isDarkMode ? Colors.dark : Colors.light;
-  
+
   useEffect(() => {
     if (currentFarm) {
       loadTransactions();
+      loadAssetStats();
     }
   }, [currentFarm]);
-  
+
   const loadTransactions = async () => {
     if (currentFarm) {
       await fetchTransactions(currentFarm.id);
     }
   };
-  
+
+  const loadAssetStats = async () => {
+    if (currentFarm) {
+      const stats = await getAssetStats(currentFarm.id);
+      setAssetStats(stats);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadTransactions();
+    await loadAssetStats();
     setRefreshing(false);
   };
-  
+
   const handleTransactionPress = (transaction: Transaction) => {
-    router.push(`/financial/${transaction.id}`);
+    router.push({
+      pathname: '/financial/[id]',
+      params: { id: transaction.id }
+    });
   };
-  
+
   const handleAddTransaction = () => {
     router.push("/financial/add");
   };
-  
+
   const handleAddFarm = () => {
     router.push("/farm/add");
   };
-  
+
   if (farms.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -67,90 +107,147 @@ export default function FinancialScreen() {
       </View>
     );
   }
-  
-  const financialStats = currentFarm ? getFinancialStats(currentFarm.id) : {
-    totalIncome: 0,
-    totalExpenses: 0,
-    netProfit: 0,
-    recentTransactions: 0,
-    byCategory: []
-  };
-  
+
+  const financialStats = currentFarm
+    ? getFinancialStats(currentFarm.id)
+    : {
+        totalIncome: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        healthCosts: 0,
+        acquisitionCosts: 0,
+        animalSales: 0,
+        totalAssetValue: 0,
+        recentTransactions: 0,
+        byCategory: [],
+      };
+
+  const screenWidth = Dimensions.get("window").width;
+  const isTablet = screenWidth > 768;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
-      
-      <View style={styles.header}>
-        <Card style={[styles.summaryCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.summaryTitle, { color: colors.text }]}>Financial Summary</Text>
-          
-          <View style={styles.statsContainer}>
-            <StatCard
-              title="Total Income"
-              value={formatCurrency(financialStats.totalIncome)}
-              icon={<TrendingUp size={20} color={colors.success} />}
-              color={colors.success}
-              style={styles.statCard}
-            />
-            <StatCard
-              title="Total Expenses"
-              value={formatCurrency(financialStats.totalExpenses)}
-              icon={<TrendingDown size={20} color={colors.danger} />}
-              color={colors.danger}
-              style={styles.statCard}
-            />
-          </View>
-          
-          <View style={styles.netProfitContainer}>
-            <StatCard
-              title="Net Profit"
-              value={formatCurrency(financialStats.netProfit)}
-              icon={<DollarSign size={24} color={financialStats.netProfit >= 0 ? colors.success : colors.danger} />}
-              color={financialStats.netProfit >= 0 ? colors.success : colors.danger}
-              style={styles.netProfitCard}
-            />
+
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.tint}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Net Profit Highlight */}
+        <Card variant="elevated" style={styles.netProfitCard}>
+          <View style={styles.netProfitContent}>
+            <Text style={[styles.netProfitLabel, { color: colors.muted }]}>
+              Net Profit
+            </Text>
+            <Text
+              style={[
+                styles.netProfitValue,
+                {
+                  color:
+                    financialStats.netProfit >= 0
+                      ? colors.success
+                      : colors.danger,
+                },
+              ]}
+            >
+              {formatCurrency(financialStats.netProfit)}
+            </Text>
           </View>
         </Card>
-      </View>
-      
-      {isLoading && !refreshing ? (
-        <LoadingIndicator message="Loading financial records..." />
-      ) : (
-        <>
-          {transactions.length === 0 ? (
-            <EmptyState
-              title="No Financial Records"
-              message="Add your first transaction to start tracking farm finances"
-              buttonTitle="Add Transaction"
-              onButtonPress={handleAddTransaction}
-            />
-          ) : (
-            <View style={styles.listContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
-              <FlatList
-                data={transactions}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TransactionCard transaction={item} onPress={handleTransactionPress} />
-                )}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-                showsVerticalScrollIndicator={false}
+
+        {/* Financial Overview */}
+        <View style={styles.overviewGrid}>
+          <Card variant="success" style={styles.overviewCard}>
+            <TrendingUp size={20} color={colors.success} />
+            <Text style={[styles.overviewLabel, { color: colors.muted }]}>Income</Text>
+            <Text style={[styles.overviewValue, { color: colors.text }]}>
+              {formatCurrency(financialStats.totalIncome)}
+            </Text>
+          </Card>
+
+          <Card variant="warning" style={styles.overviewCard}>
+            <TrendingDown size={20} color={colors.danger} />
+            <Text style={[styles.overviewLabel, { color: colors.muted }]}>Expenses</Text>
+            <Text style={[styles.overviewValue, { color: colors.text }]}>
+              {formatCurrency(financialStats.totalExpenses)}
+            </Text>
+          </Card>
+        </View>
+
+        {/* Asset Summary */}
+        <Card variant="info" style={styles.assetCard}>
+          <View style={styles.assetHeader}>
+            <Text style={[styles.assetTitle, { color: colors.text }]}>Assets</Text>
+            <Text style={[styles.assetValue, { color: colors.tint }]}>
+              {formatCurrency(financialStats.totalAssetValue)}
+            </Text>
+          </View>
+          <View style={styles.assetBreakdown}>
+            <Text style={[styles.assetDetail, { color: colors.muted }]}>
+              Animal Sales: {formatCurrency(financialStats.animalSales)}
+            </Text>
+            <Text style={[styles.assetDetail, { color: colors.muted }]}>
+              Health Costs: {formatCurrency(financialStats.healthCosts)}
+            </Text>
+          </View>
+        </Card>
+
+        {/* Recent Transactions */}
+        <View style={styles.transactionsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Recent
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/reports")}>
+              <Text style={[styles.viewAllText, { color: colors.tint }]}>
+                View All
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {isLoading && !refreshing ? (
+            <LoadingIndicator message="Loading..." />
+          ) : transactions.length === 0 ? (
+            <Card variant="outlined" style={styles.emptyCard}>
+              <Text style={[styles.emptyText, { color: colors.muted }]}>
+                No transactions yet
+              </Text>
+              <Button
+                title="Add First Transaction"
+                onPress={handleAddTransaction}
+                variant="outline"
+                size="small"
               />
+            </Card>
+          ) : (
+            <View style={styles.transactionsList}>
+              {transactions.slice(0, 5).map((transaction) => (
+                <TransactionCard
+                  key={transaction.id}
+                  transaction={transaction}
+                  onPress={handleTransactionPress}
+                />
+              ))}
             </View>
           )}
-          
-          <TouchableOpacity
-            style={[styles.fab, { backgroundColor: colors.tint }]}
-            onPress={handleAddTransaction}
-            activeOpacity={0.8}
-          >
-            <Plus size={24} color="white" />
-          </TouchableOpacity>
-        </>
-      )}
+        </View>
+      </ScrollView>
+
+      {/* FAB */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.tint }]}
+        onPress={handleAddTransaction}
+      >
+        <Plus size={24} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -159,62 +256,112 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    paddingBottom: 0,
-  },
-  summaryCard: {
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 16,
-  },
-  statCard: {
+  scrollContainer: {
     flex: 1,
   },
-  netProfitContainer: {
-    alignItems: "center",
-  },
-  netProfitCard: {
-    minWidth: 200,
-  },
-  listContainer: {
-    flex: 1,
+  scrollContent: {
     padding: 20,
-    paddingTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
-  listContent: {
     paddingBottom: 100,
   },
+  netProfitCard: {
+    marginBottom: 24,
+    padding: 24,
+  },
+  netProfitContent: {
+    alignItems: 'center',
+  },
+  netProfitLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  netProfitValue: {
+    fontSize: 36,
+    fontWeight: '900',
+  },
+  overviewGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+  },
+  overviewCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 20,
+  },
+  overviewLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  overviewValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  assetCard: {
+    marginBottom: 24,
+    padding: 20,
+  },
+  assetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  assetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  assetValue: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  assetBreakdown: {
+    gap: 4,
+  },
+  assetDetail: {
+    fontSize: 14,
+  },
+  transactionsSection: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  viewAllText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyCard: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyText: {
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  transactionsList: {
+    gap: 12,
+  },
   fab: {
-    position: "absolute",
-    bottom: 32,
-    right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
     elevation: 8,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

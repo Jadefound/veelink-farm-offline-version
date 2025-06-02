@@ -1,5 +1,12 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from "react-native";
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
@@ -48,21 +55,33 @@ export default function Button({
       baseStyle.push({
         ...(styles.disabled as ViewStyle),
         backgroundColor: colors.muted,
-        borderColor: colors.muted
+        borderColor: colors.muted,
       } as ViewStyle);
     } else {
       switch (variant) {
         case "primary":
-          baseStyle.push({ backgroundColor: colors.tint, borderColor: colors.tint });
+          baseStyle.push({
+            backgroundColor: colors.tint,
+            borderColor: colors.tint,
+          });
           break;
         case "secondary":
-          baseStyle.push({ backgroundColor: colors.secondary, borderColor: colors.secondary });
+          baseStyle.push({
+            backgroundColor: colors.secondary,
+            borderColor: colors.secondary,
+          });
           break;
         case "outline":
-          baseStyle.push({ backgroundColor: colors.card, borderColor: colors.border });
+          baseStyle.push({
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          });
           break;
         case "danger":
-          baseStyle.push({ backgroundColor: colors.danger, borderColor: colors.danger });
+          baseStyle.push({
+            backgroundColor: colors.danger,
+            borderColor: colors.danger,
+          });
           break;
       }
     }
@@ -110,14 +129,16 @@ export default function Button({
         onPress={onPress}
         disabled={disabled || loading}
         activeOpacity={0.8}
-        style={[
-          styles.buttonWrapper,
-          fullWidth && styles.fullWidth,
-          style
-        ]}
+        style={[styles.buttonWrapper, fullWidth && styles.fullWidth, style]}
       >
         <LinearGradient
-          colors={(gradientColors || defaultGradientColors) as unknown as readonly [string, string, ...string[]]}
+          colors={
+            (gradientColors || defaultGradientColors) as unknown as readonly [
+              string,
+              string,
+              ...string[],
+            ]
+          }
           start={gradientStart}
           end={gradientEnd}
           style={[styles.button, styles[size], styles.gradientButton]}
@@ -157,37 +178,40 @@ export default function Button({
 
 const styles = StyleSheet.create({
   buttonWrapper: {
-    borderRadius: 12,
-    overflow: 'hidden',
+    borderRadius: 16,
+    overflow: "hidden",
   },
   button: {
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
+    borderWidth: 1.5,
     flexDirection: "row",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
 
   // Sizes
   small: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: 36,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    minHeight: 40,
+    borderRadius: 14,
   },
   medium: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    minHeight: 48,
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+    minHeight: 52,
+    borderRadius: 16,
   },
   large: {
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-    minHeight: 56,
+    paddingHorizontal: 26,
+    paddingVertical: 20,
+    minHeight: 60,
+    borderRadius: 18,
   },
 
   // Full width
@@ -197,7 +221,7 @@ const styles = StyleSheet.create({
 
   // Disabled
   disabled: {
-    opacity: 0.6,
+    opacity: 0.5,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -206,36 +230,40 @@ const styles = StyleSheet.create({
   gradientButton: {
     borderWidth: 0,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
   },
 
   // Text styles
   text: {
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
+    letterSpacing: 0.3,
   },
 
   // Icon
   icon: {
-    marginRight: 8,
+    marginRight: 10,
   },
 
   // Loader
   loader: {
-    marginHorizontal: 8,
+    marginHorizontal: 10,
   },
 
   // Text sizes
   smallText: {
     fontSize: 14,
+    fontWeight: "600",
   },
   mediumText: {
     fontSize: 16,
+    fontWeight: "700",
   },
   largeText: {
     fontSize: 18,
+    fontWeight: "700",
   },
 });

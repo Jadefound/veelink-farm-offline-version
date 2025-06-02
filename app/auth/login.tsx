@@ -96,7 +96,7 @@ export default function LoginScreen() {
             loading={isLoading}
             disabled={isLoading}
             fullWidth
-            style={styles.loginButton}  
+            style={styles.loginButton}
           />
 
           <View style={styles.registerContainer}>

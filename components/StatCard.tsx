@@ -9,6 +9,7 @@ interface StatCardProps {
   icon?: React.ReactNode;
   color?: string;
   style?: ViewStyle;
+  healthId?: string;
 }
 
 export default function StatCard({
@@ -17,16 +18,22 @@ export default function StatCard({
   icon,
   color = Colors.light.tint,
   style,
+  healthId,
 }: StatCardProps) {
   return (
-    <Card style={[styles.card, style]}>
+    <Card style={{ ...styles.card, ...style }}>
       <View style={styles.content}>
         <View style={styles.textContainer}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={[styles.value, { color }]}>{value}</Text>
+          <Text style={{ ...styles.value, color }}>{value}</Text>
         </View>
         {icon && (
-          <View style={[styles.iconContainer, { backgroundColor: color + "20" }]}>
+          <View
+            style={{
+              ...styles.iconContainer,
+              backgroundColor: color + "20",
+            }}
+          >
             {icon}
           </View>
         )}
@@ -37,8 +44,13 @@ export default function StatCard({
 
 const styles = StyleSheet.create({
   card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
     flex: 1,
-    minWidth: 150,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.05)",
   },
   content: {
     flexDirection: "row",
@@ -49,20 +61,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.light.muted,
-    marginBottom: 4,
+    marginBottom: 6,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   value: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 8,
+    marginLeft: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });

@@ -4,12 +4,14 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { generateId } from "@/utils/helpers";
 import { Transaction, TransactionType, TransactionCategory, Animal } from "@/types";
 import { useFarmStore } from "./farmStore";
+import { useHealthStore } from "./healthStore";
+import { useAnimalStore } from "./animalStore";
 
 interface FinancialState {
   transactions: Transaction[];
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   fetchTransactions: (farmId?: string) => Promise<Transaction[]>;
   getTransaction: (id: string) => Promise<Transaction | undefined>;
@@ -18,10 +20,14 @@ interface FinancialState {
   deleteTransaction: (id: string) => Promise<void>;
   getTransactionsByType: (type: TransactionType) => Transaction[];
   getTransactionsByCategory: (category: TransactionCategory) => Transaction[];
-  getFinancialStats: (farmId?: string) => {
+  getFinancialStats: (farmId: string) => {
     totalIncome: number;
     totalExpenses: number;
     netProfit: number;
+    healthCosts: number;
+    acquisitionCosts: number;
+    animalSales: number;
+    totalAssetValue: number;
     recentTransactions: number;
     byCategory: { category: string; amount: number; type: TransactionType }[];
   };
@@ -33,6 +39,7 @@ interface FinancialState {
     averageAnimalValue: number;
   }>;
   searchTransactions: (query: string) => Transaction[];
+  getTransactionById: (id: string) => Transaction | null;
 }
 
 export const useFinancialStore = create<FinancialState>()(
@@ -41,15 +48,15 @@ export const useFinancialStore = create<FinancialState>()(
       transactions: [],
       isLoading: false,
       error: null,
-      
+
       fetchTransactions: async (farmId) => {
         set({ isLoading: true, error: null });
-        
+
         try {
           // Get transactions from storage
           const transactionsData = await AsyncStorage.getItem("transactions");
           let transactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
-          
+
           // Filter by farm if farmId is provided
           if (farmId) {
             transactions = transactions.filter(transaction => transaction.farmId === farmId);
@@ -60,27 +67,27 @@ export const useFinancialStore = create<FinancialState>()(
               transactions = transactions.filter(transaction => transaction.farmId === currentFarm.id);
             }
           }
-          
+
           // Sort by date (newest first)
           transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
+
           set({ transactions, isLoading: false });
           return transactions;
         } catch (error: any) {
-          set({ 
-            error: error.message || "Failed to fetch transactions", 
-            isLoading: false 
+          set({
+            error: error.message || "Failed to fetch transactions",
+            isLoading: false
           });
           return [];
         }
       },
-      
+
       getTransaction: async (id) => {
         try {
           // Get transactions from storage
           const transactionsData = await AsyncStorage.getItem("transactions");
           const transactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
-          
+
           // Find transaction by id
           return transactions.find(transaction => transaction.id === id);
         } catch (error) {
@@ -88,198 +95,200 @@ export const useFinancialStore = create<FinancialState>()(
           return undefined;
         }
       },
-      
+
       createTransaction: async (transactionData) => {
         set({ isLoading: true, error: null });
-        
+
         try {
           // Get all transactions
           const transactionsData = await AsyncStorage.getItem("transactions");
           const allTransactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
-          
+
           const newTransaction: Transaction = {
             id: generateId(),
             ...transactionData,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
-          
+
           // Add new transaction
           const updatedTransactions = [...allTransactions, newTransaction];
-          
+
           // Save to storage
           await AsyncStorage.setItem("transactions", JSON.stringify(updatedTransactions));
-          
+
           // Update state with transactions for current farm
           const currentFarm = useFarmStore.getState().currentFarm;
           const farmTransactions = updatedTransactions
             .filter(transaction => transaction.farmId === (currentFarm?.id || transactionData.farmId))
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          set({ 
-            transactions: farmTransactions, 
-            isLoading: false 
+
+          set({
+            transactions: farmTransactions,
+            isLoading: false
           });
-          
+
           return newTransaction;
         } catch (error: any) {
-          set({ 
-            error: error.message || "Failed to create transaction", 
-            isLoading: false 
+          set({
+            error: error.message || "Failed to create transaction",
+            isLoading: false
           });
           throw error;
         }
       },
-      
+
       updateTransaction: async (id, transactionData) => {
         set({ isLoading: true, error: null });
-        
+
         try {
           // Get all transactions
           const transactionsData = await AsyncStorage.getItem("transactions");
           const allTransactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
-          
+
           // Find and update transaction
-          const updatedAllTransactions = allTransactions.map(transaction => 
-            transaction.id === id 
-              ? { 
-                  ...transaction, 
-                  ...transactionData, 
-                  updatedAt: new Date().toISOString() 
-                } 
+          const updatedAllTransactions = allTransactions.map(transaction =>
+            transaction.id === id
+              ? {
+                ...transaction,
+                ...transactionData,
+                updatedAt: new Date().toISOString()
+              }
               : transaction
           );
-          
+
           // Save to storage
           await AsyncStorage.setItem("transactions", JSON.stringify(updatedAllTransactions));
-          
+
           // Get updated transaction
           const updatedTransaction = updatedAllTransactions.find(t => t.id === id);
           if (!updatedTransaction) {
             throw new Error("Transaction not found");
           }
-          
+
           // Update state with transactions for current farm
           const currentFarm = useFarmStore.getState().currentFarm;
           const farmTransactions = updatedAllTransactions
             .filter(transaction => transaction.farmId === currentFarm?.id)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          set({ 
-            transactions: farmTransactions, 
-            isLoading: false 
+
+          set({
+            transactions: farmTransactions,
+            isLoading: false
           });
-          
+
           return updatedTransaction;
         } catch (error: any) {
-          set({ 
-            error: error.message || "Failed to update transaction", 
-            isLoading: false 
+          set({
+            error: error.message || "Failed to update transaction",
+            isLoading: false
           });
           throw error;
         }
       },
-      
+
       deleteTransaction: async (id) => {
         set({ isLoading: true, error: null });
-        
+
         try {
           // Get all transactions
           const transactionsData = await AsyncStorage.getItem("transactions");
           const allTransactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
-          
+
           // Filter out the transaction to delete
           const updatedAllTransactions = allTransactions.filter(transaction => transaction.id !== id);
-          
+
           // Save to storage
           await AsyncStorage.setItem("transactions", JSON.stringify(updatedAllTransactions));
-          
+
           // Update state with transactions for current farm
           const currentFarm = useFarmStore.getState().currentFarm;
           const farmTransactions = updatedAllTransactions
             .filter(transaction => transaction.farmId === currentFarm?.id)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          set({ 
-            transactions: farmTransactions, 
-            isLoading: false 
+
+          set({
+            transactions: farmTransactions,
+            isLoading: false
           });
         } catch (error: any) {
-          set({ 
-            error: error.message || "Failed to delete transaction", 
-            isLoading: false 
+          set({
+            error: error.message || "Failed to delete transaction",
+            isLoading: false
           });
           throw error;
         }
       },
-      
+
       getTransactionsByType: (type) => {
         return get().transactions.filter(transaction => transaction.type === type);
       },
-      
+
       getTransactionsByCategory: (category) => {
         return get().transactions.filter(transaction => transaction.category === category);
       },
-      
+
       searchTransactions: (query) => {
         const transactions = get().transactions;
         if (!query.trim()) return transactions;
-        
+
         const lowercaseQuery = query.toLowerCase();
-        return transactions.filter(transaction => 
+        return transactions.filter(transaction =>
           transaction.description.toLowerCase().includes(lowercaseQuery) ||
           transaction.category.toLowerCase().includes(lowercaseQuery) ||
           transaction.reference.toLowerCase().includes(lowercaseQuery)
         );
       },
-      
-      getFinancialStats: (farmId) => {
-        const transactions = get().transactions.filter(transaction => 
-          !farmId || transaction.farmId === farmId
-        );
-        
-        // Calculate totals
-        const totalIncome = transactions
-          .filter(t => t.type === "Income")
-          .reduce((sum, t) => sum + t.amount, 0);
-        
-        const totalExpenses = transactions
-          .filter(t => t.type === "Expense")
-          .reduce((sum, t) => sum + t.amount, 0);
-        
+
+      getFinancialStats: (farmId: string) => {
+        const { transactions } = get();
+        const farmTransactions = transactions.filter(t => t.farmId === farmId);
+
+        // Get health records costs from health store
+        const healthStore = useHealthStore.getState();
+        const healthRecords = healthStore.healthRecords.filter(h => h.farmId === farmId);
+        const healthCosts = healthRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+
+        // Get animal acquisition costs and sales
+        const animalStore = useAnimalStore.getState();
+        const animals = animalStore.animals.filter(a => a.farmId === farmId);
+
+        const acquisitionCosts = animals.reduce((sum, animal) => {
+          return sum + (animal.acquisitionCost || 0);
+        }, 0);
+
+        const animalSales = animals
+          .filter(animal => animal.status === 'Sold' && animal.salePrice)
+          .reduce((sum, animal) => sum + (animal.salePrice || 0), 0);
+
+        const totalIncome = farmTransactions
+          .filter(t => t.type === 'Income')
+          .reduce((sum, t) => sum + t.amount, 0) + animalSales;
+
+        const totalExpenses = farmTransactions
+          .filter(t => t.type === 'Expense')
+          .reduce((sum, t) => sum + t.amount, 0) + healthCosts + acquisitionCosts;
+
         const netProfit = totalIncome - totalExpenses;
-        
-        // Recent transactions (last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        const recentTransactions = transactions.filter(transaction => 
-          new Date(transaction.date) >= thirtyDaysAgo
-        ).length;
-        
-        // Group by category
-        const categoryGroups: Record<string, { amount: number; type: TransactionType }> = {};
-        transactions.forEach(transaction => {
-          if (!categoryGroups[transaction.category]) {
-            categoryGroups[transaction.category] = { amount: 0, type: transaction.type };
-          }
-          if (transaction.type === "Income") {
-            categoryGroups[transaction.category].amount += transaction.amount;
-          } else {
-            categoryGroups[transaction.category].amount += transaction.amount;
-          }
-        });
-        
+
+        // Calculate asset value for healthy animals
+        const healthyAnimals = animals.filter(animal =>
+          animal.status === 'Healthy' || animal.status === 'Pregnant'
+        );
+        const totalAssetValue = healthyAnimals.reduce((sum, animal) => {
+          return sum + (animal.currentValue || animal.acquisitionCost || 0);
+        }, 0);
+
         return {
           totalIncome,
           totalExpenses,
           netProfit,
-          recentTransactions,
-          byCategory: Object.entries(categoryGroups).map(([category, data]) => ({
-            category,
-            amount: data.amount,
-            type: data.type
-          }))
+          healthCosts,
+          acquisitionCosts,
+          animalSales,
+          totalAssetValue,
+          recentTransactions: farmTransactions.length,
+          byCategory: getTransactionsByCategory(farmId),
         };
       },
 
@@ -288,7 +297,7 @@ export const useFinancialStore = create<FinancialState>()(
           // Get animals from storage
           const animalsData = await AsyncStorage.getItem("animals");
           let animals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
-          
+
           // Filter by farm if farmId is provided
           if (farmId) {
             animals = animals.filter(animal => animal.farmId === farmId);
@@ -299,18 +308,18 @@ export const useFinancialStore = create<FinancialState>()(
               animals = animals.filter(animal => animal.farmId === currentFarm.id);
             }
           }
-          
+
           // Filter out sold and dead animals from asset calculation
-          const activeAnimals = animals.filter(animal => 
+          const activeAnimals = animals.filter(animal =>
             animal.status !== "Sold" && animal.status !== "Dead"
           );
-          
+
           const totalAnimalAssets = activeAnimals.reduce((sum, animal) => sum + (animal.price || 0), 0);
           const totalAcquisitionCost = activeAnimals.reduce((sum, animal) => sum + (animal.acquisitionPrice || 0), 0);
           const assetAppreciation = totalAnimalAssets - totalAcquisitionCost;
           const animalCount = activeAnimals.length;
           const averageAnimalValue = animalCount > 0 ? totalAnimalAssets / animalCount : 0;
-          
+
           return {
             totalAnimalAssets,
             totalAcquisitionCost,
@@ -328,6 +337,10 @@ export const useFinancialStore = create<FinancialState>()(
             averageAnimalValue: 0
           };
         }
+      },
+
+      getTransactionById: (id) => {
+        return get().transactions.find(transaction => transaction.id === id) || null;
       },
     }),
     {

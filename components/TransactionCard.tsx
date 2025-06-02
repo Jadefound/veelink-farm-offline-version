@@ -10,7 +10,10 @@ interface TransactionCardProps {
   onPress: (transaction: Transaction) => void;
 }
 
-export default function TransactionCard({ transaction, onPress }: TransactionCardProps) {
+export default function TransactionCard({
+  transaction,
+  onPress,
+}: TransactionCardProps) {
   // Get type color
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -23,25 +26,25 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
     }
   };
 
-  // Get category icon or color
+  // Get category icon or color with nature theme
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "Feed":
-        return "#f59e0b";
+        return Colors.light.nature.wheat; // Golden wheat color
       case "Medication":
-        return "#3b82f6";
+        return Colors.light.nature.sky; // Sky blue
       case "Equipment":
-        return "#6366f1";
+        return Colors.light.nature.bark; // Tree bark brown
       case "Veterinary":
-        return "#ec4899";
+        return Colors.light.secondary; // Golden yellow
       case "Labor":
-        return "#8b5cf6";
+        return Colors.light.nature.earth; // Rich earth brown
       case "Sales":
-        return "#10b981";
+        return Colors.light.nature.grass; // Fresh grass green
       case "Purchase":
-        return "#ef4444";
+        return Colors.light.danger; // Natural red
       case "Utilities":
-        return "#6b7280";
+        return Colors.light.nature.soil; // Rich soil brown
       default:
         return Colors.light.muted;
     }
@@ -52,57 +55,62 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
       <Card style={styles.card}>
         <View style={styles.header}>
           <View style={styles.typeContainer}>
-            <View 
+            <View
               style={[
-                styles.typeBadge, 
-                { backgroundColor: getTypeColor(transaction.type) }
+                styles.typeBadge,
+                { backgroundColor: getTypeColor(transaction.type) },
               ]}
             >
               <Text style={styles.typeText}>{transaction.type}</Text>
             </View>
             <Text style={styles.date}>{formatDate(transaction.date)}</Text>
           </View>
-          <Text 
+          <Text
             style={[
-              styles.amount, 
-              { 
-                color: transaction.type === "Income" 
-                  ? Colors.light.success 
-                  : Colors.light.danger 
-              }
+              styles.amount,
+              {
+                color:
+                  transaction.type === "Income"
+                    ? Colors.light.success
+                    : Colors.light.danger,
+              },
             ]}
           >
             {transaction.type === "Income" ? "+" : "-"}
             {formatCurrency(transaction.amount)}
           </Text>
         </View>
-        
+
         <View style={styles.content}>
           <Text style={styles.description} numberOfLines={2}>
             {transaction.description}
           </Text>
-          
+
           <View style={styles.detailsContainer}>
             <View style={styles.detailColumn}>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Category:</Text>
                 <View style={styles.categoryContainer}>
-                  <View 
+                  <View
                     style={[
-                      styles.categoryDot, 
-                      { backgroundColor: getCategoryColor(transaction.category) }
-                    ]} 
+                      styles.categoryDot,
+                      {
+                        backgroundColor: getCategoryColor(transaction.category),
+                      },
+                    ]}
                   />
                   <Text style={styles.detailValue}>{transaction.category}</Text>
                 </View>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Payment:</Text>
-                <Text style={styles.detailValue}>{transaction.paymentMethod}</Text>
+                <Text style={styles.detailValue}>
+                  {transaction.paymentMethod}
+                </Text>
               </View>
             </View>
-            
+
             {transaction.reference && (
               <View style={styles.detailColumn}>
                 <View style={styles.detailRow}>
@@ -122,74 +130,97 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
 
 const styles = StyleSheet.create({
   card: {
-    padding: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(56, 161, 105, 0.08)",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   typeContainer: {
     flexDirection: "column",
   },
   typeBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     alignSelf: "flex-start",
-    marginBottom: 4,
+    marginBottom: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   typeText: {
     color: "white",
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   date: {
     fontSize: 14,
     color: Colors.light.muted,
+    fontWeight: "500",
   },
   amount: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
   content: {
-    marginTop: 4,
+    marginTop: 6,
   },
   description: {
     fontSize: 16,
     color: Colors.light.text,
-    marginBottom: 12,
+    marginBottom: 16,
+    fontWeight: "600",
+    lineHeight: 22,
   },
   detailsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
+    backgroundColor: "rgba(56, 161, 105, 0.03)",
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(56, 161, 105, 0.08)",
   },
   detailColumn: {
     flex: 1,
   },
   detailRow: {
     flexDirection: "row",
-    marginBottom: 4,
+    marginBottom: 6,
+    alignItems: "center",
   },
   detailLabel: {
     fontSize: 14,
     color: Colors.light.muted,
-    width: 70,
+    width: 75,
+    fontWeight: "600",
   },
   detailValue: {
     fontSize: 14,
     color: Colors.light.text,
     flex: 1,
+    fontWeight: "500",
   },
   categoryContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   categoryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
   },
 });

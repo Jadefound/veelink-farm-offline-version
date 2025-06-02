@@ -1,7 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView, RefreshControl, TextInput } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  RefreshControl,
+  TextInput,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { PawPrint, Stethoscope, DollarSign, Search, TrendingUp, TrendingDown } from "lucide-react-native";
+import {
+  PawPrint,
+  Stethoscope,
+  DollarSign,
+  Search,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react-native";
 import { useFarmStore } from "@/store/farmStore";
 import { useAnimalStore } from "@/store/animalStore";
 import { useHealthStore } from "@/store/healthStore";
@@ -21,51 +35,66 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
-  const { farms, currentFarm, setCurrentFarm, isLoading: farmsLoading } = useFarmStore();
-  const { fetchAnimals, getAnimalStats, searchAnimals, isLoading: animalsLoading } = useAnimalStore();
-  const { fetchHealthRecords, getHealthStats, isLoading: healthLoading } = useHealthStore();
-  const { fetchTransactions, getFinancialStats, isLoading: financialLoading } = useFinancialStore();
+
+  const {
+    farms,
+    currentFarm,
+    setCurrentFarm,
+    isLoading: farmsLoading,
+  } = useFarmStore();
+  const {
+    fetchAnimals,
+    getAnimalStats,
+    searchAnimals,
+    isLoading: animalsLoading,
+  } = useAnimalStore();
+  const {
+    fetchHealthRecords,
+    getHealthStats,
+    isLoading: healthLoading,
+  } = useHealthStore();
+  const {
+    fetchTransactions,
+    getFinancialStats,
+    isLoading: financialLoading,
+  } = useFinancialStore();
   const { isDarkMode } = useThemeStore();
-  
+
   const colors = isDarkMode ? Colors.dark : Colors.light;
-  
-  const isLoading = 
-    farmsLoading || 
-    animalsLoading || 
-    healthLoading || 
-    financialLoading;
-  
+
+  const isLoading =
+    farmsLoading || animalsLoading || healthLoading || financialLoading;
+
   useEffect(() => {
     if (currentFarm) {
       loadData();
     }
   }, [currentFarm]);
-  
+
   const loadData = async () => {
     if (currentFarm) {
       await Promise.all([
         fetchAnimals(currentFarm.id),
         fetchHealthRecords(currentFarm.id),
-        fetchTransactions(currentFarm.id)
+        fetchTransactions(currentFarm.id),
       ]);
     }
   };
-  
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
-  
+
   const handleAddFarm = () => {
     router.push("/farm/add");
   };
-  
+
   const handleAnimalPress = (animal: any) => {
     router.push(`/animal/${animal.id}`);
   };
-  
+
   if (farms.length === 0 && !farmsLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -79,25 +108,31 @@ export default function DashboardScreen() {
       </View>
     );
   }
-  
+
   // Get stats
-  const animalStats = currentFarm ? getAnimalStats(currentFarm.id) : { total: 0, bySpecies: [], byStatus: [] };
-  const healthStats = currentFarm ? getHealthStats(currentFarm.id) : { total: 0, totalCost: 0, recentRecords: 0 };
-  const financialStats = currentFarm ? getFinancialStats(currentFarm.id) : { 
-    totalIncome: 0, 
-    totalExpenses: 0, 
-    netProfit: 0, 
-    recentTransactions: 0 
-  };
-  
+  const animalStats = currentFarm
+    ? getAnimalStats(currentFarm.id)
+    : { total: 0, bySpecies: [], byStatus: [] };
+  const healthStats = currentFarm
+    ? getHealthStats(currentFarm.id)
+    : { total: 0, totalCost: 0, recentRecords: 0 };
+  const financialStats = currentFarm
+    ? getFinancialStats(currentFarm.id)
+    : {
+      totalIncome: 0,
+      totalExpenses: 0,
+      netProfit: 0,
+      recentTransactions: 0,
+    };
+
   // Get search results
   const searchResults = searchQuery.trim() ? searchAnimals(searchQuery) : [];
-  
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
-      
-      <ScrollView 
+
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
@@ -109,18 +144,30 @@ export default function DashboardScreen() {
         ) : (
           <>
             {currentFarm && (
-              <Card style={[styles.farmCard, { backgroundColor: colors.card }]}>
-                <Text style={[styles.farmName, { color: colors.text }]}>{currentFarm.name}</Text>
+              <Card style={StyleSheet.flatten([styles.farmCard, { backgroundColor: colors.card }])}>
+                <Text style={[styles.farmName, { color: colors.text }]}>
+                  {currentFarm.name}
+                </Text>
                 <Text style={[styles.farmDetails, { color: colors.muted }]}>
-                  {currentFarm.type} • {currentFarm.size} {currentFarm.sizeUnit} • {currentFarm.location}
+                  {currentFarm.type} • {currentFarm.size} {currentFarm.sizeUnit}{" "}
+                  • {currentFarm.location}
                 </Text>
               </Card>
             )}
-            
+
             {/* Search Section */}
-            <Card style={[styles.searchCard, { backgroundColor: colors.card }]}>
-              <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
-                <Search size={20} color={colors.muted} style={styles.searchIcon} />
+            <Card style={StyleSheet.flatten([styles.searchCard, { backgroundColor: colors.card }])}>
+              <View
+                style={[
+                  styles.searchContainer,
+                  { backgroundColor: colors.surface },
+                ]}
+              >
+                <Search
+                  size={20}
+                  color={colors.muted}
+                  style={styles.searchIcon}
+                />
                 <TextInput
                   style={[styles.searchInput, { color: colors.text }]}
                   placeholder="Search animals by ID..."
@@ -129,10 +176,12 @@ export default function DashboardScreen() {
                   placeholderTextColor={colors.muted}
                 />
               </View>
-              
+
               {searchResults.length > 0 && (
                 <View style={styles.searchResults}>
-                  <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
+                  <Text
+                    style={[styles.searchResultsTitle, { color: colors.text }]}
+                  >
                     Search Results ({searchResults.length})
                   </Text>
                   {searchResults.slice(0, 3).map((animal) => (
@@ -154,9 +203,11 @@ export default function DashboardScreen() {
                 </View>
               )}
             </Card>
-            
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Farm Overview</Text>
-            
+
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Farm Overview
+            </Text>
+
             <View style={styles.statsContainer}>
               <StatCard
                 title="Total Animals"
@@ -173,10 +224,12 @@ export default function DashboardScreen() {
                 style={styles.statCard}
               />
             </View>
-            
+
             {animalStats.bySpecies.length > 0 && (
               <>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>By Species</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  By Species
+                </Text>
                 <View style={styles.speciesContainer}>
                   {animalStats.bySpecies.map((species, index) => (
                     <StatCard
@@ -191,9 +244,11 @@ export default function DashboardScreen() {
                 </View>
               </>
             )}
-            
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Financial Overview</Text>
-            
+
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Financial Overview
+            </Text>
+
             <View style={styles.statsContainer}>
               <StatCard
                 title="Total Income"
@@ -210,13 +265,24 @@ export default function DashboardScreen() {
                 style={styles.statCard}
               />
             </View>
-            
+
             <View style={styles.statsContainer}>
               <StatCard
                 title="Net Profit"
                 value={formatCurrency(financialStats.netProfit)}
-                icon={<DollarSign size={20} color={financialStats.netProfit >= 0 ? colors.success : colors.danger} />}
-                color={financialStats.netProfit >= 0 ? colors.success : colors.danger}
+                icon={
+                  <DollarSign
+                    size={20}
+                    color={
+                      financialStats.netProfit >= 0
+                        ? colors.success
+                        : colors.danger
+                    }
+                  />
+                }
+                color={
+                  financialStats.netProfit >= 0 ? colors.success : colors.danger
+                }
                 style={styles.statCard}
               />
               <StatCard
@@ -227,9 +293,11 @@ export default function DashboardScreen() {
                 style={styles.statCard}
               />
             </View>
-            
+
             <View style={styles.actionsContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Quick Actions
+              </Text>
               <View style={styles.buttonRow}>
                 <Button
                   title="Add Animal"
@@ -275,85 +343,115 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+    paddingBottom: 40,
   },
   farmCard: {
-    marginBottom: 20,
-    borderRadius: 16,
-    padding: 20,
+    marginBottom: 24,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(56, 161, 105, 0.1)",
   },
   farmName: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 6,
+    fontSize: 24,
+    fontWeight: "800",
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   farmDetails: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
+    opacity: 0.8,
   },
   searchCard: {
-    marginBottom: 20,
-    borderRadius: 16,
+    marginBottom: 24,
+    borderRadius: 20,
     padding: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(56, 161, 105, 0.08)",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: "rgba(56, 161, 105, 0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(56, 161, 105, 0.15)",
   },
   searchIcon: {
-    marginRight: 12,
+    marginRight: 14,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
+    fontWeight: "500",
   },
   searchResults: {
-    marginTop: 16,
+    marginTop: 18,
   },
   searchResultsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 14,
+    letterSpacing: 0.3,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginTop: 20,
-    marginBottom: 16,
+    fontSize: 22,
+    fontWeight: "800",
+    marginTop: 24,
+    marginBottom: 18,
+    letterSpacing: 0.5,
   },
   statsContainer: {
     flexDirection: "row",
     gap: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   statCard: {
     flex: 1,
+    borderRadius: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   speciesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 16,
+    gap: 14,
+    marginBottom: 20,
   },
   speciesCard: {
-    minWidth: 120,
+    minWidth: 130,
     flex: 0,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   actionsContainer: {
-    marginTop: 12,
-    marginBottom: 32,
+    marginTop: 16,
+    marginBottom: 40,
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: "rgba(56, 161, 105, 0.03)",
+    borderWidth: 1,
+    borderColor: "rgba(56, 161, 105, 0.1)",
   },
   buttonRow: {
     flexDirection: "row",
@@ -362,5 +460,11 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
 });

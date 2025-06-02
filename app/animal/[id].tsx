@@ -25,32 +25,40 @@ import TopNavigation from "@/components/TopNavigation";
 export default function AnimalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  
-  const { getAnimal, deleteAnimal, isLoading: animalLoading } = useAnimalStore();
-  const { fetchHealthRecords, healthRecords, isLoading: healthLoading } = useHealthStore();
+
+  const {
+    getAnimal,
+    deleteAnimal,
+    isLoading: animalLoading,
+  } = useAnimalStore();
+  const {
+    fetchHealthRecords,
+    healthRecords,
+    isLoading: healthLoading,
+  } = useHealthStore();
   const { isDarkMode } = useThemeStore();
-  
+
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const [animal, setAnimal] = useState<Animal | null>(null);
-  
+
   const isLoading = animalLoading || healthLoading;
-  
+
   useEffect(() => {
     if (id) {
       loadAnimalData();
     }
   }, [id]);
-  
+
   const loadAnimalData = async () => {
     if (!id) return;
-    
+
     const animalData = await getAnimal(id);
     if (animalData) {
       setAnimal(animalData);
       await fetchHealthRecords(animalData.farmId, animalData.id);
     }
   };
-  
+
   const handleDeleteAnimal = () => {
     Alert.alert(
       "Delete Animal",
@@ -73,22 +81,25 @@ export default function AnimalDetailScreen() {
       ]
     );
   };
-  
+
   const handleEditAnimal = () => {
-    Alert.alert("Edit Animal", "Edit functionality would go here");
+    router.push(`/animal/edit/${id}`);
   };
-  
+
   const handleAddHealthRecord = () => {
     router.push({
       pathname: "/health/add",
       params: { animalId: id },
     });
   };
-  
+
   const handleHealthRecordPress = (record: HealthRecord) => {
-    router.push(`/health/${record.id}`);
+    router.push({
+      pathname: '/health/[id]',
+      params: { id: record.id }
+    });
   };
-  
+
   // Get species-specific image
   const getAnimalImage = (species: string) => {
     switch (species.toLowerCase()) {
@@ -110,7 +121,7 @@ export default function AnimalDetailScreen() {
         return "https://images.unsplash.com/photo-1500595046743-cd271d694e30?q=80&w=1740&auto=format&fit=crop";
     }
   };
-  
+
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -130,7 +141,7 @@ export default function AnimalDetailScreen() {
         return colors.muted;
     }
   };
-  
+
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -139,23 +150,29 @@ export default function AnimalDetailScreen() {
       </View>
     );
   }
-  
+
   if (!animal) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <TopNavigation />
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: colors.danger }]}>Animal not found</Text>
-          <Button title="Go Back" onPress={() => router.back()} variant="outline" />
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            Animal not found
+          </Text>
+          <Button
+            title="Go Back"
+            onPress={() => router.back()}
+            variant="outline"
+          />
         </View>
       </View>
     );
   }
-  
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
-      
+
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Image
@@ -163,75 +180,118 @@ export default function AnimalDetailScreen() {
             style={styles.image}
             contentFit="cover"
           />
-          
+
           <View style={styles.overlay}>
             <Text style={styles.id}>ID: {animal.identificationNumber}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(animal.status) }]}>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(animal.status) },
+              ]}
+            >
               <Text style={styles.statusText}>{animal.status}</Text>
             </View>
           </View>
         </View>
-        
+
         <Card style={[styles.infoCard, { backgroundColor: colors.card }]}>
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Species</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{animal.species}</Text>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Species
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {animal.species}
+              </Text>
             </View>
-            
+
             <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Breed</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{animal.breed}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Gender</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{animal.gender}</Text>
-            </View>
-            
-            <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Age</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{calculateAge(animal.birthDate)}</Text>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Breed
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {animal.breed}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Weight</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{animal.weight} {animal.weightUnit}</Text>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Gender
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {animal.gender}
+              </Text>
             </View>
-            
+
             <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Birth Date</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{formatDate(animal.birthDate)}</Text>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Age
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {calculateAge(animal.birthDate)}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Acquisition Date</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{formatDate(animal.acquisitionDate)}</Text>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Weight
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {animal.weight} {animal.weightUnit}
+              </Text>
             </View>
-            
+
             <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Added</Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>{formatDate(animal.createdAt)}</Text>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Birth Date
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {formatDate(animal.birthDate)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoItem}>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Acquisition Date
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {formatDate(animal.acquisitionDate)}
+              </Text>
+            </View>
+
+            <View style={styles.infoItem}>
+              <Text style={[styles.infoLabel, { color: colors.muted }]}>
+                Added
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {formatDate(animal.createdAt)}
+              </Text>
             </View>
           </View>
         </Card>
-        
+
         {animal.notes && (
           <Card style={[styles.notesCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.notesLabel, { color: colors.text }]}>Notes</Text>
-            <Text style={[styles.notes, { color: colors.text }]}>{animal.notes}</Text>
+            <Text style={[styles.notesLabel, { color: colors.text }]}>
+              Notes
+            </Text>
+            <Text style={[styles.notes, { color: colors.text }]}>
+              {animal.notes}
+            </Text>
           </Card>
         )}
-        
+
         <View style={styles.recordsContainer}>
           <View style={styles.recordsHeader}>
-            <Text style={[styles.recordsTitle, { color: colors.text }]}>Health Records</Text>
+            <Text style={[styles.recordsTitle, { color: colors.text }]}>
+              Health Records
+            </Text>
             <Button
               title="Add Record"
               onPress={handleAddHealthRecord}
@@ -240,9 +300,11 @@ export default function AnimalDetailScreen() {
               icon={<Plus size={16} color={colors.tint} />}
             />
           </View>
-          
+
           {healthRecords.length === 0 ? (
-            <Text style={[styles.emptyText, { color: colors.muted }]}>No health records found</Text>
+            <Text style={[styles.emptyText, { color: colors.muted }]}>
+              No health records found
+            </Text>
           ) : (
             healthRecords.map((record) => (
               <HealthRecordCard
@@ -253,7 +315,7 @@ export default function AnimalDetailScreen() {
             ))
           )}
         </View>
-        
+
         <View style={styles.actionsContainer}>
           <Button
             title="Edit"
@@ -262,7 +324,7 @@ export default function AnimalDetailScreen() {
             icon={<Edit size={16} color={colors.tint} />}
             style={styles.actionButton}
           />
-          
+
           <Button
             title="Delete"
             onPress={handleDeleteAnimal}

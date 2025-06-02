@@ -380,6 +380,26 @@ export default function AddAnimalScreen() {
               </View>
             </View>
 
+            <View style={styles.row}>
+              <Input
+                label="Current Price *"
+                placeholder="Enter current market value"
+                keyboardType="numeric"
+                value={price}
+                onChangeText={setPrice}
+                containerStyle={styles.weightInput}
+              />
+
+              <Input
+                label="Acquisition Price *"
+                placeholder="Enter purchase cost"
+                keyboardType="numeric"
+                value={acquisitionPrice}
+                onChangeText={setAcquisitionPrice}
+                containerStyle={styles.weightInput}
+              />
+            </View>
+
             <Input
               label="Notes"
               placeholder="Enter any additional notes"
