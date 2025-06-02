@@ -6,6 +6,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAnimalStore } from "@/store/animalStore";
@@ -17,6 +18,7 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import TopNavigation from "@/components/TopNavigation";
 import { Picker } from "@react-native-picker/picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function AddAnimalScreen() {
   const router = useRouter();
@@ -35,17 +37,48 @@ export default function AddAnimalScreen() {
   const [status, setStatus] = useState<AnimalStatus>("Healthy");
   const [weight, setWeight] = useState("");
   const [weightUnit, setWeightUnit] = useState("kg");
+  const [price, setPrice] = useState("");
+  const [acquisitionPrice, setAcquisitionPrice] = useState("");
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState("");
 
-  const speciesOptions: AnimalSpecies[] = ["Cattle", "Goat", "Sheep", "Pig", "Chicken"];
+  // Date picker state
+  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
+  const [showAcquisitionDatePicker, setShowAcquisitionDatePicker] =
+    useState(false);
+
+  const speciesOptions: AnimalSpecies[] = [
+    "Cattle",
+    "Goat",
+    "Sheep",
+    "Pig",
+    "Chicken",
+  ];
   const statusOptions: AnimalStatus[] = ["Healthy", "Sick", "Sold", "Dead"];
+  const weightUnitOptions = ["kg", "lb", "g"];
 
   useEffect(() => {
     // Set today's date as default for acquisition date
     const today = new Date().toISOString().split("T")[0];
     setAcquisitionDate(today);
   }, []);
+
+  // Date picker handlers
+  const onBirthDateChange = (event: any, selectedDate?: Date) => {
+    setShowBirthDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      setBirthDate(formattedDate);
+    }
+  };
+
+  const onAcquisitionDateChange = (event: any, selectedDate?: Date) => {
+    setShowAcquisitionDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      setAcquisitionDate(formattedDate);
+    }
+  };
 
   const handleCreateAnimal = async () => {
     if (!currentFarm) {
@@ -54,7 +87,16 @@ export default function AddAnimalScreen() {
     }
 
     // Validate form
-    if (!identificationNumber || !species || !breed || !gender || !birthDate || !acquisitionDate || !status || !weight) {
+    if (
+      !identificationNumber ||
+      !species ||
+      !breed ||
+      !gender ||
+      !birthDate ||
+      !acquisitionDate ||
+      !status ||
+      !weight
+    ) {
       setFormError("Please fill in all required fields");
       return;
     }
@@ -73,6 +115,8 @@ export default function AddAnimalScreen() {
         status,
         weight: parseFloat(weight),
         weightUnit,
+        price: price ? parseFloat(price) : 0,
+        acquisitionPrice: acquisitionPrice ? parseFloat(acquisitionPrice) : 0,
         notes,
       });
 
@@ -92,14 +136,26 @@ export default function AddAnimalScreen() {
         keyboardVerticalOffset={100}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={[styles.title, { color: colors.text }]}>Add New Animal</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Add New Animal
+          </Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
             Enter the animal details to add to your farm
           </Text>
 
           {(error || formError) && (
-            <View style={[styles.errorContainer, { backgroundColor: colors.danger + "15", borderLeftColor: colors.danger }]}>
-              <Text style={[styles.errorText, { color: colors.danger }]}>{error || formError}</Text>
+            <View
+              style={[
+                styles.errorContainer,
+                {
+                  backgroundColor: colors.danger + "15",
+                  borderLeftColor: colors.danger,
+                },
+              ]}
+            >
+              <Text style={[styles.errorText, { color: colors.danger }]}>
+                {error || formError}
+              </Text>
             </View>
           )}
 
@@ -113,14 +169,21 @@ export default function AddAnimalScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Species</Text>
-              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface }}>
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 8,
+                  backgroundColor: colors.surface,
+                }}
+              >
                 <Picker
                   selectedValue={species}
                   onValueChange={setSpecies}
                   style={{ color: colors.text }}
                   dropdownIconColor={colors.text}
                 >
-                  {speciesOptions.map(option => (
+                  {speciesOptions.map((option) => (
                     <Picker.Item key={option} label={option} value={option} />
                   ))}
                 </Picker>
@@ -134,37 +197,149 @@ export default function AddAnimalScreen() {
               onChangeText={setBreed}
             />
 
-            <Input
-              label="Gender *"
-              placeholder="Male or Female"
-              value={gender}
-              onChangeText={(text) => setGender(text as "Male" | "Female")}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Gender *
+              </Text>
+              <View style={styles.radioContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.radioOption,
+                    gender === "Male" && styles.radioSelected,
+                  ]}
+                  onPress={() => setGender("Male")}
+                >
+                  <View
+                    style={[
+                      styles.radioButton,
+                      gender === "Male" && styles.radioButtonSelected,
+                      { borderColor: colors.tint },
+                    ]}
+                  >
+                    {gender === "Male" && (
+                      <View
+                        style={[
+                          styles.radioButtonInner,
+                          { backgroundColor: colors.tint },
+                        ]}
+                      />
+                    )}
+                  </View>
+                  <Text style={[styles.radioText, { color: colors.text }]}>
+                    Male
+                  </Text>
+                </TouchableOpacity>
 
-            <Input
-              label="Birth Date *"
-              placeholder="YYYY-MM-DD"
-              value={birthDate}
-              onChangeText={setBirthDate}
-            />
+                <TouchableOpacity
+                  style={[
+                    styles.radioOption,
+                    gender === "Female" && styles.radioSelected,
+                  ]}
+                  onPress={() => setGender("Female")}
+                >
+                  <View
+                    style={[
+                      styles.radioButton,
+                      gender === "Female" && styles.radioButtonSelected,
+                      { borderColor: colors.tint },
+                    ]}
+                  >
+                    {gender === "Female" && (
+                      <View
+                        style={[
+                          styles.radioButtonInner,
+                          { backgroundColor: colors.tint },
+                        ]}
+                      />
+                    )}
+                  </View>
+                  <Text style={[styles.radioText, { color: colors.text }]}>
+                    Female
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <Input
-              label="Acquisition Date *"
-              placeholder="YYYY-MM-DD"
-              value={acquisitionDate}
-              onChangeText={setAcquisitionDate}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Birth Date *
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.dateInput,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+                onPress={() => setShowBirthDatePicker(true)}
+              >
+                <Text style={{ color: birthDate ? colors.text : colors.muted }}>
+                  {birthDate || "YYYY-MM-DD"}
+                </Text>
+              </TouchableOpacity>
+              {showBirthDatePicker && (
+                <DateTimePicker
+                  value={birthDate ? new Date(birthDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={onBirthDateChange}
+                  maximumDate={new Date()}
+                />
+              )}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Acquisition Date *
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.dateInput,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+                onPress={() => setShowAcquisitionDatePicker(true)}
+              >
+                <Text
+                  style={{
+                    color: acquisitionDate ? colors.text : colors.muted,
+                  }}
+                >
+                  {acquisitionDate || "YYYY-MM-DD"}
+                </Text>
+              </TouchableOpacity>
+              {showAcquisitionDatePicker && (
+                <DateTimePicker
+                  value={
+                    acquisitionDate ? new Date(acquisitionDate) : new Date()
+                  }
+                  mode="date"
+                  display="default"
+                  onChange={onAcquisitionDateChange}
+                />
+              )}
+            </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Status</Text>
-              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface }}>
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 8,
+                  backgroundColor: colors.surface,
+                }}
+              >
                 <Picker
                   selectedValue={status}
                   onValueChange={setStatus}
                   style={{ color: colors.text }}
                   dropdownIconColor={colors.text}
                 >
-                  {statusOptions.map(option => (
+                  {statusOptions.map((option) => (
                     <Picker.Item key={option} label={option} value={option} />
                   ))}
                 </Picker>
@@ -181,13 +356,28 @@ export default function AddAnimalScreen() {
                 containerStyle={styles.weightInput}
               />
 
-              <Input
-                label="Unit"
-                placeholder="Unit"
-                value={weightUnit}
-                onChangeText={setWeightUnit}
-                containerStyle={styles.unitInput}
-              />
+              <View style={[styles.inputContainer, styles.unitInput]}>
+                <Text style={[styles.label, { color: colors.text }]}>Unit</Text>
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <Picker
+                    selectedValue={weightUnit}
+                    onValueChange={setWeightUnit}
+                    style={{ color: colors.text }}
+                    dropdownIconColor={colors.text}
+                  >
+                    {weightUnitOptions.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
             </View>
 
             <Input
@@ -288,5 +478,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginBottom: 8,
+  },
+  dateInput: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
+  radioContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    marginBottom: 16,
+  },
+  radioOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 24,
+  },
+  radioSelected: {
+    // You can add styling for the selected option if needed
+  },
+  radioButton: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  radioButtonSelected: {
+    // Border color is now applied dynamically
+  },
+  radioButtonInner: {
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+    // Background color is now applied dynamically
+  },
+  radioText: {
+    fontSize: 16,
   },
 });

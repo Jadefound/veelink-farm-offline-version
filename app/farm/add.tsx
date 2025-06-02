@@ -12,27 +12,41 @@ import { useFarmStore } from "@/store/farmStore";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import { Picker } from "@react-native-picker/picker";
 
 export default function AddFarmScreen() {
   const router = useRouter();
   const { createFarm, isLoading, error } = useFarmStore();
-  
+
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [size, setSize] = useState("");
   const [sizeUnit, setSizeUnit] = useState("acres");
   const [type, setType] = useState("");
   const [formError, setFormError] = useState("");
-  
+
+  // Farm type options
+  const farmTypes = [
+    "Dairy",
+    "Livestock",
+    "Mixed",
+    "Poultry",
+    "Crop",
+    "Aquaculture",
+    "Other",
+  ];
+  // Size unit options
+  const sizeUnits = ["acres", "hectares", "square meters", "square feet"];
+
   const handleCreateFarm = async () => {
     // Validate form
     if (!name || !location || !size || !type) {
       setFormError("Please fill in all required fields");
       return;
     }
-    
+
     setFormError("");
-    
+
     try {
       await createFarm({
         name,
@@ -41,13 +55,13 @@ export default function AddFarmScreen() {
         sizeUnit,
         type,
       });
-      
+
       router.back();
     } catch (error: any) {
       setFormError(error.message || "Failed to create farm");
     }
   };
-  
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -56,27 +70,27 @@ export default function AddFarmScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Add New Farm</Text>
-        
+
         {(error || formError) && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error || formError}</Text>
           </View>
         )}
-        
+
         <Input
           label="Farm Name *"
           placeholder="Enter farm name"
           value={name}
           onChangeText={setName}
         />
-        
+
         <Input
           label="Location *"
           placeholder="Enter farm location"
           value={location}
           onChangeText={setLocation}
         />
-        
+
         <View style={styles.row}>
           <Input
             label="Size *"
@@ -86,23 +100,39 @@ export default function AddFarmScreen() {
             onChangeText={setSize}
             containerStyle={styles.sizeInput}
           />
-          
-          <Input
-            label="Unit"
-            placeholder="Unit"
-            value={sizeUnit}
-            onChangeText={setSizeUnit}
-            containerStyle={styles.unitInput}
-          />
+
+          <View style={[styles.unitInput, styles.inputContainer]}>
+            <Text style={styles.label}>Unit</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={sizeUnit}
+                onValueChange={(itemValue) => setSizeUnit(itemValue)}
+                style={styles.picker}
+              >
+                {sizeUnits.map((unit) => (
+                  <Picker.Item key={unit} label={unit} value={unit} />
+                ))}
+              </Picker>
+            </View>
+          </View>
         </View>
-        
-        <Input
-          label="Farm Type *"
-          placeholder="e.g., Dairy, Livestock, Mixed"
-          value={type}
-          onChangeText={setType}
-        />
-        
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Farm Type *</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={type}
+              onValueChange={(itemValue) => setType(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select farm type" value="" />
+              {farmTypes.map((farmType) => (
+                <Picker.Item key={farmType} label={farmType} value={farmType} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
         <View style={styles.buttonContainer}>
           <Button
             title="Cancel"
@@ -110,7 +140,7 @@ export default function AddFarmScreen() {
             variant="outline"
             style={styles.button}
           />
-          
+
           <Button
             title="Create Farm"
             onPress={handleCreateFarm}
@@ -166,5 +196,23 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: Colors.light.text,
+    fontWeight: "500",
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 8,
+    backgroundColor: "white",
+  },
+  picker: {
+    height: 50,
   },
 });

@@ -29,7 +29,7 @@ export type AnimalStatus =
   | "Growing"
   | "ForSale"
   | "Sold"
-  | "Deceased";
+  | "Dead"; // Changed from "Deceased" to "Dead" to match usage in the code
 
 export type Animal = {
   id: string;
@@ -43,6 +43,8 @@ export type Animal = {
   status: AnimalStatus;
   weight: number;
   weightUnit: string;
+  price: number; // Current market value of the animal
+  acquisitionPrice: number; // Original purchase price
   notes: string;
   createdAt: string;
   updatedAt: string;

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { generateId } from "@/utils/helpers";
-import { Transaction, TransactionType, TransactionCategory } from "@/types";
+import { Transaction, TransactionType, TransactionCategory, Animal } from "@/types";
 import { useFarmStore } from "./farmStore";
 
 interface FinancialState {
@@ -25,6 +25,13 @@ interface FinancialState {
     recentTransactions: number;
     byCategory: { category: string; amount: number; type: TransactionType }[];
   };
+  getAssetStats: (farmId?: string) => Promise<{
+    totalAnimalAssets: number;
+    totalAcquisitionCost: number;
+    assetAppreciation: number;
+    animalCount: number;
+    averageAnimalValue: number;
+  }>;
   searchTransactions: (query: string) => Transaction[];
 }
 
@@ -274,6 +281,53 @@ export const useFinancialStore = create<FinancialState>()(
             type: data.type
           }))
         };
+      },
+
+      getAssetStats: async (farmId) => {
+        try {
+          // Get animals from storage
+          const animalsData = await AsyncStorage.getItem("animals");
+          let animals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
+          
+          // Filter by farm if farmId is provided
+          if (farmId) {
+            animals = animals.filter(animal => animal.farmId === farmId);
+          } else {
+            // Use current farm from farmStore if no farmId is provided
+            const currentFarm = useFarmStore.getState().currentFarm;
+            if (currentFarm) {
+              animals = animals.filter(animal => animal.farmId === currentFarm.id);
+            }
+          }
+          
+          // Filter out sold and dead animals from asset calculation
+          const activeAnimals = animals.filter(animal => 
+            animal.status !== "Sold" && animal.status !== "Dead"
+          );
+          
+          const totalAnimalAssets = activeAnimals.reduce((sum, animal) => sum + (animal.price || 0), 0);
+          const totalAcquisitionCost = activeAnimals.reduce((sum, animal) => sum + (animal.acquisitionPrice || 0), 0);
+          const assetAppreciation = totalAnimalAssets - totalAcquisitionCost;
+          const animalCount = activeAnimals.length;
+          const averageAnimalValue = animalCount > 0 ? totalAnimalAssets / animalCount : 0;
+          
+          return {
+            totalAnimalAssets,
+            totalAcquisitionCost,
+            assetAppreciation,
+            animalCount,
+            averageAnimalValue
+          };
+        } catch (error) {
+          console.error("Failed to get asset stats:", error);
+          return {
+            totalAnimalAssets: 0,
+            totalAcquisitionCost: 0,
+            assetAppreciation: 0,
+            animalCount: 0,
+            averageAnimalValue: 0
+          };
+        }
       },
     }),
     {
