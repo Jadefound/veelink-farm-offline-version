@@ -41,6 +41,20 @@ interface FinancialState {
   }>;
   searchTransactions: (query: string) => Transaction[];
   getTransactionById: (id: string) => Transaction | null;
+  getAnimalProfitability: (farmId: string) => Promise<{
+    animalId: string;
+    identificationNumber: string;
+    totalCosts: number;
+    revenue: number;
+    profit: number;
+    profitMargin: number;
+  }[]>;
+  getPortfolioValue: (farmId: string) => Promise<{
+    totalValue: number;
+    totalCost: number;
+    unrealizedGain: number;
+    roi: number;
+  }>;
 }
 
 export const useFinancialStore = create<FinancialState>()(
@@ -101,29 +115,27 @@ export const useFinancialStore = create<FinancialState>()(
         set({ isLoading: true, error: null });
 
         try {
-          // If transaction is animal sale, create both transaction and update animal
-          if (transactionData.category === 'AnimalSale') {
-            const animalStore = useAnimalStore.getState();
-            const animal = await animalStore.getAnimal(transactionData.animalId!);
-
-            if (animal) {
-              await animalStore.updateAnimal(animal.id, {
-                status: 'Sold',
-                salePrice: transactionData.amount
-              });
-            }
-          }
-
-          // Get all transactions
-          const transactionsData = await AsyncStorage.getItem("transactions");
-          const allTransactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
-
           const newTransaction: Transaction = {
             id: generateId(),
             ...transactionData,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
+
+          // Handle animal sale transactions
+          if (transactionData.category === 'Sales' && transactionData.reference?.startsWith('ANIMAL-')) {
+            const animalStore = useAnimalStore.getState();
+            const animalId = transactionData.reference.replace('ANIMAL-', '');
+
+            await animalStore.updateAnimal(animalId, {
+              status: 'Sold',
+              price: transactionData.amount, // Use price instead of salePrice
+            });
+          }
+
+          // Get all transactions
+          const transactionsData = await AsyncStorage.getItem("transactions");
+          const allTransactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
 
           // Add new transaction
           const updatedTransactions = [...allTransactions, newTransaction];
@@ -258,7 +270,7 @@ export const useFinancialStore = create<FinancialState>()(
         return transactions.filter(transaction =>
           transaction.description.toLowerCase().includes(lowercaseQuery) ||
           transaction.category.toLowerCase().includes(lowercaseQuery) ||
-          transaction.reference.toLowerCase().includes(lowercaseQuery)
+          (transaction.reference && transaction.reference.toLowerCase().includes(lowercaseQuery))
         );
       },
 
@@ -276,12 +288,12 @@ export const useFinancialStore = create<FinancialState>()(
         const animals = animalStore.animals.filter(a => a.farmId === farmId);
 
         const acquisitionCosts = animals.reduce((sum, animal) => {
-          return sum + (animal.acquisitionCost || 0);
+          return sum + (animal.acquisitionPrice || 0);
         }, 0);
 
         const animalSales = animals
-          .filter(animal => animal.status === 'Sold' && animal.salePrice)
-          .reduce((sum, animal) => sum + (animal.salePrice || 0), 0);
+          .filter(animal => animal.status === 'Sold' && animal.price)
+          .reduce((sum, animal) => sum + (animal.price || 0), 0);
 
         const totalIncome = farmTransactions
           .filter(t => t.type === 'Income')
@@ -298,7 +310,7 @@ export const useFinancialStore = create<FinancialState>()(
           animal.status === 'Healthy' || animal.status === 'Pregnant'
         );
         const totalAssetValue = healthyAnimals.reduce((sum, animal) => {
-          return sum + (animal.currentValue || animal.acquisitionCost || 0);
+          return sum + (animal.estimatedValue || animal.acquisitionPrice || 0);
         }, 0);
 
         // Group transactions by category for farm
@@ -378,6 +390,64 @@ export const useFinancialStore = create<FinancialState>()(
 
       getTransactionById: (id) => {
         return get().transactions.find(transaction => transaction.id === id) || null;
+      },
+
+      getAnimalProfitability: async (farmId) => {
+        try {
+          const animalStore = useAnimalStore.getState();
+          const animals = await animalStore.fetchAnimals(farmId);
+
+          return animals.map(animal => {
+            const totalCosts = animal.acquisitionPrice || 0; // Use acquisitionPrice instead of acquisitionCost
+
+            // Calculate revenue from sales
+            const revenue = animal.status === 'Sold' ? (animal.price || 0) : 0; // Use price instead of salePrice
+            const profit = revenue - totalCosts;
+            const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+            return {
+              animalId: animal.id,
+              identificationNumber: animal.identificationNumber,
+              totalCosts,
+              revenue,
+              profit,
+              profitMargin,
+            };
+          });
+        } catch (error) {
+          console.error('Failed to calculate animal profitability:', error);
+          return [];
+        }
+      },
+
+      getPortfolioValue: async (farmId) => {
+        try {
+          const animalStore = useAnimalStore.getState();
+          const animals = await animalStore.fetchAnimals(farmId);
+
+          const totalValue = animals.reduce((sum, animal) => {
+            return sum + (animal.estimatedValue || animal.acquisitionPrice || 0); // Use estimatedValue instead of currentValue
+          }, 0);
+
+          const totalCost = animals.reduce((sum, animal) => {
+            return sum + (animal.acquisitionPrice || 0); // Use acquisitionPrice instead of acquisitionCost
+          }, 0);
+
+          return {
+            totalValue,
+            totalCost,
+            unrealizedGain: totalValue - totalCost,
+            roi: totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0,
+          };
+        } catch (error) {
+          console.error('Failed to calculate portfolio value:', error);
+          return {
+            totalValue: 0,
+            totalCost: 0,
+            unrealizedGain: 0,
+            roi: 0,
+          };
+        }
       },
     }),
     {

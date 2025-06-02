@@ -95,19 +95,20 @@ export type TransactionCategory =
   | "Utilities"
   | "Other";
 
-export type Transaction = {
+export interface Transaction {
   id: string;
   farmId: string;
-  date: string;
   type: TransactionType;
-  amount: number;
   category: TransactionCategory;
+  amount: number;
+  date: string;
   description: string;
   paymentMethod: string;
-  reference: string;
+  reference?: string;
+  animalId?: string;
   createdAt: string;
   updatedAt: string;
-};
+}
 
 export type User = {
   id: string;

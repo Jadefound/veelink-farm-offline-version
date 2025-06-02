@@ -15,14 +15,14 @@ import TopNavigation from "@/components/TopNavigation";
 export default function HealthRecordDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  
+
   const {
     getHealthRecord,
     deleteHealthRecord,
     isLoading,
   } = useHealthStore();
   const { isDarkMode } = useThemeStore();
-  
+
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const [record, setRecord] = useState<HealthRecord | null>(null);
 
@@ -34,7 +34,7 @@ export default function HealthRecordDetailScreen() {
 
   const loadHealthRecord = async () => {
     if (!id) return;
-    
+
     const healthRecord = await getHealthRecord(id);
     if (healthRecord) {
       setRecord(healthRecord);
@@ -66,8 +66,8 @@ export default function HealthRecordDetailScreen() {
 
   const handleEditRecord = () => {
     router.push({
-      pathname: '/health/edit/[id]',
-      params: { id: id }
+      pathname: '/health/add',
+      params: { editId: id }
     });
   };
 
@@ -101,7 +101,7 @@ export default function HealthRecordDetailScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
-      
+
       <ScrollView contentContainerStyle={styles.contentContainer}>
         {/* Header Card */}
         <Card variant="elevated" style={styles.headerCard}>
@@ -181,7 +181,7 @@ export default function HealthRecordDetailScreen() {
         {(record.diagnosis || record.treatment || record.medication) && (
           <Card variant="success" style={styles.treatmentCard}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Treatment Details</Text>
-            
+
             {record.diagnosis && (
               <View style={styles.treatmentItem}>
                 <Text style={[styles.treatmentLabel, { color: colors.muted }]}>Diagnosis</Text>

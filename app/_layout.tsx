@@ -10,7 +10,6 @@ import { useThemeStore } from "@/store/themeStore";
 import { Platform } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import FontDisplay from 'expo-font/build/FontDisplay'
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -20,6 +19,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
+    ...FontAwesome.font,
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 

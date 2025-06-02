@@ -121,6 +121,16 @@ export default function AddAnimalScreen() {
     setFormError("");
 
     try {
+      // Calculate age from birth date
+      const birthDate = new Date(formData.birthDate);
+      const now = new Date();
+      const ageInYears = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+
+      // Derive health status from status
+      const healthStatus = formData.status === 'Healthy' ? 'healthy' :
+        formData.status === 'Sick' ? 'sick' :
+          formData.status === 'Recovering' ? 'recovering' : 'healthy';
+
       await createAnimal({
         farmId: currentFarm.id,
         identificationNumber: formData.identificationNumber,
@@ -135,6 +145,9 @@ export default function AddAnimalScreen() {
         price: formData.currentValue ? parseFloat(formData.currentValue) : 0,
         acquisitionPrice: formData.acquisitionCost ? parseFloat(formData.acquisitionCost) : 0,
         notes: formData.notes,
+        age: ageInYears,
+        healthStatus: healthStatus,
+        estimatedValue: formData.currentValue ? parseFloat(formData.currentValue) : 0,
       });
 
       router.back();
