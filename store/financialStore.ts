@@ -20,6 +20,7 @@ interface FinancialState {
   deleteTransaction: (id: string) => Promise<void>;
   getTransactionsByType: (type: TransactionType) => Transaction[];
   getTransactionsByCategory: (category: TransactionCategory) => Transaction[];
+  getTransactionsByCategoryAndFarm: (category: TransactionCategory, farmId?: string) => Transaction[];
   getFinancialStats: (farmId: string) => {
     totalIncome: number;
     totalExpenses: number;
@@ -100,6 +101,19 @@ export const useFinancialStore = create<FinancialState>()(
         set({ isLoading: true, error: null });
 
         try {
+          // If transaction is animal sale, create both transaction and update animal
+          if (transactionData.category === 'AnimalSale') {
+            const animalStore = useAnimalStore.getState();
+            const animal = await animalStore.getAnimal(transactionData.animalId!);
+
+            if (animal) {
+              await animalStore.updateAnimal(animal.id, {
+                status: 'Sold',
+                salePrice: transactionData.amount
+              });
+            }
+          }
+
           // Get all transactions
           const transactionsData = await AsyncStorage.getItem("transactions");
           const allTransactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
@@ -228,6 +242,14 @@ export const useFinancialStore = create<FinancialState>()(
         return get().transactions.filter(transaction => transaction.category === category);
       },
 
+      getTransactionsByCategoryAndFarm: (category: TransactionCategory, farmId?: string) => {
+        const transactions = get().transactions;
+        return transactions.filter(transaction =>
+          transaction.category === category &&
+          (!farmId || transaction.farmId === farmId)
+        );
+      },
+
       searchTransactions: (query) => {
         const transactions = get().transactions;
         if (!query.trim()) return transactions;
@@ -279,6 +301,21 @@ export const useFinancialStore = create<FinancialState>()(
           return sum + (animal.currentValue || animal.acquisitionCost || 0);
         }, 0);
 
+        // Group transactions by category for farm
+        const categoryGroups: Record<string, { amount: number; type: TransactionType }> = {};
+        farmTransactions.forEach(transaction => {
+          if (!categoryGroups[transaction.category]) {
+            categoryGroups[transaction.category] = { amount: 0, type: transaction.type };
+          }
+          categoryGroups[transaction.category].amount += transaction.amount;
+        });
+
+        const byCategory = Object.entries(categoryGroups).map(([category, data]) => ({
+          category,
+          amount: data.amount,
+          type: data.type
+        }));
+
         return {
           totalIncome,
           totalExpenses,
@@ -288,7 +325,7 @@ export const useFinancialStore = create<FinancialState>()(
           animalSales,
           totalAssetValue,
           recentTransactions: farmTransactions.length,
-          byCategory: getTransactionsByCategory(farmId),
+          byCategory,
         };
       },
 

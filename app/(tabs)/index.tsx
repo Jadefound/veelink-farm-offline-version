@@ -133,172 +133,189 @@ export default function DashboardScreen() {
       <TopNavigation />
 
       <ScrollView
-        style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.tint}
+          />
         }
+        showsVerticalScrollIndicator={false}
       >
-        {isLoading && !refreshing ? (
-          <LoadingIndicator message="Loading farm data..." />
+        {!currentFarm ? (
+          <EmptyState
+            title="Welcome to Veelink Farm"
+            message="Start by adding your first farm to manage your livestock, health records, and financial activities."
+            buttonTitle="Add Your First Farm"
+            onButtonPress={handleAddFarm}
+            icon={<PawPrint size={48} color={colors.tint} />}
+          />
         ) : (
           <>
-            {currentFarm && (
-              <Card style={StyleSheet.flatten([styles.farmCard, { backgroundColor: colors.card }])}>
-                <Text style={[styles.farmName, { color: colors.text }]}>
-                  {currentFarm.name}
-                </Text>
-                <Text style={[styles.farmDetails, { color: colors.muted }]}>
-                  {currentFarm.type} • {currentFarm.size} {currentFarm.sizeUnit}{" "}
-                  • {currentFarm.location}
-                </Text>
-              </Card>
-            )}
+            {/* Farm Welcome Card */}
+            <Card variant="outlined" style={[styles.welcomeCard, { backgroundColor: colors.tint + '08' }]}>
+              <View style={styles.welcomeContent}>
+                <View style={[styles.farmIcon, { backgroundColor: colors.tint + '15' }]}>
+                  <PawPrint size={28} color={colors.tint} />
+                </View>
+                <View style={styles.welcomeText}>
+                  <Text style={[styles.welcomeTitle, { color: colors.text }]}>
+                    Welcome back!
+                  </Text>
+                  <Text style={[styles.farmName, { color: colors.tint }]}>
+                    {currentFarm.name}
+                  </Text>
+                  <Text style={[styles.farmDetails, { color: colors.muted }]}>
+                    {currentFarm.location} • {animalStats.total} animals
+                  </Text>
+                </View>
+              </View>
+            </Card>
 
-            {/* Search Section */}
-            <Card style={StyleSheet.flatten([styles.searchCard, { backgroundColor: colors.card }])}>
-              <View
-                style={[
-                  styles.searchContainer,
-                  { backgroundColor: colors.surface },
-                ]}
-              >
-                <Search
-                  size={20}
-                  color={colors.muted}
-                  style={styles.searchIcon}
-                />
+            {/* Search Card */}
+            <Card variant="outlined" style={styles.searchCard}>
+              <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+                <Search size={20} color={colors.muted} style={styles.searchIcon} />
                 <TextInput
                   style={[styles.searchInput, { color: colors.text }]}
-                  placeholder="Search animals by ID..."
+                  placeholder="Search animals..."
+                  placeholderTextColor={colors.muted}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  placeholderTextColor={colors.muted}
                 />
               </View>
 
-              {searchResults.length > 0 && (
+              {searchQuery.length > 0 && (
                 <View style={styles.searchResults}>
-                  <Text
-                    style={[styles.searchResultsTitle, { color: colors.text }]}
-                  >
-                    Search Results ({searchResults.length})
+                  <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
+                    Search Results
                   </Text>
-                  {searchResults.slice(0, 3).map((animal) => (
+                  {searchAnimals(searchQuery).slice(0, 3).map((animal) => (
                     <AnimalCard
                       key={animal.id}
                       animal={animal}
                       onPress={handleAnimalPress}
-                      compact
                     />
                   ))}
-                  {searchResults.length > 3 && (
-                    <Button
-                      title={`View all ${searchResults.length} results`}
-                      onPress={() => router.push("/animals")}
-                      variant="outline"
-                      size="small"
-                    />
-                  )}
                 </View>
               )}
             </Card>
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Farm Overview
-            </Text>
-
-            <View style={styles.statsContainer}>
-              <StatCard
-                title="Total Animals"
-                value={animalStats.total}
-                icon={<PawPrint size={20} color={colors.tint} />}
-                color={colors.tint}
-                style={styles.statCard}
-              />
-              <StatCard
-                title="Health Records"
-                value={healthStats.total}
-                icon={<Stethoscope size={20} color={colors.secondary} />}
-                color={colors.secondary}
-                style={styles.statCard}
-              />
-            </View>
-
-            {animalStats.bySpecies.length > 0 && (
-              <>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  By Species
-                </Text>
-                <View style={styles.speciesContainer}>
-                  {animalStats.bySpecies.map((species, index) => (
-                    <StatCard
-                      key={species.species}
-                      title={species.species}
-                      value={species.count}
-                      icon={<PawPrint size={16} color={colors.tint} />}
-                      color={colors.tint}
-                      style={styles.speciesCard}
-                    />
-                  ))}
-                </View>
-              </>
-            )}
-
+            {/* Financial Overview */}
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Financial Overview
             </Text>
-
             <View style={styles.statsContainer}>
-              <StatCard
-                title="Total Income"
-                value={formatCurrency(financialStats.totalIncome)}
-                icon={<TrendingUp size={20} color={colors.success} />}
-                color={colors.success}
-                style={styles.statCard}
-              />
-              <StatCard
-                title="Total Expenses"
-                value={formatCurrency(financialStats.totalExpenses)}
-                icon={<TrendingDown size={20} color={colors.danger} />}
-                color={colors.danger}
-                style={styles.statCard}
-              />
+              <Card variant="success" style={styles.statCard}>
+                <View style={styles.statContent}>
+                  <View style={[styles.statIcon, { backgroundColor: colors.success + '20' }]}>
+                    <DollarSign size={20} color={colors.success} />
+                  </View>
+                  <View style={styles.statText}>
+                    <Text style={[styles.statLabel, { color: colors.muted }]}>Net Profit</Text>
+                    <Text style={[styles.statValue, {
+                      color: financialStats.netProfit >= 0 ? colors.success : colors.danger
+                    }]}>
+                      {formatCurrency(financialStats.netProfit)}
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+
+              <Card variant="warning" style={styles.statCard}>
+                <View style={styles.statContent}>
+                  <View style={[styles.statIcon, { backgroundColor: colors.info + '20' }]}>
+                    <Stethoscope size={20} color={colors.info} />
+                  </View>
+                  <View style={styles.statText}>
+                    <Text style={[styles.statLabel, { color: colors.muted }]}>Health Costs</Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>
+                      {formatCurrency(healthStats.totalCost)}
+                    </Text>
+                  </View>
+                </View>
+              </Card>
             </View>
 
-            <View style={styles.statsContainer}>
-              <StatCard
-                title="Net Profit"
-                value={formatCurrency(financialStats.netProfit)}
-                icon={
-                  <DollarSign
-                    size={20}
-                    color={
-                      financialStats.netProfit >= 0
-                        ? colors.success
-                        : colors.danger
-                    }
-                  />
-                }
-                color={
-                  financialStats.netProfit >= 0 ? colors.success : colors.danger
-                }
-                style={styles.statCard}
-              />
-              <StatCard
-                title="Health Costs"
-                value={formatCurrency(healthStats.totalCost)}
-                icon={<Stethoscope size={20} color={colors.secondary} />}
-                color={colors.secondary}
-                style={styles.statCard}
-              />
+            {/* Animal Stats Grid */}
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Livestock Overview
+            </Text>
+            <View style={styles.animalStatsGrid}>
+              <Card variant="info" style={styles.totalAnimalsCard}>
+                <View style={styles.totalAnimalsContent}>
+                  <Text style={[styles.totalAnimalsNumber, { color: colors.tint }]}>
+                    {animalStats.total}
+                  </Text>
+                  <Text style={[styles.totalAnimalsLabel, { color: colors.text }]}>
+                    Total Animals
+                  </Text>
+                </View>
+              </Card>
+
+              {animalStats.bySpecies.slice(0, 3).map((species) => (
+                <Card key={species.species} variant="outlined" style={styles.speciesCard}>
+                  <View style={styles.speciesContent}>
+                    <Text style={[styles.speciesCount, { color: colors.text }]}>
+                      {species.count}
+                    </Text>
+                    <Text style={[styles.speciesName, { color: colors.muted }]}>
+                      {species.species}
+                    </Text>
+                  </View>
+                </Card>
+              ))}
             </View>
 
-            <View style={styles.actionsContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {/* Health Overview */}
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Health Summary
+            </Text>
+            <View style={styles.healthGrid}>
+              <Card variant="success" style={styles.healthCard}>
+                <View style={styles.healthContent}>
+                  <View style={[styles.healthIcon, { backgroundColor: colors.success + '15' }]}>
+                    <TrendingUp size={18} color={colors.success} />
+                  </View>
+                  <Text style={[styles.healthLabel, { color: colors.muted }]}>Healthy</Text>
+                  <Text style={[styles.healthValue, { color: colors.text }]}>
+                    {animalStats.byStatus.find(s => s.status === 'Healthy')?.count || 0}
+                  </Text>
+                </View>
+              </Card>
+
+              <Card variant="warning" style={styles.healthCard}>
+                <View style={styles.healthContent}>
+                  <View style={[styles.healthIcon, { backgroundColor: colors.warning + '15' }]}>
+                    <TrendingDown size={18} color={colors.warning} />
+                  </View>
+                  <Text style={[styles.healthLabel, { color: colors.muted }]}>Needs Attention</Text>
+                  <Text style={[styles.healthValue, { color: colors.text }]}>
+                    {animalStats.byStatus.find(s => s.status === 'Sick')?.count || 0}
+                  </Text>
+                </View>
+              </Card>
+
+              <Card variant="info" style={styles.healthCard}>
+                <View style={styles.healthContent}>
+                  <View style={[styles.healthIcon, { backgroundColor: colors.info + '15' }]}>
+                    <Stethoscope size={18} color={colors.info} />
+                  </View>
+                  <Text style={[styles.healthLabel, { color: colors.muted }]}>Records</Text>
+                  <Text style={[styles.healthValue, { color: colors.text }]}>
+                    {healthStats.total}
+                  </Text>
+                </View>
+              </Card>
+            </View>
+
+            {/* Quick Actions */}
+            <Card variant="elevated" style={styles.actionsCard}>
+              <Text style={[styles.actionsTitle, { color: colors.text }]}>
                 Quick Actions
               </Text>
-              <View style={styles.buttonRow}>
+              <View style={styles.buttonGrid}>
                 <Button
                   title="Add Animal"
                   onPress={() => router.push("/animal/add")}
@@ -311,8 +328,6 @@ export default function DashboardScreen() {
                   variant="secondary"
                   style={styles.actionButton}
                 />
-              </View>
-              <View style={styles.buttonRow}>
                 <Button
                   title="Add Transaction"
                   onPress={() => router.push("/financial/add")}
@@ -320,13 +335,13 @@ export default function DashboardScreen() {
                   style={styles.actionButton}
                 />
                 <Button
-                  title="View Financial"
-                  onPress={() => router.push("/financial")}
+                  title="View Reports"
+                  onPress={() => router.push("/reports")}
                   variant="outline"
                   style={styles.actionButton}
                 />
               </View>
-            </View>
+            </Card>
           </>
         )}
       </ScrollView>
@@ -338,133 +353,199 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
   contentContainer: {
     padding: 20,
     paddingBottom: 40,
   },
-  farmCard: {
-    marginBottom: 24,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+  welcomeCard: {
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: "rgba(56, 161, 105, 0.1)",
+    borderRadius: 16,
+    shadowColor: 'transparent',
+    elevation: 0,
+  },
+  welcomeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  farmIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 161, 105, 0.2)',
+  },
+  welcomeText: {
+    flex: 1,
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   farmName: {
-    fontSize: 24,
-    fontWeight: "800",
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   farmDetails: {
-    fontSize: 16,
-    lineHeight: 22,
-    opacity: 0.8,
+    fontSize: 14,
+    fontWeight: '500',
   },
   searchCard: {
     marginBottom: 24,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "rgba(56, 161, 105, 0.08)",
   },
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    backgroundColor: "rgba(56, 161, 105, 0.05)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "rgba(56, 161, 105, 0.15)",
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   searchIcon: {
-    marginRight: 14,
+    marginRight: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: '500',
   },
   searchResults: {
-    marginTop: 18,
+    marginTop: 16,
   },
   searchResultsTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    marginBottom: 14,
-    letterSpacing: 0.3,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    marginTop: 24,
-    marginBottom: 18,
-    letterSpacing: 0.5,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 16,
+    marginTop: 8,
   },
   statsContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 16,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   statCard: {
     flex: 1,
-    borderRadius: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  speciesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 14,
-    marginBottom: 20,
+  statContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  statText: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  animalStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  totalAnimalsCard: {
+    width: '100%',
+    marginBottom: 8,
+  },
+  totalAnimalsContent: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  totalAnimalsNumber: {
+    fontSize: 32,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  totalAnimalsLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   speciesCard: {
-    minWidth: 130,
-    flex: 0,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    flex: 1,
+    minWidth: 100,
   },
-  actionsContainer: {
-    marginTop: 16,
-    marginBottom: 40,
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: "rgba(56, 161, 105, 0.03)",
-    borderWidth: 1,
-    borderColor: "rgba(56, 161, 105, 0.1)",
+  speciesContent: {
+    alignItems: 'center',
   },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 16,
+  speciesCount: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  speciesName: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  healthGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  healthCard: {
+    flex: 1,
+  },
+  healthContent: {
+    alignItems: 'center',
+  },
+  healthIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  healthLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  healthValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  actionsCard: {
+    marginBottom: 20,
+  },
+  actionsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     marginBottom: 16,
+  },
+  buttonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   actionButton: {
     flex: 1,
-    borderRadius: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    minWidth: 150,
   },
 });

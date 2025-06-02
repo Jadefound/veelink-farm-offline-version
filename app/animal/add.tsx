@@ -57,6 +57,23 @@ export default function AddAnimalScreen() {
   const statusOptions: AnimalStatus[] = ["Healthy", "Sick", "Sold", "Dead"];
   const weightUnitOptions = ["kg", "lb", "g"];
 
+  const [formData, setFormData] = useState({
+    identificationNumber,
+    species,
+    breed,
+    gender,
+    birthDate,
+    acquisitionDate,
+    status,
+    weight,
+    weightUnit,
+    price,
+    acquisitionPrice,
+    notes,
+    acquisitionCost: '',
+    currentValue: '',
+  });
+
   useEffect(() => {
     // Set today's date as default for acquisition date
     const today = new Date().toISOString().split("T")[0];
@@ -88,14 +105,14 @@ export default function AddAnimalScreen() {
 
     // Validate form
     if (
-      !identificationNumber ||
-      !species ||
-      !breed ||
-      !gender ||
-      !birthDate ||
-      !acquisitionDate ||
-      !status ||
-      !weight
+      !formData.identificationNumber ||
+      !formData.species ||
+      !formData.breed ||
+      !formData.gender ||
+      !formData.birthDate ||
+      !formData.acquisitionDate ||
+      !formData.status ||
+      !formData.weight
     ) {
       setFormError("Please fill in all required fields");
       return;
@@ -106,18 +123,18 @@ export default function AddAnimalScreen() {
     try {
       await createAnimal({
         farmId: currentFarm.id,
-        identificationNumber,
-        species,
-        breed,
-        gender,
-        birthDate,
-        acquisitionDate,
-        status,
-        weight: parseFloat(weight),
-        weightUnit,
-        price: price ? parseFloat(price) : 0,
-        acquisitionPrice: acquisitionPrice ? parseFloat(acquisitionPrice) : 0,
-        notes,
+        identificationNumber: formData.identificationNumber,
+        species: formData.species,
+        breed: formData.breed,
+        gender: formData.gender,
+        birthDate: formData.birthDate,
+        acquisitionDate: formData.acquisitionDate,
+        status: formData.status,
+        weight: parseFloat(formData.weight),
+        weightUnit: formData.weightUnit,
+        price: formData.currentValue ? parseFloat(formData.currentValue) : 0,
+        acquisitionPrice: formData.acquisitionCost ? parseFloat(formData.acquisitionCost) : 0,
+        notes: formData.notes,
       });
 
       router.back();
@@ -163,8 +180,8 @@ export default function AddAnimalScreen() {
             <Input
               label="Identification Number *"
               placeholder="Enter unique ID number (e.g., A001, COW-123)"
-              value={identificationNumber}
-              onChangeText={setIdentificationNumber}
+              value={formData.identificationNumber}
+              onChangeText={text => setFormData({ ...formData, identificationNumber: text })}
             />
 
             <View style={styles.inputContainer}>
@@ -174,12 +191,12 @@ export default function AddAnimalScreen() {
                   borderWidth: 1,
                   borderColor: colors.border,
                   borderRadius: 8,
-                  backgroundColor: colors.surface,
+                  backgroundColor: colors.card,
                 }}
               >
                 <Picker
-                  selectedValue={species}
-                  onValueChange={setSpecies}
+                  selectedValue={formData.species}
+                  onValueChange={(value) => setFormData({ ...formData, species: value as AnimalSpecies })}
                   style={{ color: colors.text }}
                   dropdownIconColor={colors.text}
                 >
@@ -193,8 +210,8 @@ export default function AddAnimalScreen() {
             <Input
               label="Breed *"
               placeholder="Enter breed"
-              value={breed}
-              onChangeText={setBreed}
+              value={formData.breed}
+              onChangeText={text => setFormData({ ...formData, breed: text })}
             />
 
             <View style={styles.inputContainer}>
@@ -205,18 +222,18 @@ export default function AddAnimalScreen() {
                 <TouchableOpacity
                   style={[
                     styles.radioOption,
-                    gender === "Male" && styles.radioSelected,
+                    formData.gender === "Male" && styles.radioSelected,
                   ]}
-                  onPress={() => setGender("Male")}
+                  onPress={() => setFormData({ ...formData, gender: "Male" })}
                 >
                   <View
                     style={[
                       styles.radioButton,
-                      gender === "Male" && styles.radioButtonSelected,
+                      formData.gender === "Male" && styles.radioButtonSelected,
                       { borderColor: colors.tint },
                     ]}
                   >
-                    {gender === "Male" && (
+                    {formData.gender === "Male" && (
                       <View
                         style={[
                           styles.radioButtonInner,
@@ -233,18 +250,18 @@ export default function AddAnimalScreen() {
                 <TouchableOpacity
                   style={[
                     styles.radioOption,
-                    gender === "Female" && styles.radioSelected,
+                    formData.gender === "Female" && styles.radioSelected,
                   ]}
-                  onPress={() => setGender("Female")}
+                  onPress={() => setFormData({ ...formData, gender: "Female" })}
                 >
                   <View
                     style={[
                       styles.radioButton,
-                      gender === "Female" && styles.radioButtonSelected,
+                      formData.gender === "Female" && styles.radioButtonSelected,
                       { borderColor: colors.tint },
                     ]}
                   >
-                    {gender === "Female" && (
+                    {formData.gender === "Female" && (
                       <View
                         style={[
                           styles.radioButtonInner,
@@ -269,18 +286,18 @@ export default function AddAnimalScreen() {
                   styles.dateInput,
                   {
                     borderColor: colors.border,
-                    backgroundColor: colors.surface,
+                    backgroundColor: colors.card,
                   },
                 ]}
                 onPress={() => setShowBirthDatePicker(true)}
               >
-                <Text style={{ color: birthDate ? colors.text : colors.muted }}>
-                  {birthDate || "YYYY-MM-DD"}
+                <Text style={{ color: formData.birthDate ? colors.text : colors.muted }}>
+                  {formData.birthDate || "YYYY-MM-DD"}
                 </Text>
               </TouchableOpacity>
               {showBirthDatePicker && (
                 <DateTimePicker
-                  value={birthDate ? new Date(birthDate) : new Date()}
+                  value={formData.birthDate ? new Date(formData.birthDate) : new Date()}
                   mode="date"
                   display="default"
                   onChange={onBirthDateChange}
@@ -298,23 +315,23 @@ export default function AddAnimalScreen() {
                   styles.dateInput,
                   {
                     borderColor: colors.border,
-                    backgroundColor: colors.surface,
+                    backgroundColor: colors.card,
                   },
                 ]}
                 onPress={() => setShowAcquisitionDatePicker(true)}
               >
                 <Text
                   style={{
-                    color: acquisitionDate ? colors.text : colors.muted,
+                    color: formData.acquisitionDate ? colors.text : colors.muted,
                   }}
                 >
-                  {acquisitionDate || "YYYY-MM-DD"}
+                  {formData.acquisitionDate || "YYYY-MM-DD"}
                 </Text>
               </TouchableOpacity>
               {showAcquisitionDatePicker && (
                 <DateTimePicker
                   value={
-                    acquisitionDate ? new Date(acquisitionDate) : new Date()
+                    formData.acquisitionDate ? new Date(formData.acquisitionDate) : new Date()
                   }
                   mode="date"
                   display="default"
@@ -330,12 +347,12 @@ export default function AddAnimalScreen() {
                   borderWidth: 1,
                   borderColor: colors.border,
                   borderRadius: 8,
-                  backgroundColor: colors.surface,
+                  backgroundColor: colors.card,
                 }}
               >
                 <Picker
-                  selectedValue={status}
-                  onValueChange={setStatus}
+                  selectedValue={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value as AnimalStatus })}
                   style={{ color: colors.text }}
                   dropdownIconColor={colors.text}
                 >
@@ -351,8 +368,8 @@ export default function AddAnimalScreen() {
                 label="Weight *"
                 placeholder="Enter weight"
                 keyboardType="numeric"
-                value={weight}
-                onChangeText={setWeight}
+                value={formData.weight}
+                onChangeText={text => setFormData({ ...formData, weight: text })}
                 containerStyle={styles.weightInput}
               />
 
@@ -363,12 +380,12 @@ export default function AddAnimalScreen() {
                     borderWidth: 1,
                     borderColor: colors.border,
                     borderRadius: 8,
-                    backgroundColor: colors.surface,
+                    backgroundColor: colors.card,
                   }}
                 >
                   <Picker
-                    selectedValue={weightUnit}
-                    onValueChange={setWeightUnit}
+                    selectedValue={formData.weightUnit}
+                    onValueChange={(value) => setFormData({ ...formData, weightUnit: value as "kg" | "lb" | "g" })}
                     style={{ color: colors.text }}
                     dropdownIconColor={colors.text}
                   >
@@ -385,8 +402,8 @@ export default function AddAnimalScreen() {
                 label="Current Price *"
                 placeholder="Enter current market value"
                 keyboardType="numeric"
-                value={price}
-                onChangeText={setPrice}
+                value={formData.price}
+                onChangeText={text => setFormData({ ...formData, price: text })}
                 containerStyle={styles.weightInput}
               />
 
@@ -394,11 +411,27 @@ export default function AddAnimalScreen() {
                 label="Acquisition Price *"
                 placeholder="Enter purchase cost"
                 keyboardType="numeric"
-                value={acquisitionPrice}
-                onChangeText={setAcquisitionPrice}
+                value={formData.acquisitionPrice}
+                onChangeText={text => setFormData({ ...formData, acquisitionPrice: text })}
                 containerStyle={styles.weightInput}
               />
             </View>
+
+            <Input
+              label="Acquisition Cost"
+              value={formData.acquisitionCost}
+              onChangeText={text => setFormData({ ...formData, acquisitionCost: text })}
+              placeholder="Enter acquisition cost"
+              keyboardType="numeric"
+            />
+
+            <Input
+              label="Current Value"
+              value={formData.currentValue}
+              onChangeText={text => setFormData({ ...formData, currentValue: text })}
+              placeholder="Enter current value"
+              keyboardType="numeric"
+            />
 
             <Input
               label="Notes"
@@ -406,8 +439,8 @@ export default function AddAnimalScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              value={notes}
-              onChangeText={setNotes}
+              value={formData.notes}
+              onChangeText={text => setFormData({ ...formData, notes: text })}
               inputStyle={styles.notesInput}
             />
           </View>

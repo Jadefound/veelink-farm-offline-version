@@ -48,8 +48,10 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style={isDarkMode ? "light" : "auto"} />
-      <RootLayoutNav />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="animal/add" options={{ headerShown: false }} />
+      </Stack>
     </>
   );
 }
@@ -67,7 +69,6 @@ function RootLayoutNav() {
           <Stack.Screen name="health/[id]" options={{ title: "Health Record" }} />
           <Stack.Screen name="transaction/[id]" options={{ title: "Transaction Details" }} />
           <Stack.Screen name="farm/add" options={{ title: "Add Farm" }} />
-          <Stack.Screen name="animal/add" options={{ headerShown: false }} />
           <Stack.Screen name="health/add" options={{ title: "Add Health Record" }} />
           <Stack.Screen name="transaction/add" options={{ title: "Add Transaction" }} />
           <Stack.Screen name="financial/add" options={{ title: "Add Transaction" }} />
