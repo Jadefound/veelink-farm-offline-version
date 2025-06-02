@@ -22,10 +22,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.veelink-farm-offline-version"
+      "package": "app.rork.veelink_farm_offline_version"
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       [
@@ -42,11 +43,10 @@
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/YOUR_PROJECT_ID",
-      "fallbackToCacheTimeout": 0,
-      "checkAutomatically": "ON_LOAD"
-    },
-    "sdkVersion": "53.0.0"
+    "sdkVersion": "53.0.0",
+    "platforms": [
+      "ios",
+      "android"
+    ]
   }
 }

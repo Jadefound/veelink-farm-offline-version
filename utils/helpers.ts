@@ -1,10 +1,19 @@
-import 'react-native-get-random-values';
-import { Platform } from "react-native";
-import { v4 as uuidv4 } from 'uuid';
-
-// Generate a unique ID using UUID v4 (cryptographically strong random IDs)
+/**
+ * Generates a unique v4 UUID string that works across all platforms
+ * @returns {string} A unique identifier
+ */
 export const generateId = (): string => {
-  return uuidv4();
+  // Use crypto.randomUUID if available (modern browsers)
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  // Fallback implementation that works everywhere
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };
 
 // Format date to display
@@ -49,10 +58,6 @@ export const isTaskOverdue = (dueDate: string): boolean => {
   return due < now;
 };
 
-// Get platform-specific styles
-export const getPlatformStyles = (webStyles: any, nativeStyles: any) => {
-  return Platform.OS === "web" ? webStyles : nativeStyles;
-};
 
 // Group items by a key
 export const groupBy = <T>(array: T[], key: keyof T): Record<string, T[]> => {
