@@ -29,6 +29,7 @@ export type AnimalStatus =
   | "Growing"
   | "ForSale"
   | "Sold"
+  | "Recovering"
   | "Dead"; // Changed from "Deceased" to "Dead" to match usage in the code
 
 export type Animal = {
@@ -48,6 +49,9 @@ export type Animal = {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  age: number;
+  healthStatus: 'healthy' | 'sick' | 'recovering';
+  estimatedValue?: number;
 };
 
 export type HealthRecordType =

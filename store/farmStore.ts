@@ -5,6 +5,30 @@ import { generateId } from "@/utils/helpers";
 import { Farm } from "@/types";
 import { farmSchema, validateData } from "@/utils/validation";
 
+// Mock farm data
+const mockFarms: Farm[] = [
+  {
+    id: 'farm-1',
+    name: 'Green Valley Farm',
+    location: 'California, USA',
+    size: 150,
+    sizeUnit: 'acres',
+    type: 'Mixed Livestock',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-12-01T10:00:00Z',
+  },
+  {
+    id: 'farm-2',
+    name: 'Sunrise Ranch',
+    location: 'Texas, USA',
+    size: 200,
+    sizeUnit: 'acres',
+    type: 'Cattle Ranch',
+    createdAt: '2023-02-01T00:00:00Z',
+    updatedAt: '2023-12-01T10:00:00Z',
+  }
+];
+
 interface FarmState {
   farms: Farm[];
   currentFarm: Farm | null;
@@ -34,25 +58,19 @@ export const useFarmStore = create<FarmState>()(
 
       fetchFarms: async () => {
         set({ isLoading: true, error: null });
-
         try {
-          // Get farms from storage
-          const farmsData = await AsyncStorage.getItem("farms");
-          const farms: Farm[] = farmsData ? JSON.parse(farmsData) : [];
-
-          // Sort farms by name
-          farms.sort((a, b) => a.name.localeCompare(b.name));
-
-          set({ farms, isLoading: false });
-
-          // Set current farm if none is selected
-          if (!get().currentFarm && farms.length > 0) {
-            set({ currentFarm: farms[0] });
-          }
-        } catch (error: any) {
-          set({
-            error: error.message || "Failed to fetch farms",
-            isLoading: false
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          set({ 
+            farms: mockFarms, 
+            currentFarm: mockFarms[0], // Set first farm as current
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to fetch farms',
+            isLoading: false 
           });
         }
       },

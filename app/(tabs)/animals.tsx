@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, FlatList, RefreshControl, TouchableOpacity, TextInput, Text } from "react-native";
+import { StyleSheet, View, FlatList, RefreshControl, TouchableOpacity, TextInput, Text, Image, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Plus, Search } from "lucide-react-native";
 import { useAnimalStore } from "@/store/animalStore";
@@ -7,16 +7,75 @@ import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
 import { Animal } from "@/types";
 import Colors from "@/constants/colors";
-import AnimalCard from "@/components/AnimalCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
+import { Ionicons } from '@expo/vector-icons';
 
-const formatCurrency = (amount: number) => `$${amount.toLocaleString()}`;
-const getStatusColor = (status: string) => {
-  // Add your status color logic here
-  return '#48bb78'; // Default color
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 30) / 2;
+
+// Generate species-based ID
+const generateAnimalId = (species: string, existingAnimals: Animal[]) => {
+  const speciesPrefixes = {
+    'Cattle': 'C',
+    'Sheep': 'S',
+    'Goat': 'G',
+    'Pig': 'P',
+    'Chicken': 'CH',
+    'Duck': 'D',
+    'Turkey': 'T',
+    'Horse': 'H',
+    'Rabbit': 'R',
+    'Other': 'O'
+  };
+
+  const prefix = speciesPrefixes[species as keyof typeof speciesPrefixes] || 'O';
+
+  // Count existing animals of the same species
+  const sameSpeciesCount = existingAnimals.filter(animal =>
+    (animal as any).species === species
+  ).length;
+
+  const nextNumber = (sameSpeciesCount + 1).toString().padStart(3, '0');
+  return `${prefix}${nextNumber}`;
+};
+
+// Animal species images mapping
+const getAnimalImage = (species: string) => {
+  const animalImages = {
+    'Cattle': 'https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Sheep': 'https://images.pexels.com/photos/2318466/pexels-photo-2318466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Goat': 'https://images.pexels.com/photos/751689/pexels-photo-751689.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Pig': 'https://images.pexels.com/photos/1300361/pexels-photo-1300361.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Chicken': 'https://images.pexels.com/photos/1300358/pexels-photo-1300358.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Duck': 'https://images.pexels.com/photos/416179/pexels-photo-416179.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Turkey': 'https://images.pexels.com/photos/372166/pexels-photo-372166.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Horse': 'https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Rabbit': 'https://images.pexels.com/photos/326012/pexels-photo-326012.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+    'Other': 'https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop'
+  };
+
+  return animalImages[species as keyof typeof animalImages] ||
+    `https://via.placeholder.com/400x300/E5E7EB/6B7280?text=${encodeURIComponent(species || 'Animal')}`;
+};
+
+// Get animal emoji for visual identification
+const getAnimalEmoji = (species: string) => {
+  const animalEmojis = {
+    'Cattle': '🐄',
+    'Sheep': '🐑',
+    'Goat': '🐐',
+    'Pig': '🐷',
+    'Chicken': '🐔',
+    'Duck': '🦆',
+    'Turkey': '🦃',
+    'Horse': '🐴',
+    'Rabbit': '🐰',
+    'Other': '🐾'
+  };
+  return animalEmojis[species as keyof typeof animalEmojis] || '🐾';
 };
 
 export default function AnimalsScreen() {
@@ -24,7 +83,7 @@ export default function AnimalsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { animals, fetchAnimals, searchAnimals, isLoading } = useAnimalStore();
+  const { animals, fetchAnimals, isLoading } = useAnimalStore();
   const { farms, currentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
 
@@ -48,10 +107,6 @@ export default function AnimalsScreen() {
     setRefreshing(false);
   };
 
-  const handleAnimalPress = (animal: Animal) => {
-    router.push(`/animal/${animal.id}`);
-  };
-
   const handleAddAnimal = () => {
     router.push("/animal/add");
   };
@@ -73,57 +128,129 @@ export default function AnimalsScreen() {
     );
   }
 
-  // Get filtered animals based on search
-  const filteredAnimals = searchQuery.trim() ? searchAnimals(searchQuery) : animals;
+  // Get filtered animals based on search by ID
+  const filteredAnimals = searchQuery.trim()
+    ? animals.filter(animal => {
+      const animalId = generateAnimalId((animal as any).species || 'Other', animals);
+      return animalId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        animal.identificationNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+    })
+    : animals;
 
-  const renderItem = ({ item }: { item: Animal }) => (
-    <Card style={styles.animalCard}>
-      <View style={styles.animalHeader}>
-        <Text style={[styles.animalId, { color: colors.text }]}>
-          {item.identificationNumber}
-        </Text>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: getStatusColor(item.status) }
-        ]}>
-          <Text style={styles.statusText}>{item.status}</Text>
-        </View>
-      </View>
+  const getHealthStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'healthy':
+        return '#10B981';
+      case 'sick':
+        return '#EF4444';
+      case 'recovering':
+        return '#F59E0B';
+      default:
+        return '#6B7280';
+    }
+  };
 
-      <View style={styles.financialRow}>
-        <View style={styles.financialItem}>
-          <Text style={[styles.financialLabel, { color: colors.muted }]}>
-            Acquired for
-          </Text>
-          <Text style={[styles.financialValue, { color: colors.text }]}>
-            {item.acquisitionPrice ? formatCurrency(item.acquisitionPrice) : 'N/A'}
-          </Text>
-        </View>
+  const getHealthStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'healthy':
+        return 'checkmark-circle';
+      case 'sick':
+        return 'medical';
+      case 'recovering':
+        return 'time';
+      default:
+        return 'help-circle';
+    }
+  };
 
-        <View style={styles.financialItem}>
-          <Text style={[styles.financialLabel, { color: colors.muted }]}>
-            Current Value
-          </Text>
-          <Text style={[styles.financialValue, { color: colors.text }]}>
-            {item.price ? formatCurrency(item.price) : 'N/A'}
-          </Text>
-        </View>
+  const renderAnimalCard = ({ item, index }: { item: Animal; index: number }) => {
+    const animalId = generateAnimalId((item as any).species || 'Other', animals.slice(0, index + 1));
 
-        {item.status === 'Sold' && (
-          <View style={styles.financialItem}>
-            <Text style={[styles.financialLabel, { color: colors.muted }]}>
-              Sold for
-            </Text>
-            <Text style={[styles.financialValue, { color: colors.success }]}>
-              {item.price ? formatCurrency(item.price) : 'N/A'}
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => router.push(`/animal/${item.id}`)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.imageContainer}>
+          <Image
+            source={{
+              uri: getAnimalImage((item as any).species || 'Other')
+            }}
+            style={styles.animalImage}
+            resizeMode="cover"
+          />
+
+          {/* Emoji overlay for guaranteed species recognition */}
+          <View style={styles.emojiOverlay}>
+            <Text style={styles.emojiText}>
+              {getAnimalEmoji((item as any).species || 'Other')}
             </Text>
           </View>
-        )}
-      </View>
 
-      {/* ... rest of existing animal card ... */}
-    </Card>
-  );
+          <View style={[styles.healthBadge, { backgroundColor: getHealthStatusColor((item as any).healthStatus || 'unknown') }]}>
+            <Ionicons
+              name={getHealthStatusIcon((item as any).healthStatus || 'unknown')}
+              size={12}
+              color="white"
+            />
+          </View>
+
+          <View style={styles.speciesBadge}>
+            <Text style={styles.speciesText}>{(item as any).species || 'Unknown'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardContent}>
+          <Text style={styles.animalId} numberOfLines={1}>
+            {animalId}
+          </Text>
+          <Text style={styles.breedText} numberOfLines={1}>
+            {item.breed}
+          </Text>
+
+          <View style={styles.detailsRow}>
+            <View style={styles.ageContainer}>
+              <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+              <Text style={styles.ageText}>{(item as any).age || 0}y</Text>
+            </View>
+            <Text style={styles.genderText}>{item.gender}</Text>
+          </View>
+
+          <View style={styles.weightRow}>
+            <Ionicons name="fitness-outline" size={14} color="#6B7280" />
+            <Text style={styles.weightText}>
+              {(item as any).weight || 0} {(item as any).weightUnit || 'kg'}
+            </Text>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.priceText}>
+              ${((item as any).estimatedValue || (item as any).price || 0).toLocaleString()}
+            </Text>
+            <Text style={styles.priceLabel}>Market Value</Text>
+          </View>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.primaryButton]}
+              onPress={() => router.push(`/animal/${item.id}`)}
+            >
+              <Ionicons name="eye-outline" size={16} color="white" />
+              <Text style={styles.primaryButtonText}>Details</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.secondaryButton]}
+              onPress={() => router.push(`/health/add?animalId=${item.id}`)}
+            >
+              <Ionicons name="medical-outline" size={16} color="#059669" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -151,7 +278,7 @@ export default function AnimalsScreen() {
           {filteredAnimals.length === 0 ? (
             <EmptyState
               title={searchQuery ? "No Animals Found" : "No Animals"}
-              message={searchQuery ? `No animals found matching "${searchQuery}"` : "Add your first animal to start tracking"}
+              message={searchQuery ? `No animals found with ID containing "${searchQuery}"` : "Add your first animal to start tracking"}
               buttonTitle={searchQuery ? "Clear Search" : "Add Animal"}
               onButtonPress={searchQuery ? () => setSearchQuery("") : handleAddAnimal}
             />
@@ -159,7 +286,9 @@ export default function AnimalsScreen() {
             <FlatList
               data={filteredAnimals}
               keyExtractor={(item) => item.id}
-              renderItem={renderItem}
+              renderItem={renderAnimalCard}
+              numColumns={2}
+              columnWrapperStyle={styles.row}
               contentContainerStyle={styles.listContent}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -217,6 +346,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 100,
   },
+  row: {
+    justifyContent: 'space-between',
+  },
   fab: {
     position: "absolute",
     bottom: 32,
@@ -232,38 +364,147 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-  animalCard: {
-    // ... existing animal card styles ...
+  card: {
+    width: CARD_WIDTH,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
   },
-  animalHeader: {
-    // ... existing animal header styles ...
+  imageContainer: {
+    position: 'relative',
   },
-  animalId: {
-    // ... existing animal ID styles ...
+  animalImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#F3F4F6',
   },
-  statusBadge: {
-    // ... existing status badge styles ...
-  },
-  statusText: {
-    // ... existing status text styles ...
-  },
-  financialRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    gap: 8,
-  },
-  financialItem: {
-    flex: 1,
+  healthBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  financialLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+  speciesBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  speciesText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  emojiOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -20 }, { translateY: -20 }],
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+  },
+  emojiText: {
+    fontSize: 24,
+  },
+  cardContent: {
+    padding: 12,
+  },
+  animalId: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#059669',
     marginBottom: 4,
   },
-  financialValue: {
+  breedText: {
     fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  ageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ageText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 4,
+  },
+  genderText: {
+    fontSize: 12,
+    color: '#6B7280',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  weightText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 4,
+  },
+  priceRow: {
+    marginBottom: 12,
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  priceLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#059669',
+  },
+  secondaryButton: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#059669',
+    flex: 0,
+    paddingHorizontal: 12,
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: '600',
   },
 });

@@ -7,6 +7,10 @@ import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/store/authStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
+import { Platform } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import FontDisplay from 'expo-font/build/FontDisplay'
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -15,8 +19,8 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    ...FontAwesome.font,
+  const [fontsLoaded] = useFonts({
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   const { isAuthenticated } = useAuthStore();
@@ -24,35 +28,35 @@ export default function RootLayout() {
   const { isDarkMode } = useThemeStore();
 
   useEffect(() => {
-    if (error) {
-      console.error(error);
-      throw error;
-    }
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
+    if (fontsLoaded) {
       SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
+      // Load farms when app starts
       fetchFarms();
     }
-  }, [isAuthenticated, fetchFarms]);
+  }, [fontsLoaded, fetchFarms]);
 
-  if (!loaded) {
+  useEffect(() => {
+    // Configure navigation bar for Android
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync(isDarkMode ? '#0f172a' : '#f8fafc');
+      NavigationBar.setButtonStyleAsync(isDarkMode ? 'light' : 'dark');
+    }
+  }, [isDarkMode]);
+
+  if (!fontsLoaded) {
     return null;
   }
 
   return (
-    <>
-      <Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="animal/add" options={{ headerShown: false }} />
+        <Stack.Screen name="farm" options={{ headerShown: false }} />
+        <Stack.Screen name="animal" options={{ headerShown: false }} />
+        <Stack.Screen name="health" options={{ headerShown: false }} />
       </Stack>
-    </>
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
+    </GestureHandlerRootView>
   );
 }
 

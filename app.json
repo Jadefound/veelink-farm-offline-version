@@ -44,6 +44,12 @@
     "platforms": [
       "ios",
       "android"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "fonts": [
+      "./assets/fonts/SpaceMono-Regular.ttf"
     ]
   }
 }

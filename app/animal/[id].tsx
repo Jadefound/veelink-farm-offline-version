@@ -21,6 +21,7 @@ import Button from "@/components/Button";
 import HealthRecordCard from "@/components/HealthRecordCard";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AnimalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -102,24 +103,20 @@ export default function AnimalDetailScreen() {
 
   // Get species-specific image
   const getAnimalImage = (species: string) => {
-    switch (species.toLowerCase()) {
-      case "cattle":
-        return "https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?q=80&w=1740&auto=format&fit=crop";
-      case "sheep":
-        return "https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=1740&auto=format&fit=crop";
-      case "goat":
-        return "https://images.unsplash.com/photo-1524024973431-2ad916746881?q=80&w=1740&auto=format&fit=crop";
-      case "pig":
-        return "https://images.unsplash.com/photo-1593179357196-705d7578c5a3?q=80&w=1740&auto=format&fit=crop";
-      case "chicken":
-        return "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1740&auto=format&fit=crop";
-      case "duck":
-        return "https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=1740&auto=format&fit=crop";
-      case "horse":
-        return "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=1742&auto=format&fit=crop";
-      default:
-        return "https://images.unsplash.com/photo-1500595046743-cd271d694e30?q=80&w=1740&auto=format&fit=crop";
-    }
+    const animalImages = {
+      'Cattle': 'https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Sheep': 'https://images.pexels.com/photos/2318466/pexels-photo-2318466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Goat': 'https://images.pexels.com/photos/751689/pexels-photo-751689.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Pig': 'https://images.pexels.com/photos/1300361/pexels-photo-1300361.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Chicken': 'https://images.pexels.com/photos/1300358/pexels-photo-1300358.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Duck': 'https://images.pexels.com/photos/416179/pexels-photo-416179.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Turkey': 'https://images.pexels.com/photos/372166/pexels-photo-372166.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Horse': 'https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Rabbit': 'https://images.pexels.com/photos/326012/pexels-photo-326012.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
+      'Other': 'https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop'
+    };
+
+    return animalImages[species as keyof typeof animalImages] || animalImages.Other;
   };
 
   // Get status color
@@ -140,6 +137,28 @@ export default function AnimalDetailScreen() {
       default:
         return colors.muted;
     }
+  };
+
+  // Generate species-based ID
+  const generateAnimalId = (species: string, animals: Animal[], currentAnimal: Animal) => {
+    const speciesPrefixes = {
+      'Cattle': 'C',
+      'Sheep': 'S',
+      'Goat': 'G',
+      'Pig': 'P',
+      'Chicken': 'CH',
+      'Duck': 'D',
+      'Turkey': 'T',
+      'Horse': 'H',
+      'Rabbit': 'R',
+      'Other': 'O'
+    };
+
+    const prefix = speciesPrefixes[species as keyof typeof speciesPrefixes] || 'O';
+    const sameSpeciesAnimals = animals.filter(animal => (animal as any).species === species);
+    const animalIndex = sameSpeciesAnimals.findIndex(animal => animal.id === currentAnimal.id) + 1;
+    const nextNumber = animalIndex.toString().padStart(3, '0');
+    return `${prefix}${nextNumber}`;
   };
 
   if (isLoading) {
@@ -169,6 +188,8 @@ export default function AnimalDetailScreen() {
     );
   }
 
+  const animalId = generateAnimalId((animal as any).species || 'Other', [], animal);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
@@ -176,13 +197,13 @@ export default function AnimalDetailScreen() {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Image
-            source={{ uri: getAnimalImage(animal.species) }}
+            source={{ uri: getAnimalImage((animal as any).species || 'Other') }}
             style={styles.image}
             contentFit="cover"
           />
 
           <View style={styles.overlay}>
-            <Text style={styles.id}>ID: {animal.identificationNumber}</Text>
+            <Text style={styles.id}>ID: {animalId}</Text>
             <View
               style={[
                 styles.statusBadge,
@@ -201,7 +222,7 @@ export default function AnimalDetailScreen() {
                 Species
               </Text>
               <Text style={[styles.infoValue, { color: colors.text }]}>
-                {animal.species}
+                {(animal as any).species || 'Unknown'}
               </Text>
             </View>
 
@@ -241,7 +262,7 @@ export default function AnimalDetailScreen() {
                 Weight
               </Text>
               <Text style={[styles.infoValue, { color: colors.text }]}>
-                {animal.weight} {animal.weightUnit}
+                {(animal as any).weight || 0} {(animal as any).weightUnit || 'kg'}
               </Text>
             </View>
 
