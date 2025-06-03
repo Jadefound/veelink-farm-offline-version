@@ -28,6 +28,7 @@ import Button from "@/components/Button";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { formatCurrency, formatDate } from "@/utils/helpers";
 import { Animal, HealthRecord, Transaction } from "@/types";
+import { mockAnimals, mockHealthRecords, mockTransactions, mockFarms } from "@/utils/mockData";
 
 // Define report types
 type ReportType = "animals" | "health" | "financial";
@@ -46,35 +47,25 @@ export default function ReportsScreen() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  const { animals, fetchAnimals, isLoading: animalsLoading } = useAnimalStore();
-  const { healthRecords, fetchHealthRecords, isLoading: healthLoading } = useHealthStore();
-  const { transactions, fetchTransactions, isLoading: financialLoading } = useFinancialStore();
-  const { currentFarm } = useFarmStore();
+  // HARDCODED: Use mock data directly instead of store
+  const animals = mockAnimals;
+  const healthRecords = mockHealthRecords;
+  const transactions = mockTransactions;
+  const currentFarm = mockFarms[0]; // Use first farm as current
+  const isLoading = false;
+
   const { isDarkMode } = useThemeStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
-  const isLoading = animalsLoading || healthLoading || financialLoading;
-
-  useEffect(() => {
-    if (currentFarm) {
-      loadData();
-    }
-  }, [currentFarm, fetchAnimals, fetchHealthRecords, fetchTransactions]);
 
   const loadData = async () => {
-    if (currentFarm) {
-      await Promise.all([
-        fetchAnimals(currentFarm.id),
-        fetchHealthRecords(currentFarm.id),
-        fetchTransactions(currentFarm.id)
-      ]);
-    }
+    // Mock function - no longer needed
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    // Simulate refresh delay
+    setTimeout(() => setRefreshing(false), 500);
   };
 
   // Filter data based on selected period

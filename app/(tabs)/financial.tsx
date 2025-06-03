@@ -29,6 +29,7 @@ import TopNavigation from "@/components/TopNavigation";
 import StatCard from "@/components/StatCard";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import { mockTransactions, mockFarms } from "@/utils/mockData";
 
 export default function FinancialScreen() {
   const router = useRouter();
@@ -41,14 +42,12 @@ export default function FinancialScreen() {
     averageAnimalValue: 0,
   });
 
-  const {
-    transactions,
-    fetchTransactions,
-    getFinancialStats,
-    getAssetStats,
-    isLoading,
-  } = useFinancialStore();
-  const { farms, currentFarm } = useFarmStore();
+  // HARDCODED: Use mock data directly instead of store
+  const transactions = mockTransactions;
+  const farms = mockFarms;
+  const currentFarm = mockFarms[0]; // Use first farm as current
+  const isLoading = false;
+
   const { isDarkMode } = useThemeStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
@@ -61,23 +60,17 @@ export default function FinancialScreen() {
   }, [currentFarm]);
 
   const loadTransactions = async () => {
-    if (currentFarm) {
-      await fetchTransactions(currentFarm.id);
-    }
+    // Mock function - no longer needed
   };
 
   const loadAssetStats = async () => {
-    if (currentFarm) {
-      const stats = await getAssetStats(currentFarm.id);
-      setAssetStats(stats);
-    }
+    // Mock function - no longer needed
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadTransactions();
-    await loadAssetStats();
-    setRefreshing(false);
+    // Simulate refresh delay
+    setTimeout(() => setRefreshing(false), 500);
   };
 
   const handleTransactionPress = (transaction: Transaction) => {
@@ -108,19 +101,31 @@ export default function FinancialScreen() {
     );
   }
 
-  const financialStats = currentFarm
-    ? getFinancialStats(currentFarm.id)
-    : {
-        totalIncome: 0,
-        totalExpenses: 0,
-        netProfit: 0,
-        healthCosts: 0,
-        acquisitionCosts: 0,
-        animalSales: 0,
-        totalAssetValue: 0,
-        recentTransactions: 0,
-        byCategory: [],
-      };
+  // HARDCODED: Calculate financial stats from mock data
+  const financialStats = {
+    totalIncome: mockTransactions
+      .filter(t => t.type === 'Income')
+      .reduce((sum, t) => sum + t.amount, 0),
+    totalExpenses: mockTransactions
+      .filter(t => t.type === 'Expense')
+      .reduce((sum, t) => sum + t.amount, 0),
+    netProfit: mockTransactions
+      .filter(t => t.type === 'Income')
+      .reduce((sum, t) => sum + t.amount, 0) -
+      mockTransactions
+        .filter(t => t.type === 'Expense')
+        .reduce((sum, t) => sum + t.amount, 0),
+    healthCosts: mockTransactions
+      .filter(t => t.category === 'Medication')
+      .reduce((sum, t) => sum + t.amount, 0),
+    acquisitionCosts: 0,
+    animalSales: mockTransactions
+      .filter(t => t.category === 'Sales')
+      .reduce((sum, t) => sum + t.amount, 0),
+    totalAssetValue: 15000, // Hardcoded total asset value
+    recentTransactions: mockTransactions.length,
+    byCategory: [],
+  };
 
   const screenWidth = Dimensions.get("window").width;
   const isTablet = screenWidth > 768;

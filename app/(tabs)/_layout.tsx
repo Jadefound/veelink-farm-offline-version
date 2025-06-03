@@ -3,18 +3,31 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
-import { useColorScheme, StatusBar } from "react-native";
+import { useColorScheme, StatusBar, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabLayout() {
-  const { isDarkMode } = useThemeStore();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  // Use fallback for theme store in case it's undefined
+  const { isDarkMode = false } = useThemeStore() || {};
+  const systemColorScheme = useColorScheme();
+  // Ensure we have a valid color scheme with fallback
+  const colorScheme = systemColorScheme || "light";
+
+  // Handle potential missing Colors constant
+  const defaultColors = {
+    tint: "#4ade80",
+    tabIconDefault: "#86efac",
+    card: "#ffffff",
+    text: "#000000"
+  };
+
+  // Safely access colors with fallback
+  const colors = (Colors && Colors[colorScheme]) || defaultColors;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <StatusBar
-        barStyle="dark-content"
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent
       />
@@ -26,8 +39,8 @@ export default function TabLayout() {
             borderTopColor: "rgba(56, 161, 105, 0.1)",
             backgroundColor: colors.card,
             paddingTop: 12,
-            paddingBottom: 8,
-            height: 92,
+            paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+            height: Platform.OS === 'ios' ? 92 : 72,
             borderTopWidth: 1,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: -2 },

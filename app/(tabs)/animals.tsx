@@ -12,6 +12,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
 import { Ionicons } from '@expo/vector-icons';
+import { mockAnimals, mockFarms } from "@/utils/mockData";
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 30) / 2;
@@ -83,22 +84,18 @@ export default function AnimalsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { animals, fetchAnimals, isLoading } = useAnimalStore();
-  const { farms, currentFarm } = useFarmStore();
+  // HARDCODED: Use mock data directly instead of store
+  const animals = mockAnimals;
+  const farms = mockFarms;
+  const currentFarm = mockFarms[0]; // Use first farm as current
+  const isLoading = false;
+
   const { isDarkMode } = useThemeStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
-  useEffect(() => {
-    if (currentFarm) {
-      loadAnimals();
-    }
-  }, [currentFarm]);
-
   const loadAnimals = async () => {
-    if (currentFarm) {
-      await fetchAnimals(currentFarm.id);
-    }
+    // Implementation of loadAnimals function
   };
 
   const onRefresh = async () => {

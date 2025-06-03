@@ -10,44 +10,44 @@ import HealthRecordCard from "@/components/HealthRecordCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import FarmSelector from "@/components/FarmSelector";
+import { mockHealthRecords, mockFarms } from "@/utils/mockData";
 
 export default function HealthScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  
-  const { healthRecords, fetchHealthRecords, isLoading } = useHealthStore();
-  const { farms, currentFarm, setCurrentFarm } = useFarmStore();
-  
-  useEffect(() => {
-    if (currentFarm) {
-      loadHealthRecords();
-    }
-  }, [currentFarm]);
-  
+
+  // HARDCODED: Use mock data directly instead of store
+  const healthRecords = mockHealthRecords;
+  const farms = mockFarms;
+  const currentFarm = mockFarms[0]; // Use first farm as current
+  const isLoading = false;
+
   const loadHealthRecords = async () => {
-    if (currentFarm) {
-      await fetchHealthRecords(currentFarm.id);
-    }
+    // Mock function - no longer needed
   };
-  
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadHealthRecords();
-    setRefreshing(false);
+    // Simulate refresh delay
+    setTimeout(() => setRefreshing(false), 500);
   };
-  
+
   const handleHealthRecordPress = (record: HealthRecord) => {
     router.push(`/health/${record.id}`);
   };
-  
+
   const handleAddHealthRecord = () => {
     router.push("/health/add");
   };
-  
+
   const handleAddFarm = () => {
     router.push("/farm/add");
   };
-  
+
+  const setCurrentFarm = (farm: any) => {
+    // Mock function for FarmSelector
+  };
+
   if (farms.length === 0) {
     return (
       <View style={styles.container}>
@@ -60,7 +60,7 @@ export default function HealthScreen() {
       </View>
     );
   }
-  
+
   return (
     <View style={styles.container}>
       <FarmSelector
@@ -69,7 +69,7 @@ export default function HealthScreen() {
         onSelectFarm={setCurrentFarm}
         onAddFarm={handleAddFarm}
       />
-      
+
       {isLoading && !refreshing ? (
         <LoadingIndicator message="Loading health records..." />
       ) : (
@@ -94,7 +94,7 @@ export default function HealthScreen() {
               }
             />
           )}
-          
+
           <TouchableOpacity
             style={styles.fab}
             onPress={handleAddHealthRecord}

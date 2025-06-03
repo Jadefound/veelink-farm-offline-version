@@ -37,7 +37,7 @@ const mockFarms: Farm[] = [
 ];
 
 // Mock Animals Data
-const mockAnimals: Animal[] = [
+export const mockAnimals: Animal[] = [
   {
     id: 'animal-1',
     farmId: 'farm-1',
@@ -55,6 +55,8 @@ const mockAnimals: Animal[] = [
     notes: 'High milk production cow',
     createdAt: new Date('2022-06-01').toISOString(),
     updatedAt: new Date('2024-01-15').toISOString(),
+    age: 2,
+    healthStatus: 'healthy',
   },
   {
     id: 'animal-2',
@@ -73,6 +75,8 @@ const mockAnimals: Animal[] = [
     notes: 'Prime breeding bull',
     createdAt: new Date('2021-09-10').toISOString(),
     updatedAt: new Date('2024-01-10').toISOString(),
+    age: 3,
+    healthStatus: 'healthy',
   },
   {
     id: 'animal-3',
@@ -91,6 +95,8 @@ const mockAnimals: Animal[] = [
     notes: 'Good for meat production',
     createdAt: new Date('2023-03-01').toISOString(),
     updatedAt: new Date('2024-01-05').toISOString(),
+    age: 1,
+    healthStatus: 'healthy',
   },
   {
     id: 'animal-4',
@@ -109,6 +115,8 @@ const mockAnimals: Animal[] = [
     notes: 'Excellent breeding stock',
     createdAt: new Date('2021-01-15').toISOString(),
     updatedAt: new Date('2024-01-12').toISOString(),
+    age: 4,
+    healthStatus: 'healthy',
   },
   {
     id: 'animal-5',
@@ -127,6 +135,8 @@ const mockAnimals: Animal[] = [
     notes: 'High quality wool producer',
     createdAt: new Date('2023-05-01').toISOString(),
     updatedAt: new Date('2024-01-08').toISOString(),
+    age: 1,
+    healthStatus: 'healthy',
   },
 ];
 
@@ -315,3 +325,6 @@ export const clearAllData = async () => {
     return false;
   }
 };
+
+// Export all mock arrays for direct use
+export { mockFarms, mockTransactions, mockHealthRecords, mockUsers };

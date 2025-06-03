@@ -1,0 +1,53 @@
+CHAPTER 4
+IMPLEMENTATION
+
+4.1 System Specification
+
+The successful implementation of the Veelink Animal Biotracker Farm Management Information System necessitated careful consideration of both hardware and software requirements. This section outlines the comprehensive specifications that formed the foundation for the system's development and deployment phases.
+
+4.1.1 Hardware Requirements
+
+The hardware specifications for the Veelink FMIS were designed with the agricultural context in mind, recognizing that farm environments present unique challenges compared to traditional office settings. Mobile devices, being the primary interface for the system, required particular attention to durability, battery life, and environmental resistance.
+
+For optimal performance, the system appears to function best on smartphones manufactured within the last four years, though compatibility extends to older devices with some limitations. High-end smartphones from 2020 onwards provide excellent performance characteristics, delivering response times under 200 milliseconds for most operations. These devices typically feature processors with clock speeds exceeding 2.4 GHz, coupled with at least 4GB of RAM, which seems sufficient for handling the application's memory requirements.
+
+Mid-range smartphones, particularly those manufactured between 2018 and 2020, demonstrate good performance capabilities, though users might experience slightly longer loading times during intensive operations such as photo processing or report generation. The system's memory footprint suggests that devices with 3GB of RAM can adequately support medium-scale operations, though performance may degrade when managing datasets exceeding 1,000 animal records.
+
+Budget smartphones present more significant challenges, particularly devices manufactured between 2016 and 2018. While basic functionality remains accessible, users might encounter noticeable delays during data-intensive operations. Storage capacity becomes a critical consideration for these devices, as the application's offline-first architecture requires substantial local storage for animal records, photographs, and cached data.
+
+Older devices, specifically those manufactured before 2016, face compatibility limitations that may restrict access to certain features. The processing power and memory constraints of these devices can create bottlenecks that affect user experience, particularly when handling large photo libraries or generating comprehensive reports.
+
+Camera quality represents another crucial hardware consideration, given the system's emphasis on visual animal identification. Devices with cameras capable of capturing images at 8 megapixels or higher tend to produce photographs suitable for animal identification purposes, though the system's compression algorithms can work with lower-resolution images when necessary.
+
+Storage requirements vary significantly based on usage patterns. A typical medium-scale operation managing 100 animals might require approximately 2-3 GB of local storage for optimal performance, including space for animal photographs, health records, and cached financial data. Larger operations could see storage requirements escalate to 5-7 GB or more, particularly when maintaining extensive photographic records.
+
+Battery performance becomes critical in agricultural settings where charging opportunities may be limited. The application's design attempts to minimize battery consumption through efficient coding practices and strategic use of device resources, though intensive photo capture sessions or extended offline usage can still drain batteries relatively quickly.
+
+4.1.2 Software Requirements
+
+The software ecosystem supporting the Veelink FMIS reflects a strategic decision to leverage modern, cross-platform technologies while maintaining compatibility across diverse mobile platforms. This approach aimed to maximize accessibility while minimizing development complexity.
+
+The primary development framework centers on React Native, specifically utilizing Expo SDK 52, which provides a robust foundation for cross-platform mobile development. This choice appears particularly strategic given the need to support both iOS and Android platforms without maintaining separate codebases. React Native's JavaScript-based architecture enables rapid development cycles while delivering native-level performance characteristics.
+
+Node.js serves as the underlying runtime environment, requiring version 18 or higher for optimal compatibility with the chosen development stack. The package management system relies on npm (Node Package Manager), which facilitates dependency management and ensures consistent development environments across different machines.
+
+Expo CLI represents a critical component of the development toolkit, providing streamlined build processes and simplified deployment workflows. The Expo ecosystem offers particular advantages for agricultural applications, as it enables over-the-air updates that can reach devices in remote locations without requiring app store distributions.
+
+TypeScript integration adds a layer of type safety that proves invaluable during development, particularly when managing complex data structures related to animal records, health information, and financial calculations. The static typing system helps prevent runtime errors that could be particularly problematic in field conditions where troubleshooting opportunities might be limited.
+
+State management relies on Zustand, a lightweight alternative to more complex solutions like Redux. This choice suggests a preference for simplicity and performance over feature richness, which aligns well with the agricultural context where reliability often trumps complexity.
+
+Data persistence utilizes AsyncStorage, React Native's built-in solution for local data storage. This approach supports the offline-first architecture that seems essential for agricultural applications, where internet connectivity cannot be guaranteed. The storage system handles animal records, health data, financial information, and user preferences in a unified manner.
+
+Navigation functionality depends on Expo Router, which provides file-based routing similar to Next.js but adapted for mobile applications. This system offers intuitive navigation patterns that support the application's workflow-oriented design.
+
+Development tools include various supporting packages that enhance functionality and user experience. Image compression libraries optimize photo storage without significantly compromising quality, while date manipulation utilities handle the complex scheduling requirements inherent in agricultural operations.
+
+Version control relies on Git, with the codebase presumably hosted on platforms like GitHub or GitLab to facilitate collaborative development and maintain comprehensive change histories.
+
+Testing frameworks, while not explicitly detailed in the available documentation, likely include Jest for unit testing and potentially React Native Testing Library for component testing, ensuring code reliability across different scenarios and device configurations.
+
+The build system leverages Expo's managed workflow, which abstracts much of the complexity associated with native mobile development while still providing access to native device capabilities when necessary. This approach appears particularly suited to agricultural applications that need to balance sophisticated functionality with development efficiency.
+
+Platform-specific considerations include iOS requirements for devices running iOS 13 or later, while Android support extends to devices running Android 8.0 (API level 26) or higher. These minimum requirements ensure access to modern operating system features while maintaining compatibility with a reasonable range of existing devices.
+
