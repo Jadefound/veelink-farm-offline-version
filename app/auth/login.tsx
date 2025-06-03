@@ -65,8 +65,8 @@ export default function LoginScreen() {
   } = useAuthStore();
 
   const [authMethod, setAuthMethod] = useState<AuthMethod>('password');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPin, setShowPin] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
+  const [showPin, setShowPin] = useState(true);
   const [fadeAnim] = useState(new Animated.Value(1));
 
   // Form setup

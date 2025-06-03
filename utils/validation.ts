@@ -42,7 +42,7 @@ export const animalSchema = z.object({
   }),
   status: z.enum([
     "Healthy", "Sick", "Pregnant", "Lactating", 
-    "Growing", "ForSale", "Sold", "Deceased"
+    "Growing", "ForSale", "Sold", "Dead"
   ] as [AnimalStatus, ...AnimalStatus[]]),
   weight: z.number().positive("Weight must be positive"),
   weightUnit: z.string().min(1, "Weight unit is required"),

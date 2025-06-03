@@ -50,6 +50,14 @@
     ],
     "fonts": [
       "./assets/fonts/SpaceMono-Regular.ttf"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "08378048-5ed1-4eb9-8f0a-a56795788b45"
+      }
+    }
   }
 }
