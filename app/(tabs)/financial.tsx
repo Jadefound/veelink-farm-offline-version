@@ -19,7 +19,7 @@ import {
 import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
-import { Transaction } from "@/types";
+import { Transaction, Farm } from "@/types";
 import { formatCurrency } from "@/utils/helpers";
 import Colors from "@/constants/colors";
 import TransactionCard from "@/components/TransactionCard";
@@ -29,7 +29,7 @@ import TopNavigation from "@/components/TopNavigation";
 import StatCard from "@/components/StatCard";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
-import { mockTransactions, mockFarms } from "@/utils/mockData";
+import { getMockData } from "@/utils/mockData";
 
 export default function FinancialScreen() {
   const router = useRouter();
@@ -43,9 +43,9 @@ export default function FinancialScreen() {
   });
 
   // HARDCODED: Use mock data directly instead of store
-  const transactions = mockTransactions;
-  const farms = mockFarms;
-  const currentFarm = mockFarms[0]; // Use first farm as current
+  const transactions = getMockData("transactions") as Transaction[];
+  const farms = getMockData("farms") as Farm[];
+  const currentFarm = farms[0]; // Use first farm as current
   const isLoading = false;
 
   const { isDarkMode } = useThemeStore();
@@ -75,8 +75,8 @@ export default function FinancialScreen() {
 
   const handleTransactionPress = (transaction: Transaction) => {
     router.push({
-      pathname: '/financial/[id]',
-      params: { id: transaction.id }
+      pathname: "/financial/[id]",
+      params: { id: transaction.id },
     });
   };
 
@@ -103,27 +103,28 @@ export default function FinancialScreen() {
 
   // HARDCODED: Calculate financial stats from mock data
   const financialStats = {
-    totalIncome: mockTransactions
-      .filter(t => t.type === 'Income')
+    totalIncome: transactions
+      .filter((t) => t.type === "Income")
       .reduce((sum, t) => sum + t.amount, 0),
-    totalExpenses: mockTransactions
-      .filter(t => t.type === 'Expense')
+    totalExpenses: transactions
+      .filter((t) => t.type === "Expense")
       .reduce((sum, t) => sum + t.amount, 0),
-    netProfit: mockTransactions
-      .filter(t => t.type === 'Income')
-      .reduce((sum, t) => sum + t.amount, 0) -
-      mockTransactions
-        .filter(t => t.type === 'Expense')
+    netProfit:
+      transactions
+        .filter((t) => t.type === "Income")
+        .reduce((sum, t) => sum + t.amount, 0) -
+      transactions
+        .filter((t) => t.type === "Expense")
         .reduce((sum, t) => sum + t.amount, 0),
-    healthCosts: mockTransactions
-      .filter(t => t.category === 'Medication')
+    healthCosts: transactions
+      .filter((t) => t.category === "Medication")
       .reduce((sum, t) => sum + t.amount, 0),
     acquisitionCosts: 0,
-    animalSales: mockTransactions
-      .filter(t => t.category === 'Sales')
+    animalSales: transactions
+      .filter((t) => t.category === "Sales")
       .reduce((sum, t) => sum + t.amount, 0),
     totalAssetValue: 15000, // Hardcoded total asset value
-    recentTransactions: mockTransactions.length,
+    recentTransactions: transactions.length,
     byCategory: [],
   };
 
@@ -172,7 +173,9 @@ export default function FinancialScreen() {
         <View style={styles.overviewGrid}>
           <Card variant="success" style={styles.overviewCard}>
             <TrendingUp size={20} color={colors.success} />
-            <Text style={[styles.overviewLabel, { color: colors.muted }]}>Income</Text>
+            <Text style={[styles.overviewLabel, { color: colors.muted }]}>
+              Income
+            </Text>
             <Text style={[styles.overviewValue, { color: colors.text }]}>
               {formatCurrency(financialStats.totalIncome)}
             </Text>
@@ -180,7 +183,9 @@ export default function FinancialScreen() {
 
           <Card variant="warning" style={styles.overviewCard}>
             <TrendingDown size={20} color={colors.danger} />
-            <Text style={[styles.overviewLabel, { color: colors.muted }]}>Expenses</Text>
+            <Text style={[styles.overviewLabel, { color: colors.muted }]}>
+              Expenses
+            </Text>
             <Text style={[styles.overviewValue, { color: colors.text }]}>
               {formatCurrency(financialStats.totalExpenses)}
             </Text>
@@ -190,7 +195,9 @@ export default function FinancialScreen() {
         {/* Asset Summary */}
         <Card variant="info" style={styles.assetCard}>
           <View style={styles.assetHeader}>
-            <Text style={[styles.assetTitle, { color: colors.text }]}>Assets</Text>
+            <Text style={[styles.assetTitle, { color: colors.text }]}>
+              Assets
+            </Text>
             <Text style={[styles.assetValue, { color: colors.tint }]}>
               {formatCurrency(financialStats.totalAssetValue)}
             </Text>
@@ -273,54 +280,54 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   netProfitContent: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   netProfitLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
   },
   netProfitValue: {
     fontSize: 36,
-    fontWeight: '900',
+    fontWeight: "900",
   },
   overviewGrid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
     marginBottom: 24,
   },
   overviewCard: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
   },
   overviewLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 8,
     marginBottom: 4,
   },
   overviewValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   assetCard: {
     marginBottom: 24,
     padding: 20,
   },
   assetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   assetTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   assetValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   assetBreakdown: {
     gap: 4,
@@ -332,21 +339,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   viewAllText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptyCard: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 32,
   },
   emptyText: {
@@ -357,16 +364,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 24,
     right: 20,
     width: 56,
     height: 56,
     borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

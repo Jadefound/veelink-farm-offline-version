@@ -9,15 +9,18 @@ import {
   TextStyle,
 } from "react-native";
 import Colors from "@/constants/colors";
+import { useThemeStore } from "@/store/themeStore";
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
   labelStyle?: TextStyle;
-  inputStyle?: ViewStyle;
+  inputStyle?: TextStyle;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  testID?: string;
+  accessibilityLabel?: string;
 }
 
 export default function Input({
@@ -28,16 +31,20 @@ export default function Input({
   inputStyle,
   leftIcon,
   rightIcon,
+  testID,
+  accessibilityLabel,
   ...props
 }: InputProps) {
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
+
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
+      {label && <Text style={[styles.label, labelStyle, { color: colors.text }]}>{label}</Text>}
       <View
         style={[
           styles.inputContainer,
-          error ? styles.inputError : null,
-          inputStyle,
+          { borderColor: error ? colors.danger : colors.border, backgroundColor: colors.card },
         ]}
       >
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
@@ -46,13 +53,18 @@ export default function Input({
             styles.input,
             leftIcon ? styles.inputWithLeftIcon : null,
             rightIcon ? styles.inputWithRightIcon : null,
+            { color: colors.text },
+            inputStyle,
           ]}
-          placeholderTextColor={Colors.light.muted}
+          placeholderTextColor={colors.muted}
+          underlineColorAndroid="transparent"
+          testID={testID}
+          accessibilityLabel={accessibilityLabel || label}
           {...props}
         />
         {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
       </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
     </View>
   );
 }
@@ -64,23 +76,19 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
-    color: Colors.light.text,
     fontWeight: "500",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: Colors.light.border,
     borderRadius: 8,
-    backgroundColor: "white",
   },
   input: {
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: Colors.light.text,
   },
   inputWithLeftIcon: {
     paddingLeft: 8,
@@ -94,11 +102,7 @@ const styles = StyleSheet.create({
   rightIcon: {
     paddingRight: 16,
   },
-  inputError: {
-    borderColor: Colors.light.danger,
-  },
   errorText: {
-    color: Colors.light.danger,
     fontSize: 14,
     marginTop: 4,
   },

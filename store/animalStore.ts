@@ -28,6 +28,7 @@ const mockAnimals: Animal[] = [
     age: 2,
     healthStatus: 'healthy',
     estimatedValue: 1200,
+    type: 'Cattle',
   },
   {
     id: '2',
@@ -49,6 +50,7 @@ const mockAnimals: Animal[] = [
     age: 1,
     healthStatus: 'healthy',
     estimatedValue: 300,
+    type: 'Goat',
   },
   {
     id: '3',
@@ -70,6 +72,7 @@ const mockAnimals: Animal[] = [
     age: 1,
     healthStatus: 'sick',
     estimatedValue: 400,
+    type: 'Pig',
   },
   {
     id: '4',
@@ -91,6 +94,7 @@ const mockAnimals: Animal[] = [
     age: 0,
     healthStatus: 'healthy',
     estimatedValue: 25,
+    type: 'Chicken',
   },
   {
     id: '5',
@@ -112,6 +116,7 @@ const mockAnimals: Animal[] = [
     age: 1,
     healthStatus: 'recovering',
     estimatedValue: 200,
+    type: 'Sheep',
   }
 ];
 

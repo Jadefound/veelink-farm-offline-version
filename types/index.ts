@@ -52,6 +52,7 @@ export type Animal = {
   age: number;
   healthStatus: 'healthy' | 'sick' | 'recovering';
   estimatedValue?: number;
+  type: string;
 };
 
 export type HealthRecordType =

@@ -46,7 +46,7 @@ export default function Button({
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const getButtonStyle = () => {
-    const baseStyle: any[] = [styles.button, styles[size]];
+    const baseStyle: ViewStyle[] = [styles.button, styles[size]];
     if (fullWidth) {
       baseStyle.push(styles.fullWidth as ViewStyle);
     }
@@ -94,7 +94,7 @@ export default function Button({
   };
 
   const getTextStyle = () => {
-    const baseStyle: any[] = [styles.text, styles[`${size}Text`]];
+    const baseStyle: TextStyle[] = [styles.text, styles[`${size}Text`]];
 
     if (disabled || loading) {
       baseStyle.push({ color: colors.background });

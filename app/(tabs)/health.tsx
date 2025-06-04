@@ -1,25 +1,31 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, FlatList, RefreshControl, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { useHealthStore } from "@/store/healthStore";
 import { useFarmStore } from "@/store/farmStore";
-import { HealthRecord } from "@/types";
+import { HealthRecord, Farm } from "@/types";
 import Colors from "@/constants/colors";
 import HealthRecordCard from "@/components/HealthRecordCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import FarmSelector from "@/components/FarmSelector";
-import { mockHealthRecords, mockFarms } from "@/utils/mockData";
+import { getMockData } from "@/utils/mockData";
 
 export default function HealthScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
   // HARDCODED: Use mock data directly instead of store
-  const healthRecords = mockHealthRecords;
-  const farms = mockFarms;
-  const currentFarm = mockFarms[0]; // Use first farm as current
+  const healthRecords = getMockData("healthRecords") as HealthRecord[];
+  const farms = getMockData("farms") as Farm[];
+  const currentFarm = farms[0];
   const isLoading = false;
 
   const loadHealthRecords = async () => {
@@ -44,7 +50,7 @@ export default function HealthScreen() {
     router.push("/farm/add");
   };
 
-  const setCurrentFarm = (farm: any) => {
+  const setCurrentFarm = (farm: Farm) => {
     // Mock function for FarmSelector
   };
 
@@ -86,7 +92,10 @@ export default function HealthScreen() {
               data={healthRecords}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <HealthRecordCard record={item} onPress={handleHealthRecordPress} />
+                <HealthRecordCard
+                  record={item}
+                  onPress={handleHealthRecordPress}
+                />
               )}
               contentContainerStyle={styles.listContent}
               refreshControl={

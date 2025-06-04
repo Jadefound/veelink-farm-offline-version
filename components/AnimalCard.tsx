@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, GestureResponderEvent } from "react-native";
 import { Image } from "expo-image";
 import { Edit } from "lucide-react-native";
 import { Animal } from "@/types";
@@ -26,8 +26,7 @@ export default function AnimalCard({
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const router = useRouter();
 
-  const handleEdit = (e: any) => {
-    e.stopPropagation();
+  const handleEdit = (event: GestureResponderEvent) => {
     if (onEdit) {
       onEdit(animal);
     } else {

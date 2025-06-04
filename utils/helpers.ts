@@ -1,3 +1,7 @@
+import { Transaction } from "@/types";
+import { Animal } from "@/types";
+import { Platform } from 'react-native';
+
 /**
  * Generates a unique v4 UUID string that works across all platforms
  * @returns {string} A unique identifier
@@ -9,7 +13,7 @@ export const generateId = (): string => {
   }
 
   // Fallback implementation that works everywhere
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+  return 'xxxxxxxx-xxxx-4xxx-yext-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -72,8 +76,8 @@ export const groupBy = <T>(array: T[], key: keyof T): Record<string, T[]> => {
 };
 
 // Calculate statistics for animals
-export const calculateAnimalStats = (animals: any[]) => {
-  const speciesCount = groupBy(animals, "species");
+export const calculateAnimalStats = (animals: Animal[]) => {
+  const speciesCount = groupBy(animals, "type");
   const statusCount = groupBy(animals, "status");
 
   return {
@@ -90,7 +94,7 @@ export const calculateAnimalStats = (animals: any[]) => {
 };
 
 // Calculate financial summary
-export const calculateFinancialSummary = (transactions: any[]) => {
+export const calculateFinancialSummary = (transactions: Transaction[]) => {
   const income = transactions
     .filter(t => t.type === "Income")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -110,3 +114,7 @@ export const calculateFinancialSummary = (transactions: any[]) => {
       }))
   };
 };
+
+if (Platform.OS === 'android') {
+  // call setBackgroundColorAsync or setButtonStyleAsync
+}

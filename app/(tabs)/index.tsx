@@ -24,7 +24,7 @@ import { useHealthStore } from "@/store/healthStore";
 import { useFinancialStore } from "@/store/financialStore";
 import { useThemeStore } from "@/store/themeStore";
 import { formatCurrency } from "@/utils/helpers";
-import { loadMockData } from "@/utils/mockData";
+import { loadMockData, getMockData } from "@/utils/mockData";
 import Colors from "@/constants/colors";
 import TopNavigation from "@/components/TopNavigation";
 import StatCard from "@/components/StatCard";

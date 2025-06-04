@@ -21,7 +21,7 @@ import Button from "@/components/Button";
 import HealthRecordCard from "@/components/HealthRecordCard";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 
 export default function AnimalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -96,27 +96,36 @@ export default function AnimalDetailScreen() {
 
   const handleHealthRecordPress = (record: HealthRecord) => {
     router.push({
-      pathname: '/health/[id]',
-      params: { id: record.id }
+      pathname: "/health/[id]",
+      params: { id: record.id },
     });
   };
 
   // Get species-specific image
   const getAnimalImage = (species: string) => {
     const animalImages = {
-      'Cattle': 'https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Sheep': 'https://images.pexels.com/photos/2318466/pexels-photo-2318466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Goat': 'https://images.pexels.com/photos/751689/pexels-photo-751689.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Pig': 'https://images.pexels.com/photos/1300361/pexels-photo-1300361.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Chicken': 'https://images.pexels.com/photos/1300358/pexels-photo-1300358.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Duck': 'https://images.pexels.com/photos/416179/pexels-photo-416179.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Turkey': 'https://images.pexels.com/photos/372166/pexels-photo-372166.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Horse': 'https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Rabbit': 'https://images.pexels.com/photos/326012/pexels-photo-326012.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-      'Other': 'https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop'
+      Cattle:
+        "https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Sheep:
+        "https://images.pexels.com/photos/2318466/pexels-photo-2318466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Goat: "https://images.pexels.com/photos/751689/pexels-photo-751689.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Pig: "https://images.pexels.com/photos/1300361/pexels-photo-1300361.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Chicken:
+        "https://images.pexels.com/photos/1300358/pexels-photo-1300358.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Duck: "https://images.pexels.com/photos/416179/pexels-photo-416179.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Turkey:
+        "https://images.pexels.com/photos/372166/pexels-photo-372166.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Horse:
+        "https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Rabbit:
+        "https://images.pexels.com/photos/326012/pexels-photo-326012.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      Other:
+        "https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
     };
 
-    return animalImages[species as keyof typeof animalImages] || animalImages.Other;
+    return (
+      animalImages[species as keyof typeof animalImages] || animalImages.Other
+    );
   };
 
   // Get status color
@@ -140,24 +149,33 @@ export default function AnimalDetailScreen() {
   };
 
   // Generate species-based ID
-  const generateAnimalId = (species: string, animals: Animal[], currentAnimal: Animal) => {
+  const generateAnimalId = (
+    species: string,
+    animals: Animal[],
+    currentAnimal: Animal
+  ) => {
     const speciesPrefixes = {
-      'Cattle': 'C',
-      'Sheep': 'S',
-      'Goat': 'G',
-      'Pig': 'P',
-      'Chicken': 'CH',
-      'Duck': 'D',
-      'Turkey': 'T',
-      'Horse': 'H',
-      'Rabbit': 'R',
-      'Other': 'O'
+      Cattle: "C",
+      Sheep: "S",
+      Goat: "G",
+      Pig: "P",
+      Chicken: "CH",
+      Duck: "D",
+      Turkey: "T",
+      Horse: "H",
+      Rabbit: "R",
+      Other: "O",
     };
 
-    const prefix = speciesPrefixes[species as keyof typeof speciesPrefixes] || 'O';
-    const sameSpeciesAnimals = animals.filter(animal => (animal as any).species === species);
-    const animalIndex = sameSpeciesAnimals.findIndex(animal => animal.id === currentAnimal.id) + 1;
-    const nextNumber = animalIndex.toString().padStart(3, '0');
+    const prefix =
+      speciesPrefixes[species as keyof typeof speciesPrefixes] || "O";
+    const sameSpeciesAnimals = animals.filter(
+      (animal: Animal) => animal.species === species
+    );
+    const animalIndex =
+      sameSpeciesAnimals.findIndex((animal) => animal.id === currentAnimal.id) +
+      1;
+    const nextNumber = animalIndex.toString().padStart(3, "0");
     return `${prefix}${nextNumber}`;
   };
 
@@ -188,7 +206,7 @@ export default function AnimalDetailScreen() {
     );
   }
 
-  const animalId = generateAnimalId((animal as any).species || 'Other', [], animal);
+  const animalId = generateAnimalId(animal.species || "Other", [], animal);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -197,7 +215,7 @@ export default function AnimalDetailScreen() {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Image
-            source={{ uri: getAnimalImage((animal as any).species || 'Other') }}
+            source={{ uri: getAnimalImage(animal.species || "Other") }}
             style={styles.image}
             contentFit="cover"
           />
@@ -222,7 +240,7 @@ export default function AnimalDetailScreen() {
                 Species
               </Text>
               <Text style={[styles.infoValue, { color: colors.text }]}>
-                {(animal as any).species || 'Unknown'}
+                {animal.species || "Unknown"}
               </Text>
             </View>
 
@@ -262,7 +280,8 @@ export default function AnimalDetailScreen() {
                 Weight
               </Text>
               <Text style={[styles.infoValue, { color: colors.text }]}>
-                {(animal as any).weight || 0} {(animal as any).weightUnit || 'kg'}
+                {(animal as any).weight || 0}{" "}
+                {(animal as any).weightUnit || "kg"}
               </Text>
             </View>
 

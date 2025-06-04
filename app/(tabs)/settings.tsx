@@ -26,7 +26,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
 import Card from "@/components/Card";
-import { loadMockData, clearAllData } from "@/utils/mockData";
+import { loadMockData, clearAllData, getMockData } from "@/utils/mockData";
 
 export default function SettingsScreen() {
   const router = useRouter();

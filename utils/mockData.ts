@@ -1,17 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Animal, Farm, Transaction, HealthRecord } from '../types';
 
-// Simple hash function that works across all platforms
-const simpleHash = (str: string): string => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(16);
-};
-
 // Mock Farms Data
 const mockFarms: Farm[] = [
   {
@@ -57,6 +46,7 @@ export const mockAnimals: Animal[] = [
     updatedAt: new Date('2024-01-15').toISOString(),
     age: 2,
     healthStatus: 'healthy',
+    type: 'Cattle',
   },
   {
     id: 'animal-2',
@@ -77,6 +67,7 @@ export const mockAnimals: Animal[] = [
     updatedAt: new Date('2024-01-10').toISOString(),
     age: 3,
     healthStatus: 'healthy',
+    type: 'Cattle',
   },
   {
     id: 'animal-3',
@@ -97,6 +88,7 @@ export const mockAnimals: Animal[] = [
     updatedAt: new Date('2024-01-05').toISOString(),
     age: 1,
     healthStatus: 'healthy',
+    type: 'Goat',
   },
   {
     id: 'animal-4',
@@ -117,6 +109,7 @@ export const mockAnimals: Animal[] = [
     updatedAt: new Date('2024-01-12').toISOString(),
     age: 4,
     healthStatus: 'healthy',
+    type: 'Cattle',
   },
   {
     id: 'animal-5',
@@ -137,6 +130,7 @@ export const mockAnimals: Animal[] = [
     updatedAt: new Date('2024-01-08').toISOString(),
     age: 1,
     healthStatus: 'healthy',
+    type: 'Sheep',
   },
 ];
 
@@ -269,38 +263,49 @@ const mockUsers = [
   {
     id: 'user-1',
     email: 'demo@veelink.com',
-    password: simpleHash('demo123'),
+    password: 'demo123',
     name: 'Demo User',
     createdAt: new Date('2023-01-01').toISOString(),
     updatedAt: new Date('2024-01-15').toISOString(),
   },
 ];
 
+export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords' | 'users') => {
+  switch (type) {
+    case 'farms':
+      return mockFarms;
+    case 'animals':
+      return mockAnimals;
+    case 'transactions':
+      return mockTransactions;
+    case 'healthRecords':
+      return mockHealthRecords;
+    case 'users':
+      return mockUsers;
+    default:
+      return [];
+  }
+};
+
 export const loadMockData = async () => {
   try {
-    console.log('Loading mock data...');
-
+    // console.log('Loading mock data...');
     // Load farms
     await AsyncStorage.setItem('farms', JSON.stringify(mockFarms));
-    console.log('Mock farms loaded');
-
+    // console.log('Mock farms loaded');
     // Load animals
     await AsyncStorage.setItem('animals', JSON.stringify(mockAnimals));
-    console.log('Mock animals loaded');
-
+    // console.log('Mock animals loaded');
     // Load transactions
     await AsyncStorage.setItem('transactions', JSON.stringify(mockTransactions));
-    console.log('Mock transactions loaded');
-
+    // console.log('Mock transactions loaded');
     // Load health records
     await AsyncStorage.setItem('healthRecords', JSON.stringify(mockHealthRecords));
-    console.log('Mock health records loaded');
-
+    // console.log('Mock health records loaded');
     // Load users
     await AsyncStorage.setItem('users', JSON.stringify(mockUsers));
-    console.log('Mock users loaded');
-
-    console.log('All mock data loaded successfully!');
+    // console.log('Mock users loaded');
+    // console.log('All mock data loaded successfully!');
     return true;
   } catch (error) {
     console.error('Failed to load mock data:', error);
@@ -325,6 +330,3 @@ export const clearAllData = async () => {
     return false;
   }
 };
-
-// Export all mock arrays for direct use
-export { mockFarms, mockTransactions, mockHealthRecords, mockUsers };

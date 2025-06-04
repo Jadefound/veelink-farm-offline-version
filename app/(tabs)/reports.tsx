@@ -11,7 +11,15 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { FileText, Download, Filter, ChevronDown, Calendar, ArrowUpDown, FileBarChart } from "lucide-react-native";
+import {
+  FileText,
+  Download,
+  Filter,
+  ChevronDown,
+  Calendar,
+  ArrowUpDown,
+  FileBarChart,
+} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Print from "expo-print";
 import { shareAsync } from "expo-sharing";
@@ -25,9 +33,9 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { formatCurrency, formatDate } from "@/utils/helpers";
-import { Animal, HealthRecord, Transaction } from "@/types";
+import { Animal, HealthRecord, Transaction, Farm } from "@/types";
 import TopNavigation from "@/components/TopNavigation";
-import { mockAnimals, mockHealthRecords, mockTransactions, mockFarms } from "@/utils/mockData";
+import { getMockData } from "@/utils/mockData";
 
 // Define report types
 type ReportType = "animals" | "health" | "financial";
@@ -46,16 +54,13 @@ export default function ReportsScreen() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  // HARDCODED: Use mock data directly instead of store
-  const animals = mockAnimals;
-  const healthRecords = mockHealthRecords;
-  const transactions = mockTransactions;
-  const currentFarm = mockFarms[0]; // Use first farm as current
-  const isLoading = false;
-
   const { isDarkMode } = useThemeStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
+
+  const farms = getMockData("farms") as Farm[];
+  const currentFarm = farms[0];
+  const isLoading = false;
 
   const loadData = async () => {
     // Mock function - no longer needed
@@ -66,6 +71,15 @@ export default function ReportsScreen() {
     // Simulate refresh delay
     setTimeout(() => setRefreshing(false), 500);
   };
+
+  // Initialize mock data with correct typings
+  const animals: Animal[] = getMockData("animals") as Animal[];
+  const healthRecords: HealthRecord[] = getMockData(
+    "healthRecords"
+  ) as HealthRecord[];
+  const transactions: Transaction[] = getMockData(
+    "transactions"
+  ) as Transaction[];
 
   // Filter data based on selected period
   const getFilteredData = () => {
@@ -89,32 +103,38 @@ export default function ReportsScreen() {
     const startTimestamp = startDate.getTime();
 
     if (reportType === "animals") {
-      return animals.filter(animal => {
-        const createdAt = new Date(animal.createdAt).getTime();
-        return filterPeriod === "all" || createdAt >= startTimestamp;
-      }).sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-      });
+      return animals
+        .filter((animal) => {
+          const createdAt = new Date(animal.createdAt).getTime();
+          return filterPeriod === "all" || createdAt >= startTimestamp;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+        });
     } else if (reportType === "health") {
-      return healthRecords.filter(record => {
-        const recordDate = new Date(record.date).getTime();
-        return filterPeriod === "all" || recordDate >= startTimestamp;
-      }).sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-      });
+      return healthRecords
+        .filter((record) => {
+          const recordDate = new Date(record.date).getTime();
+          return filterPeriod === "all" || recordDate >= startTimestamp;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+        });
     } else {
-      return transactions.filter(transaction => {
-        const transactionDate = new Date(transaction.date).getTime();
-        return filterPeriod === "all" || transactionDate >= startTimestamp;
-      }).sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-      });
+      return transactions
+        .filter((transaction) => {
+          const transactionDate = new Date(transaction.date).getTime();
+          return filterPeriod === "all" || transactionDate >= startTimestamp;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+        });
     }
   };
 
@@ -204,8 +224,8 @@ export default function ReportsScreen() {
     `;
 
     // Generate table based on report type
-    let tableHtml = '';
-    let summaryHtml = '';
+    let tableHtml = "";
+    let summaryHtml = "";
 
     if (reportType === "animals") {
       // Animals table
@@ -223,7 +243,9 @@ export default function ReportsScreen() {
             </tr>
           </thead>
           <tbody>
-            ${(data as Animal[]).map(animal => `
+            ${(data as Animal[])
+              .map(
+                (animal) => `
               <tr>
                 <td>${animal.identificationNumber}</td>
                 <td>${animal.species}</td>
@@ -233,17 +255,22 @@ export default function ReportsScreen() {
                 <td>${animal.weight} ${animal.weightUnit}</td>
                 <td>${formatDate(animal.birthDate)}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
       `;
 
       // Summary for animals
       const totalAnimals = (data as Animal[]).length;
-      const speciesCount = (data as Animal[]).reduce((acc, animal) => {
-        acc[animal.species] = (acc[animal.species] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const speciesCount = (data as Animal[]).reduce(
+        (acc, animal) => {
+          acc[animal.species] = (acc[animal.species] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       summaryHtml = `
         <div class="summary">
@@ -251,9 +278,12 @@ export default function ReportsScreen() {
           <p>Total Animals: ${totalAnimals}</p>
           <p>Species Breakdown:</p>
           <ul>
-            ${Object.entries(speciesCount).map(([species, count]) =>
-        `<li>${species}: ${count} (${((count / totalAnimals) * 100).toFixed(1)}%)</li>`
-      ).join('')}
+            ${Object.entries(speciesCount)
+              .map(
+                ([species, count]) =>
+                  `<li>${species}: ${count} (${((count / totalAnimals) * 100).toFixed(1)}%)</li>`
+              )
+              .join("")}
           </ul>
         </div>
       `;
@@ -272,7 +302,9 @@ export default function ReportsScreen() {
             </tr>
           </thead>
           <tbody>
-            ${(data as HealthRecord[]).map(record => `
+            ${(data as HealthRecord[])
+              .map(
+                (record) => `
               <tr>
                 <td>${formatDate(record.date)}</td>
                 <td>${record.animalId}</td>
@@ -281,18 +313,26 @@ export default function ReportsScreen() {
                 <td>${record.treatment}</td>
                 <td>${formatCurrency(record.cost)}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
       `;
 
       // Summary for health records
       const totalRecords = (data as HealthRecord[]).length;
-      const totalCost = (data as HealthRecord[]).reduce((sum, record) => sum + record.cost, 0);
-      const typeCount = (data as HealthRecord[]).reduce((acc, record) => {
-        acc[record.type] = (acc[record.type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const totalCost = (data as HealthRecord[]).reduce(
+        (sum, record) => sum + record.cost,
+        0
+      );
+      const typeCount = (data as HealthRecord[]).reduce(
+        (acc, record) => {
+          acc[record.type] = (acc[record.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       summaryHtml = `
         <div class="summary">
@@ -301,9 +341,12 @@ export default function ReportsScreen() {
           <p>Total Cost: ${formatCurrency(totalCost)}</p>
           <p>Record Types:</p>
           <ul>
-            ${Object.entries(typeCount).map(([type, count]) =>
-        `<li>${type}: ${count} (${((count / totalRecords) * 100).toFixed(1)}%)</li>`
-      ).join('')}
+            ${Object.entries(typeCount)
+              .map(
+                ([type, count]) =>
+                  `<li>${type}: ${count} (${((count / totalRecords) * 100).toFixed(1)}%)</li>`
+              )
+              .join("")}
           </ul>
         </div>
       `;
@@ -321,7 +364,9 @@ export default function ReportsScreen() {
             </tr>
           </thead>
           <tbody>
-            ${(data as Transaction[]).map(transaction => `
+            ${(data as Transaction[])
+              .map(
+                (transaction) => `
               <tr>
                 <td>${formatDate(transaction.date)}</td>
                 <td>${transaction.type}</td>
@@ -329,26 +374,31 @@ export default function ReportsScreen() {
                 <td>${formatCurrency(transaction.amount)}</td>
                 <td>${transaction.description}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
       `;
 
       // Summary for financial transactions
       const totalIncome = (data as Transaction[])
-        .filter(t => t.type === "Income")
+        .filter((t) => t.type === "Income")
         .reduce((sum, t) => sum + t.amount, 0);
 
       const totalExpense = (data as Transaction[])
-        .filter(t => t.type === "Expense")
+        .filter((t) => t.type === "Expense")
         .reduce((sum, t) => sum + t.amount, 0);
 
       const netProfit = totalIncome - totalExpense;
 
-      const categoryBreakdown = (data as Transaction[]).reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + t.amount;
-        return acc;
-      }, {} as Record<string, number>);
+      const categoryBreakdown = (data as Transaction[]).reduce(
+        (acc, t) => {
+          acc[t.category] = (acc[t.category] || 0) + t.amount;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       summaryHtml = `
         <div class="summary">
@@ -358,9 +408,12 @@ export default function ReportsScreen() {
           <p>Net Profit: ${formatCurrency(netProfit)}</p>
           <p>Category Breakdown:</p>
           <ul>
-            ${Object.entries(categoryBreakdown).map(([category, amount]) =>
-        `<li>${category}: ${formatCurrency(amount)}</li>`
-      ).join('')}
+            ${Object.entries(categoryBreakdown)
+              .map(
+                ([category, amount]) =>
+                  `<li>${category}: ${formatCurrency(amount)}</li>`
+              )
+              .join("")}
           </ul>
         </div>
       `;
@@ -404,19 +457,20 @@ export default function ReportsScreen() {
       const html = generateReportHtml();
       const { uri } = await Print.printToFileAsync({ html });
 
-      const reportTypeName = reportType.charAt(0).toUpperCase() + reportType.slice(1);
-      const fileName = `${reportTypeName}_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+      const reportTypeName =
+        reportType.charAt(0).toUpperCase() + reportType.slice(1);
+      const fileName = `${reportTypeName}_Report_${new Date().toISOString().split("T")[0]}.pdf`;
 
       await shareAsync(uri, {
-        UTI: '.pdf',
-        mimeType: 'application/pdf',
-        dialogTitle: `Share ${reportTypeName} Report`
+        UTI: ".pdf",
+        mimeType: "application/pdf",
+        dialogTitle: `Share ${reportTypeName} Report`,
       });
       setIsGeneratingPdf(false);
     } catch (error) {
       setIsGeneratingPdf(false);
-      console.error('Error generating PDF:', error);
-      Alert.alert('Error', 'Failed to generate PDF report. Please try again.');
+      console.error("Error generating PDF:", error);
+      Alert.alert("Error", "Failed to generate PDF report. Please try again.");
     }
   };
 
@@ -425,28 +479,76 @@ export default function ReportsScreen() {
     if (reportType === "animals") {
       return (
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}>ID</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}>Species</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}>Status</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}>Weight</Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}
+          >
+            ID
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Species
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Status
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Weight
+          </Text>
         </View>
       );
     } else if (reportType === "health") {
       return (
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderCell, { flex: 1.2, color: colors.text }]}>Date</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}>Type</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}>Animal</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}>Cost</Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1.2, color: colors.text }]}
+          >
+            Date
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Type
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}
+          >
+            Animal
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Cost
+          </Text>
         </View>
       );
     } else {
       return (
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderCell, { flex: 1.2, color: colors.text }]}>Date</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}>Type</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}>Category</Text>
-          <Text style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}>Amount</Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1.2, color: colors.text }]}
+          >
+            Date
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Type
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}
+          >
+            Category
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Amount
+          </Text>
         </View>
       );
     }
@@ -473,7 +575,10 @@ export default function ReportsScreen() {
           key={animal.id}
           style={[
             styles.tableRow,
-            { backgroundColor: index % 2 === 0 ? colors.card : colors.background }
+            {
+              backgroundColor:
+                index % 2 === 0 ? colors.card : colors.background,
+            },
           ]}
         >
           <Text style={[styles.tableCell, { flex: 1.5, color: colors.text }]}>
@@ -496,7 +601,10 @@ export default function ReportsScreen() {
           key={record.id}
           style={[
             styles.tableRow,
-            { backgroundColor: index % 2 === 0 ? colors.card : colors.background }
+            {
+              backgroundColor:
+                index % 2 === 0 ? colors.card : colors.background,
+            },
           ]}
         >
           <Text style={[styles.tableCell, { flex: 1.2, color: colors.text }]}>
@@ -519,7 +627,10 @@ export default function ReportsScreen() {
           key={transaction.id}
           style={[
             styles.tableRow,
-            { backgroundColor: index % 2 === 0 ? colors.card : colors.background }
+            {
+              backgroundColor:
+                index % 2 === 0 ? colors.card : colors.background,
+            },
           ]}
         >
           <Text style={[styles.tableCell, { flex: 1.2, color: colors.text }]}>
@@ -536,8 +647,11 @@ export default function ReportsScreen() {
               styles.tableCell,
               {
                 flex: 1,
-                color: transaction.type === "Income" ? colors.success : colors.danger
-              }
+                color:
+                  transaction.type === "Income"
+                    ? colors.success
+                    : colors.danger,
+              },
             ]}
           >
             {formatCurrency(transaction.amount)}
@@ -557,32 +671,42 @@ export default function ReportsScreen() {
 
     if (reportType === "animals") {
       const totalAnimals = (data as Animal[]).length;
-      const speciesCount = (data as Animal[]).reduce((acc, animal) => {
-        acc[animal.species] = (acc[animal.species] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const speciesCount = (data as Animal[]).reduce(
+        (acc, animal) => {
+          acc[animal.species] = (acc[animal.species] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       return (
-        <Card style={{
-          backgroundColor: colors.card,
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 16,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3
-        }}>
-          <Text style={[styles.summaryTitle, { color: colors.text }]}>Summary</Text>
+        <Card
+          style={{
+            backgroundColor: colors.card,
+            borderRadius: 8,
+            padding: 16,
+            marginBottom: 16,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <Text style={[styles.summaryTitle, { color: colors.text }]}>
+            Summary
+          </Text>
           <Text style={[styles.summaryText, { color: colors.text }]}>
             Total Animals: {totalAnimals}
           </Text>
-          <Text style={[styles.summarySubtitle, { color: colors.text }]}>Species Breakdown:</Text>
+          <Text style={[styles.summarySubtitle, { color: colors.text }]}>
+            Species Breakdown:
+          </Text>
           {Object.entries(speciesCount).map(([species, count]) => (
             <View key={species} style={styles.summaryItem}>
               <Text style={[styles.summaryItemText, { color: colors.text }]}>
-                {species}: {count} ({((count / totalAnimals) * 100).toFixed(1)}%)
+                {species}: {count} ({((count / totalAnimals) * 100).toFixed(1)}
+                %)
               </Text>
               <View style={styles.progressBarContainer}>
                 <View
@@ -590,8 +714,8 @@ export default function ReportsScreen() {
                     styles.progressBar,
                     {
                       width: `${(count / totalAnimals) * 100}%`,
-                      backgroundColor: colors.tint
-                    }
+                      backgroundColor: colors.tint,
+                    },
                   ]}
                 />
               </View>
@@ -601,31 +725,43 @@ export default function ReportsScreen() {
       );
     } else if (reportType === "health") {
       const totalRecords = (data as HealthRecord[]).length;
-      const totalCost = (data as HealthRecord[]).reduce((sum, record) => sum + record.cost, 0);
-      const typeCount = (data as HealthRecord[]).reduce((acc, record) => {
-        acc[record.type] = (acc[record.type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const totalCost = (data as HealthRecord[]).reduce(
+        (sum, record) => sum + record.cost,
+        0
+      );
+      const typeCount = (data as HealthRecord[]).reduce(
+        (acc, record) => {
+          acc[record.type] = (acc[record.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
       return (
-        <Card style={{
-          backgroundColor: colors.card,
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 16,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3
-        }}>
-          <Text style={[styles.summaryTitle, { color: colors.text }]}>Summary</Text>
+        <Card
+          style={{
+            backgroundColor: colors.card,
+            borderRadius: 8,
+            padding: 16,
+            marginBottom: 16,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <Text style={[styles.summaryTitle, { color: colors.text }]}>
+            Summary
+          </Text>
           <Text style={[styles.summaryText, { color: colors.text }]}>
             Total Health Records: {totalRecords}
           </Text>
           <Text style={[styles.summaryText, { color: colors.text }]}>
             Total Cost: {formatCurrency(totalCost)}
           </Text>
-          <Text style={[styles.summarySubtitle, { color: colors.text }]}>Record Types:</Text>
+          <Text style={[styles.summarySubtitle, { color: colors.text }]}>
+            Record Types:
+          </Text>
           {Object.entries(typeCount).map(([type, count]) => (
             <View key={type} style={styles.summaryItem}>
               <Text style={[styles.summaryItemText, { color: colors.text }]}>
@@ -637,8 +773,8 @@ export default function ReportsScreen() {
                     styles.progressBar,
                     {
                       width: `${(count / totalRecords) * 100}%`,
-                      backgroundColor: colors.secondary
-                    }
+                      backgroundColor: colors.secondary,
+                    },
                   ]}
                 />
               </View>
@@ -648,54 +784,80 @@ export default function ReportsScreen() {
       );
     } else {
       const totalIncome = (data as Transaction[])
-        .filter(t => t.type === "Income")
+        .filter((t) => t.type === "Income")
         .reduce((sum, t) => sum + t.amount, 0);
 
       const totalExpense = (data as Transaction[])
-        .filter(t => t.type === "Expense")
+        .filter((t) => t.type === "Expense")
         .reduce((sum, t) => sum + t.amount, 0);
 
       const netProfit = totalIncome - totalExpense;
 
-      const categoryBreakdown = (data as Transaction[]).reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + t.amount;
-        return acc;
-      }, {} as Record<string, number>);
+      const categoryBreakdown = (data as Transaction[]).reduce(
+        (acc, t) => {
+          acc[t.category] = (acc[t.category] || 0) + t.amount;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const maxAmount = Math.max(...Object.values(categoryBreakdown));
 
       return (
-        <Card style={{
-          backgroundColor: colors.card,
-          borderRadius: 8,
-          padding: 16,
-          marginBottom: 16,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3
-        }}>
-          <Text style={[styles.summaryTitle, { color: colors.text }]}>Financial Summary</Text>
+        <Card
+          style={{
+            backgroundColor: colors.card,
+            borderRadius: 8,
+            padding: 16,
+            marginBottom: 16,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <Text style={[styles.summaryTitle, { color: colors.text }]}>
+            Financial Summary
+          </Text>
           <View style={styles.financialSummary}>
             <View style={styles.financialSummaryItem}>
-              <Text style={[styles.financialSummaryLabel, { color: colors.text }]}>Income</Text>
-              <Text style={[styles.financialSummaryValue, { color: colors.success }]}>
+              <Text
+                style={[styles.financialSummaryLabel, { color: colors.text }]}
+              >
+                Income
+              </Text>
+              <Text
+                style={[
+                  styles.financialSummaryValue,
+                  { color: colors.success },
+                ]}
+              >
                 {formatCurrency(totalIncome)}
               </Text>
             </View>
             <View style={styles.financialSummaryItem}>
-              <Text style={[styles.financialSummaryLabel, { color: colors.text }]}>Expenses</Text>
-              <Text style={[styles.financialSummaryValue, { color: colors.danger }]}>
+              <Text
+                style={[styles.financialSummaryLabel, { color: colors.text }]}
+              >
+                Expenses
+              </Text>
+              <Text
+                style={[styles.financialSummaryValue, { color: colors.danger }]}
+              >
                 {formatCurrency(totalExpense)}
               </Text>
             </View>
             <View style={styles.financialSummaryItem}>
-              <Text style={[styles.financialSummaryLabel, { color: colors.text }]}>Net Profit</Text>
+              <Text
+                style={[styles.financialSummaryLabel, { color: colors.text }]}
+              >
+                Net Profit
+              </Text>
               <Text
                 style={[
                   styles.financialSummaryValue,
-                  { color: netProfit >= 0 ? colors.success : colors.danger }
+                  { color: netProfit >= 0 ? colors.success : colors.danger },
                 ]}
               >
                 {formatCurrency(netProfit)}
@@ -703,14 +865,18 @@ export default function ReportsScreen() {
             </View>
           </View>
 
-          <Text style={[styles.summarySubtitle, { color: colors.text }]}>Category Breakdown:</Text>
+          <Text style={[styles.summarySubtitle, { color: colors.text }]}>
+            Category Breakdown:
+          </Text>
           {Object.entries(categoryBreakdown).map(([category, amount]) => (
             <View key={category} style={styles.summaryItem}>
               <View style={styles.summaryItemHeader}>
                 <Text style={[styles.summaryItemText, { color: colors.text }]}>
                   {category}
                 </Text>
-                <Text style={[styles.summaryItemAmount, { color: colors.text }]}>
+                <Text
+                  style={[styles.summaryItemAmount, { color: colors.text }]}
+                >
                   {formatCurrency(amount)}
                 </Text>
               </View>
@@ -720,8 +886,8 @@ export default function ReportsScreen() {
                     styles.progressBar,
                     {
                       width: `${(amount / maxAmount) * 100}%`,
-                      backgroundColor: colors.tint
-                    }
+                      backgroundColor: colors.tint,
+                    },
                   ]}
                 />
               </View>
@@ -749,7 +915,9 @@ export default function ReportsScreen() {
           <>
             <View style={styles.header}>
               <LinearGradient
-                colors={isDarkMode ? ['#1a2a3a', '#0d1520'] : ['#3498db', '#2980b9']}
+                colors={
+                  isDarkMode ? ["#1a2a3a", "#0d1520"] : ["#3498db", "#2980b9"]
+                }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.headerGradient}
@@ -767,14 +935,20 @@ export default function ReportsScreen() {
               <TouchableOpacity
                 style={[
                   styles.reportTypeButton,
-                  reportType === "animals" && [styles.activeReportType, { borderColor: colors.tint }]
+                  reportType === "animals" && [
+                    styles.activeReportType,
+                    { borderColor: colors.tint },
+                  ],
                 ]}
                 onPress={() => setReportType("animals")}
               >
                 <Text
                   style={[
                     styles.reportTypeText,
-                    { color: reportType === "animals" ? colors.tint : colors.text }
+                    {
+                      color:
+                        reportType === "animals" ? colors.tint : colors.text,
+                    },
                   ]}
                 >
                   Animals
@@ -783,14 +957,22 @@ export default function ReportsScreen() {
               <TouchableOpacity
                 style={[
                   styles.reportTypeButton,
-                  reportType === "health" && [styles.activeReportType, { borderColor: colors.secondary }]
+                  reportType === "health" && [
+                    styles.activeReportType,
+                    { borderColor: colors.secondary },
+                  ],
                 ]}
                 onPress={() => setReportType("health")}
               >
                 <Text
                   style={[
                     styles.reportTypeText,
-                    { color: reportType === "health" ? colors.secondary : colors.text }
+                    {
+                      color:
+                        reportType === "health"
+                          ? colors.secondary
+                          : colors.text,
+                    },
                   ]}
                 >
                   Health
@@ -799,14 +981,22 @@ export default function ReportsScreen() {
               <TouchableOpacity
                 style={[
                   styles.reportTypeButton,
-                  reportType === "financial" && [styles.activeReportType, { borderColor: colors.success }]
+                  reportType === "financial" && [
+                    styles.activeReportType,
+                    { borderColor: colors.success },
+                  ],
                 ]}
                 onPress={() => setReportType("financial")}
               >
                 <Text
                   style={[
                     styles.reportTypeText,
-                    { color: reportType === "financial" ? colors.success : colors.text }
+                    {
+                      color:
+                        reportType === "financial"
+                          ? colors.success
+                          : colors.text,
+                    },
                   ]}
                 >
                   Financial
@@ -817,21 +1007,38 @@ export default function ReportsScreen() {
             <View style={styles.filterContainer}>
               <View style={styles.filterSection}>
                 <TouchableOpacity
-                  style={[styles.filterButton, { backgroundColor: colors.card }]}
+                  style={[
+                    styles.filterButton,
+                    { backgroundColor: colors.card },
+                  ]}
                   onPress={() => {
                     setShowFilterMenu(!showFilterMenu);
                     setShowSortMenu(false);
                   }}
                 >
-                  <Calendar size={16} color={colors.text} style={styles.filterIcon} />
-                  <Text style={[styles.filterButtonText, { color: colors.text }]}>
-                    {filterPeriod === "all" ? "All Time" : filterPeriod.charAt(0).toUpperCase() + filterPeriod.slice(1)}
+                  <Calendar
+                    size={16}
+                    color={colors.text}
+                    style={styles.filterIcon}
+                  />
+                  <Text
+                    style={[styles.filterButtonText, { color: colors.text }]}
+                  >
+                    {filterPeriod === "all"
+                      ? "All Time"
+                      : filterPeriod.charAt(0).toUpperCase() +
+                        filterPeriod.slice(1)}
                   </Text>
                   <ChevronDown size={16} color={colors.text} />
                 </TouchableOpacity>
 
                 {showFilterMenu && (
-                  <View style={[styles.filterMenu, { backgroundColor: colors.card }]}>
+                  <View
+                    style={[
+                      styles.filterMenu,
+                      { backgroundColor: colors.card },
+                    ]}
+                  >
                     <TouchableOpacity
                       style={styles.filterMenuItem}
                       onPress={() => {
@@ -839,7 +1046,14 @@ export default function ReportsScreen() {
                         setShowFilterMenu(false);
                       }}
                     >
-                      <Text style={[styles.filterMenuItemText, { color: colors.text }]}>All Time</Text>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          { color: colors.text },
+                        ]}
+                      >
+                        All Time
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.filterMenuItem}
@@ -848,7 +1062,14 @@ export default function ReportsScreen() {
                         setShowFilterMenu(false);
                       }}
                     >
-                      <Text style={[styles.filterMenuItemText, { color: colors.text }]}>Last Week</Text>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          { color: colors.text },
+                        ]}
+                      >
+                        Last Week
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.filterMenuItem}
@@ -857,7 +1078,14 @@ export default function ReportsScreen() {
                         setShowFilterMenu(false);
                       }}
                     >
-                      <Text style={[styles.filterMenuItemText, { color: colors.text }]}>Last Month</Text>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          { color: colors.text },
+                        ]}
+                      >
+                        Last Month
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.filterMenuItem}
@@ -866,7 +1094,14 @@ export default function ReportsScreen() {
                         setShowFilterMenu(false);
                       }}
                     >
-                      <Text style={[styles.filterMenuItemText, { color: colors.text }]}>Last Quarter</Text>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          { color: colors.text },
+                        ]}
+                      >
+                        Last Quarter
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.filterMenuItem}
@@ -875,7 +1110,14 @@ export default function ReportsScreen() {
                         setShowFilterMenu(false);
                       }}
                     >
-                      <Text style={[styles.filterMenuItemText, { color: colors.text }]}>Last Year</Text>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          { color: colors.text },
+                        ]}
+                      >
+                        Last Year
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -883,21 +1125,35 @@ export default function ReportsScreen() {
 
               <View style={styles.filterSection}>
                 <TouchableOpacity
-                  style={[styles.filterButton, { backgroundColor: colors.card }]}
+                  style={[
+                    styles.filterButton,
+                    { backgroundColor: colors.card },
+                  ]}
                   onPress={() => {
                     setShowSortMenu(!showSortMenu);
                     setShowFilterMenu(false);
                   }}
                 >
-                  <ArrowUpDown size={16} color={colors.text} style={styles.filterIcon} />
-                  <Text style={[styles.filterButtonText, { color: colors.text }]}>
+                  <ArrowUpDown
+                    size={16}
+                    color={colors.text}
+                    style={styles.filterIcon}
+                  />
+                  <Text
+                    style={[styles.filterButtonText, { color: colors.text }]}
+                  >
                     {sortDirection === "desc" ? "Newest First" : "Oldest First"}
                   </Text>
                   <ChevronDown size={16} color={colors.text} />
                 </TouchableOpacity>
 
                 {showSortMenu && (
-                  <View style={[styles.filterMenu, { backgroundColor: colors.card }]}>
+                  <View
+                    style={[
+                      styles.filterMenu,
+                      { backgroundColor: colors.card },
+                    ]}
+                  >
                     <TouchableOpacity
                       style={styles.filterMenuItem}
                       onPress={() => {
@@ -905,7 +1161,14 @@ export default function ReportsScreen() {
                         setShowSortMenu(false);
                       }}
                     >
-                      <Text style={[styles.filterMenuItemText, { color: colors.text }]}>Newest First</Text>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          { color: colors.text },
+                        ]}
+                      >
+                        Newest First
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.filterMenuItem}
@@ -914,7 +1177,14 @@ export default function ReportsScreen() {
                         setShowSortMenu(false);
                       }}
                     >
-                      <Text style={[styles.filterMenuItemText, { color: colors.text }]}>Oldest First</Text>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          { color: colors.text },
+                        ]}
+                      >
+                        Oldest First
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -924,7 +1194,7 @@ export default function ReportsScreen() {
                 style={[
                   styles.exportButton,
                   { backgroundColor: colors.tint },
-                  isGeneratingPdf && { opacity: 0.7 }
+                  isGeneratingPdf && { opacity: 0.7 },
                 ]}
                 onPress={generatePdf}
                 disabled={isGeneratingPdf}
@@ -936,19 +1206,22 @@ export default function ReportsScreen() {
               </TouchableOpacity>
             </View>
 
-            <Card style={{
-              backgroundColor: colors.card,
-              borderRadius: 8,
-              padding: 16,
-              marginBottom: 16,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3
-            }}>
+            <Card
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 16,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+            >
               <Text style={[styles.tableTitle, { color: colors.text }]}>
-                {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report
+                {reportType.charAt(0).toUpperCase() + reportType.slice(1)}{" "}
+                Report
               </Text>
 
               <View style={styles.tableContainer}>
@@ -965,7 +1238,7 @@ export default function ReportsScreen() {
   );
 }
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
@@ -981,7 +1254,7 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 20,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   headerGradient: {
     borderRadius: 16,
@@ -1000,38 +1273,38 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
   },
   reportTypeContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 20,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   reportTypeButton: {
     flex: 1,
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomColor: "transparent",
   },
   activeReportType: {
     borderBottomWidth: 2,
   },
   reportTypeText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   filterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
     gap: 10,
   },
   filterSection: {
-    position: 'relative',
+    position: "relative",
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1044,7 +1317,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   filterMenu: {
-    position: 'absolute',
+    position: "absolute",
     top: 40,
     left: 0,
     width: 150,
@@ -1064,8 +1337,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   exportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1074,9 +1347,9 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   exportButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   tableCard: {
     borderRadius: 16,
@@ -1095,39 +1368,39 @@ const styles = StyleSheet.create({
   },
   tableContainer: {
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   tableHeader: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+    backgroundColor: "rgba(52, 152, 219, 0.1)",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
   },
   tableHeaderCell: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   tableRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
   },
   tableCell: {
     fontSize: 14,
   },
   emptyState: {
     padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyStateText: {
     marginTop: 16,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   summaryCard: {
     borderRadius: 16,
@@ -1158,8 +1431,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   summaryItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   summaryItemText: {
@@ -1168,22 +1441,22 @@ const styles = StyleSheet.create({
   },
   summaryItemAmount: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressBar: {
-    height: '100%',
+    height: "100%",
     borderRadius: 4,
   },
   financialSummary: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
     marginBottom: 8,
   },
   financialSummaryItem: {
@@ -1196,6 +1469,6 @@ const styles = StyleSheet.create({
   },
   financialSummaryValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });
