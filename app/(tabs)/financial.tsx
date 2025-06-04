@@ -29,7 +29,6 @@ import TopNavigation from "@/components/TopNavigation";
 import StatCard from "@/components/StatCard";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
-import { getMockData } from "@/utils/mockData";
 
 export default function FinancialScreen() {
   const router = useRouter();
@@ -42,10 +41,9 @@ export default function FinancialScreen() {
     averageAnimalValue: 0,
   });
 
-  // HARDCODED: Use mock data directly instead of store
-  const transactions = getMockData("transactions") as Transaction[];
-  const farms = getMockData("farms") as Farm[];
-  const currentFarm = farms[0]; // Use first farm as current
+  // Use the store instead:
+  const transactions = useFinancialStore(state => state.transactions);
+  const { farms, currentFarm } = useFarmStore();
   const isLoading = false;
 
   const { isDarkMode } = useThemeStore();

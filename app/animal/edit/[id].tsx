@@ -53,19 +53,10 @@ export default function EditAnimalScreen() {
     useState(false);
 
   const speciesOptions: AnimalSpecies[] = [
-    "Cattle",
-    "Goat",
-    "Sheep",
-    "Pig",
-    "Chicken",
+    "Cattle", "Sheep", "Goat", "Pig", "Chicken", "Duck", "Turkey", "Horse", "Rabbit", "Other"
   ];
   const statusOptions: AnimalStatus[] = [
-    "Healthy",
-    "Sick",
-    "Pregnant",
-    "ForSale",
-    "Sold",
-    "Dead",
+    "Healthy", "Sick", "Pregnant", "Lactating", "Growing", "ForSale", "Sold", "Recovering", "Dead"
   ];
   const weightUnitOptions = ["kg", "lb", "g"];
 
@@ -231,7 +222,7 @@ export default function EditAnimalScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <TopNavigation title={"Edit Animal"} showBack={true} />
+        <TopNavigation />
         <LoadingIndicator message="Loading animal data..." />
       </View>
     );
@@ -242,7 +233,7 @@ export default function EditAnimalScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TopNavigation title="Edit Animal" showBack />
+      <TopNavigation />
 
       <ScrollView
         style={styles.scrollView}
@@ -272,18 +263,11 @@ export default function EditAnimalScreen() {
           />
 
           <View style={styles.pickerContainer}>
-            <Text style={[styles.label, { color: colors.text }]}>
-              Species *
-            </Text>
-            <View
-              style={[
-                styles.picker,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
+            <Text style={[styles.label, { color: colors.text }]}>Species *</Text>
+            <View style={[styles.picker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Picker
                 selectedValue={species}
-                onValueChange={(itemValue) => setSpecies(itemValue)}
+                onValueChange={(itemValue) => setSpecies(itemValue as AnimalSpecies)}
                 style={[styles.pickerStyle, { color: colors.text }]}
               >
                 {speciesOptions.map((option) => (
@@ -302,20 +286,19 @@ export default function EditAnimalScreen() {
 
           <View style={styles.pickerContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Gender *</Text>
-            <View
-              style={[
-                styles.picker,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Picker
-                selectedValue={gender}
-                onValueChange={(itemValue) => setGender(itemValue)}
-                style={[styles.pickerStyle, { color: colors.text }]}
-              >
-                <Picker.Item label="Male" value="Male" />
-                <Picker.Item label="Female" value="Female" />
-              </Picker>
+            <View style={styles.radioContainer}>
+              {["Male", "Female"].map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.radioOption, gender === option && styles.radioSelected]}
+                  onPress={() => setGender(option as "Male" | "Female")}
+                >
+                  <View style={[styles.radioButton, gender === option && styles.radioButtonSelected, { borderColor: colors.tint }]}>
+                    {gender === option && <View style={[styles.radioButtonInner, { backgroundColor: colors.tint }]} />}
+                  </View>
+                  <Text style={[styles.radioText, { color: colors.text }]}>{option}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
@@ -365,15 +348,10 @@ export default function EditAnimalScreen() {
 
           <View style={styles.pickerContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Status *</Text>
-            <View
-              style={[
-                styles.picker,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
+            <View style={[styles.picker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Picker
                 selectedValue={status}
-                onValueChange={(itemValue) => setStatus(itemValue)}
+                onValueChange={(itemValue) => setStatus(itemValue as AnimalStatus)}
                 style={[styles.pickerStyle, { color: colors.text }]}
               >
                 {statusOptions.map((option) => (
@@ -393,24 +371,16 @@ export default function EditAnimalScreen() {
                 keyboardType="numeric"
               />
             </View>
-            <View style={styles.weightUnit}>
+            <View style={[styles.pickerContainer, styles.unitInput]}>
               <Text style={[styles.label, { color: colors.text }]}>Unit</Text>
-              <View
-                style={[
-                  styles.picker,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
+              <View style={[styles.picker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Picker
                   selectedValue={weightUnit}
-                  onValueChange={(itemValue) => setWeightUnit(itemValue)}
+                  onValueChange={(itemValue) => setWeightUnit(itemValue as string)}
                   style={[styles.pickerStyle, { color: colors.text }]}
                 >
-                  {weightUnitOptions.map((option) => (
-                    <Picker.Item key={option} label={option} value={option} />
+                  {weightUnitOptions.map((unit) => (
+                    <Picker.Item key={unit} label={unit} value={unit} />
                   ))}
                 </Picker>
               </View>
@@ -553,5 +523,42 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     marginBottom: 20,
+  },
+  radioContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  radioOption: {
+    padding: 8,
+    borderWidth: 2,
+    borderColor: Colors.light.border,
+    borderRadius: 8,
+  },
+  radioSelected: {
+    backgroundColor: Colors.light.surface,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: Colors.light.border,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioButtonSelected: {
+    backgroundColor: Colors.light.tint,
+  },
+  radioButtonInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.light.background,
+  },
+  radioText: {
+    fontSize: 16,
+  },
+  unitInput: {
+    flex: 1,
   },
 });

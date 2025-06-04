@@ -15,12 +15,13 @@ import Colors from "@/constants/colors";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import FarmSelector from "@/components/FarmSelector";
+import { Picker } from "@react-native-picker/picker";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
   const { createTransaction, isLoading, error } = useFinancialStore();
   const { farms, currentFarm, setCurrentFarm } = useFarmStore();
-  
+
   const [type, setType] = useState<TransactionType>("Expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<TransactionCategory>("Feed");
@@ -29,32 +30,37 @@ export default function AddTransactionScreen() {
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [reference, setReference] = useState("");
   const [formError, setFormError] = useState("");
-  
+
+  const typeOptions: TransactionType[] = ["Income", "Expense"];
+  const categoryOptions: TransactionCategory[] = [
+    "Feed", "Medication", "Equipment", "Veterinary", "Labor", "Sales", "Purchase", "Utilities", "Other"
+  ];
+
   useEffect(() => {
     // Set today's date as default
     const today = new Date().toISOString().split("T")[0];
     setDate(today);
   }, []);
-  
+
   const handleCreateTransaction = async () => {
     if (!currentFarm) {
       setFormError("Please select a farm");
       return;
     }
-    
+
     // Validate form
     if (!type || !amount || !category || !description || !date) {
       setFormError("Please fill in all required fields");
       return;
     }
-    
+
     if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       setFormError("Please enter a valid amount");
       return;
     }
-    
+
     setFormError("");
-    
+
     try {
       await createTransaction({
         farmId: currentFarm.id,
@@ -66,13 +72,13 @@ export default function AddTransactionScreen() {
         paymentMethod,
         reference,
       });
-      
+
       router.back();
     } catch (error: any) {
       setFormError(error.message || "Failed to create transaction");
     }
   };
-  
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -82,28 +88,35 @@ export default function AddTransactionScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Add Transaction</Text>
         <Text style={styles.subtitle}>Record a financial transaction for your farm</Text>
-        
+
         {(error || formError) && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error || formError}</Text>
           </View>
         )}
-        
+
         <FarmSelector
           farms={farms}
           selectedFarm={currentFarm}
           onSelectFarm={setCurrentFarm}
           onAddFarm={() => router.push("/farm/add")}
         />
-        
+
         <View style={styles.formContainer}>
-          <Input
-            label="Transaction Type *"
-            placeholder="Income or Expense"
-            value={type}
-            onChangeText={(text) => setType(text as TransactionType)}
-          />
-          
+          <Text style={styles.label}>Transaction Type *</Text>
+          <View style={{ borderWidth: 1, borderColor: Colors.light.border, borderRadius: 8, backgroundColor: Colors.light.card, marginBottom: 16 }}>
+            <Picker
+              selectedValue={type}
+              onValueChange={(value) => setType(value as TransactionType)}
+              style={{ color: Colors.light.text }}
+              dropdownIconColor={Colors.light.text}
+            >
+              {typeOptions.map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+
           <Input
             label="Amount *"
             placeholder="Enter amount"
@@ -111,35 +124,42 @@ export default function AddTransactionScreen() {
             value={amount}
             onChangeText={setAmount}
           />
-          
-          <Input
-            label="Category *"
-            placeholder="e.g., Feed, Medication, Sales"
-            value={category}
-            onChangeText={(text) => setCategory(text as TransactionCategory)}
-          />
-          
+
+          <Text style={styles.label}>Category *</Text>
+          <View style={{ borderWidth: 1, borderColor: Colors.light.border, borderRadius: 8, backgroundColor: Colors.light.card, marginBottom: 16 }}>
+            <Picker
+              selectedValue={category}
+              onValueChange={(value) => setCategory(value as TransactionCategory)}
+              style={{ color: Colors.light.text }}
+              dropdownIconColor={Colors.light.text}
+            >
+              {categoryOptions.map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+
           <Input
             label="Description *"
             placeholder="Enter transaction description"
             value={description}
             onChangeText={setDescription}
           />
-          
+
           <Input
             label="Date *"
             placeholder="YYYY-MM-DD"
             value={date}
             onChangeText={setDate}
           />
-          
+
           <Input
             label="Payment Method"
             placeholder="e.g., Cash, Bank Transfer, Check"
             value={paymentMethod}
             onChangeText={setPaymentMethod}
           />
-          
+
           <Input
             label="Reference"
             placeholder="Enter reference number or note"
@@ -147,7 +167,7 @@ export default function AddTransactionScreen() {
             onChangeText={setReference}
           />
         </View>
-        
+
         <View style={styles.buttonContainer}>
           <Button
             title="Cancel"
@@ -155,7 +175,7 @@ export default function AddTransactionScreen() {
             variant="outline"
             style={styles.button}
           />
-          
+
           <Button
             title="Add Transaction"
             onPress={handleCreateTransaction}
@@ -214,5 +234,11 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.light.text,
+    marginBottom: 8,
   },
 });

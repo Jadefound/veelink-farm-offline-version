@@ -48,13 +48,11 @@ export default function AddAnimalScreen() {
     useState(false);
 
   const speciesOptions: AnimalSpecies[] = [
-    "Cattle",
-    "Goat",
-    "Sheep",
-    "Pig",
-    "Chicken",
+    "Cattle", "Sheep", "Goat", "Pig", "Chicken", "Duck", "Turkey", "Horse", "Rabbit", "Other"
   ];
-  const statusOptions: AnimalStatus[] = ["Healthy", "Sick", "Sold", "Dead"];
+  const statusOptions: AnimalStatus[] = [
+    "Healthy", "Sick", "Pregnant", "Lactating", "Growing", "ForSale", "Sold", "Recovering", "Dead"
+  ];
   const weightUnitOptions = ["kg", "lb", "g"];
 
   const [formData, setFormData] = useState({
@@ -135,6 +133,7 @@ export default function AddAnimalScreen() {
         farmId: currentFarm.id,
         identificationNumber: formData.identificationNumber,
         species: formData.species,
+        type: formData.species,
         breed: formData.breed,
         gender: formData.gender,
         birthDate: formData.birthDate,
@@ -198,15 +197,8 @@ export default function AddAnimalScreen() {
             />
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Species</Text>
-              <View
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  backgroundColor: colors.card,
-                }}
-              >
+              <Text style={styles.label}>Species *</Text>
+              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.card }}>
                 <Picker
                   selectedValue={formData.species}
                   onValueChange={(value) => setFormData({ ...formData, species: value as AnimalSpecies })}
@@ -228,65 +220,20 @@ export default function AddAnimalScreen() {
             />
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.text }]}>
-                Gender *
-              </Text>
+              <Text style={styles.label}>Gender *</Text>
               <View style={styles.radioContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.radioOption,
-                    formData.gender === "Male" && styles.radioSelected,
-                  ]}
-                  onPress={() => setFormData({ ...formData, gender: "Male" })}
-                >
-                  <View
-                    style={[
-                      styles.radioButton,
-                      formData.gender === "Male" && styles.radioButtonSelected,
-                      { borderColor: colors.tint },
-                    ]}
+                {["Male", "Female"].map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[styles.radioOption, formData.gender === option && styles.radioSelected]}
+                    onPress={() => setFormData({ ...formData, gender: option as "Male" | "Female" })}
                   >
-                    {formData.gender === "Male" && (
-                      <View
-                        style={[
-                          styles.radioButtonInner,
-                          { backgroundColor: colors.tint },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text style={[styles.radioText, { color: colors.text }]}>
-                    Male
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.radioOption,
-                    formData.gender === "Female" && styles.radioSelected,
-                  ]}
-                  onPress={() => setFormData({ ...formData, gender: "Female" })}
-                >
-                  <View
-                    style={[
-                      styles.radioButton,
-                      formData.gender === "Female" && styles.radioButtonSelected,
-                      { borderColor: colors.tint },
-                    ]}
-                  >
-                    {formData.gender === "Female" && (
-                      <View
-                        style={[
-                          styles.radioButtonInner,
-                          { backgroundColor: colors.tint },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text style={[styles.radioText, { color: colors.text }]}>
-                    Female
-                  </Text>
-                </TouchableOpacity>
+                    <View style={[styles.radioButton, formData.gender === option && styles.radioButtonSelected, { borderColor: colors.tint }]}>
+                      {formData.gender === option && <View style={[styles.radioButtonInner, { backgroundColor: colors.tint }]} />}
+                    </View>
+                    <Text style={[styles.radioText, { color: colors.text }]}>{option}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
@@ -354,15 +301,8 @@ export default function AddAnimalScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Status</Text>
-              <View
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  backgroundColor: colors.card,
-                }}
-              >
+              <Text style={styles.label}>Status *</Text>
+              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.card }}>
                 <Picker
                   selectedValue={formData.status}
                   onValueChange={(value) => setFormData({ ...formData, status: value as AnimalStatus })}
@@ -387,23 +327,16 @@ export default function AddAnimalScreen() {
               />
 
               <View style={[styles.inputContainer, styles.unitInput]}>
-                <Text style={[styles.label, { color: colors.text }]}>Unit</Text>
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    backgroundColor: colors.card,
-                  }}
-                >
+                <Text style={styles.label}>Unit</Text>
+                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.card }}>
                   <Picker
                     selectedValue={formData.weightUnit}
-                    onValueChange={(value) => setFormData({ ...formData, weightUnit: value as "kg" | "lb" | "g" })}
+                    onValueChange={(value) => setFormData({ ...formData, weightUnit: value as string })}
                     style={{ color: colors.text }}
                     dropdownIconColor={colors.text}
                   >
-                    {weightUnitOptions.map((option) => (
-                      <Picker.Item key={option} label={option} value={option} />
+                    {weightUnitOptions.map((unit) => (
+                      <Picker.Item key={unit} label={unit} value={unit} />
                     ))}
                   </Picker>
                 </View>

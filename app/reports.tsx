@@ -37,7 +37,6 @@ import Button from "@/components/Button";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { formatCurrency, formatDate } from "@/utils/helpers";
 import { Animal, HealthRecord, Transaction, Farm } from "@/types";
-import { getMockData } from "@/utils/mockData";
 
 // Define report types
 type ReportType = "animals" | "health" | "financial";
@@ -56,12 +55,11 @@ export default function ReportsScreen() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  // HARDCODED: Use mock data directly instead of store
-  const animals = getMockData("animals") as Animal[];
-  const healthRecords = getMockData("healthRecords") as HealthRecord[];
-  const transactions = getMockData("transactions") as Transaction[];
-  const farms = getMockData("farms") as Farm[];
-  const currentFarm = farms[0]; // Use first farm as current
+  // Use the stores instead:
+  const animals = useAnimalStore(state => state.animals);
+  const healthRecords = useHealthStore(state => state.healthRecords);
+  const transactions = useFinancialStore(state => state.transactions);
+  const { farms, currentFarm } = useFarmStore();
   const isLoading = false;
 
   const { isDarkMode } = useThemeStore();
@@ -241,8 +239,8 @@ export default function ReportsScreen() {
           </thead>
           <tbody>
             ${(data as Animal[])
-              .map(
-                (animal) => `
+          .map(
+            (animal) => `
               <tr>
                 <td>${animal.identificationNumber}</td>
                 <td>${animal.species}</td>
@@ -253,8 +251,8 @@ export default function ReportsScreen() {
                 <td>${formatDate(animal.birthDate)}</td>
               </tr>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
         </table>
       `;
@@ -276,11 +274,11 @@ export default function ReportsScreen() {
           <p>Species Breakdown:</p>
           <ul>
             ${Object.entries(speciesCount)
-              .map(
-                ([species, count]) =>
-                  `<li>${species}: ${count} (${((count / totalAnimals) * 100).toFixed(1)}%)</li>`
-              )
-              .join("")}
+          .map(
+            ([species, count]) =>
+              `<li>${species}: ${count} (${((count / totalAnimals) * 100).toFixed(1)}%)</li>`
+          )
+          .join("")}
           </ul>
         </div>
       `;
@@ -300,8 +298,8 @@ export default function ReportsScreen() {
           </thead>
           <tbody>
             ${(data as HealthRecord[])
-              .map(
-                (record) => `
+          .map(
+            (record) => `
               <tr>
                 <td>${formatDate(record.date)}</td>
                 <td>${record.animalId}</td>
@@ -311,8 +309,8 @@ export default function ReportsScreen() {
                 <td>${formatCurrency(record.cost)}</td>
               </tr>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
         </table>
       `;
@@ -339,11 +337,11 @@ export default function ReportsScreen() {
           <p>Record Types:</p>
           <ul>
             ${Object.entries(typeCount)
-              .map(
-                ([type, count]) =>
-                  `<li>${type}: ${count} (${((count / totalRecords) * 100).toFixed(1)}%)</li>`
-              )
-              .join("")}
+          .map(
+            ([type, count]) =>
+              `<li>${type}: ${count} (${((count / totalRecords) * 100).toFixed(1)}%)</li>`
+          )
+          .join("")}
           </ul>
         </div>
       `;
@@ -362,8 +360,8 @@ export default function ReportsScreen() {
           </thead>
           <tbody>
             ${(data as Transaction[])
-              .map(
-                (transaction) => `
+          .map(
+            (transaction) => `
               <tr>
                 <td>${formatDate(transaction.date)}</td>
                 <td>${transaction.type}</td>
@@ -372,8 +370,8 @@ export default function ReportsScreen() {
                 <td>${transaction.description}</td>
               </tr>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
         </table>
       `;
@@ -406,11 +404,11 @@ export default function ReportsScreen() {
           <p>Category Breakdown:</p>
           <ul>
             ${Object.entries(categoryBreakdown)
-              .map(
-                ([category, amount]) =>
-                  `<li>${category}: ${formatCurrency(amount)}</li>`
-              )
-              .join("")}
+          .map(
+            ([category, amount]) =>
+              `<li>${category}: ${formatCurrency(amount)}</li>`
+          )
+          .join("")}
           </ul>
         </div>
       `;
@@ -1008,7 +1006,7 @@ export default function ReportsScreen() {
                     {filterPeriod === "all"
                       ? "All Time"
                       : filterPeriod.charAt(0).toUpperCase() +
-                        filterPeriod.slice(1)}
+                      filterPeriod.slice(1)}
                   </Text>
                   <ChevronDown size={16} color={colors.text} />
                 </TouchableOpacity>

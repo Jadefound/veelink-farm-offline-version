@@ -22,7 +22,6 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
 import { Ionicons } from "@expo/vector-icons";
-import { getMockData } from "@/utils/mockData";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 30) / 2;
@@ -104,10 +103,9 @@ export default function AnimalsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // HARDCODED: Use mock data directly instead of store
-  const animals = getMockData("animals") as Animal[];
-  const farms = getMockData("farms") as Farm[];
-  const currentFarm = farms[0]; // Use first farm as current
+  // Use the store instead:
+  const animals = useAnimalStore(state => state.animals);
+  const { farms, currentFarm } = useFarmStore();
   const isLoading = false;
 
   const { isDarkMode } = useThemeStore();
@@ -148,14 +146,14 @@ export default function AnimalsScreen() {
   // Get filtered animals based on search by ID
   const filteredAnimals = searchQuery.trim()
     ? animals.filter((animal) => {
-        const animalId = generateAnimalId(animal.species || "Other", animals);
-        return (
-          animalId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          animal.identificationNumber
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase())
-        );
-      })
+      const animalId = generateAnimalId(animal.species || "Other", animals);
+      return (
+        animalId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        animal.identificationNumber
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      );
+    })
     : animals;
 
   const getHealthStatusColor = (status: string) => {

@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Platform,
   Alert,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -35,7 +36,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { formatCurrency, formatDate } from "@/utils/helpers";
 import { Animal, HealthRecord, Transaction, Farm } from "@/types";
 import TopNavigation from "@/components/TopNavigation";
-import { getMockData } from "@/utils/mockData";
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Define report types
 type ReportType = "animals" | "health" | "financial";
@@ -53,14 +54,21 @@ export default function ReportsScreen() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [animalSpeciesFilter, setAnimalSpeciesFilter] = useState<string | null>(null);
+  const [animalStatusFilter, setAnimalStatusFilter] = useState<string | null>(null);
+  const [animalSearch, setAnimalSearch] = useState("");
 
   const { isDarkMode } = useThemeStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
-  const farms = getMockData("farms") as Farm[];
-  const currentFarm = farms[0];
+  const animals = useAnimalStore(state => state.animals);
+  const healthRecords = useHealthStore(state => state.healthRecords);
+  const transactions = useFinancialStore(state => state.transactions);
+  const { farms, currentFarm } = useFarmStore();
   const isLoading = false;
+
+  const insets = useSafeAreaInsets();
 
   const loadData = async () => {
     // Mock function - no longer needed
@@ -71,15 +79,6 @@ export default function ReportsScreen() {
     // Simulate refresh delay
     setTimeout(() => setRefreshing(false), 500);
   };
-
-  // Initialize mock data with correct typings
-  const animals: Animal[] = getMockData("animals") as Animal[];
-  const healthRecords: HealthRecord[] = getMockData(
-    "healthRecords"
-  ) as HealthRecord[];
-  const transactions: Transaction[] = getMockData(
-    "transactions"
-  ) as Transaction[];
 
   // Filter data based on selected period
   const getFilteredData = () => {
@@ -240,12 +239,14 @@ export default function ReportsScreen() {
               <th>Status</th>
               <th>Weight</th>
               <th>Birth Date</th>
+              <th>Price</th>
+              <th>Bought Price</th>
             </tr>
           </thead>
           <tbody>
             ${(data as Animal[])
-              .map(
-                (animal) => `
+          .map(
+            (animal) => `
               <tr>
                 <td>${animal.identificationNumber}</td>
                 <td>${animal.species}</td>
@@ -254,10 +255,12 @@ export default function ReportsScreen() {
                 <td>${animal.status}</td>
                 <td>${animal.weight} ${animal.weightUnit}</td>
                 <td>${formatDate(animal.birthDate)}</td>
+                <td>${animal.status === 'Sold' && animal.price ? formatCurrency(animal.price) : ''}</td>
+                <td>${animal.acquisitionPrice ? formatCurrency(animal.acquisitionPrice) : ''}</td>
               </tr>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
         </table>
       `;
@@ -279,11 +282,11 @@ export default function ReportsScreen() {
           <p>Species Breakdown:</p>
           <ul>
             ${Object.entries(speciesCount)
-              .map(
-                ([species, count]) =>
-                  `<li>${species}: ${count} (${((count / totalAnimals) * 100).toFixed(1)}%)</li>`
-              )
-              .join("")}
+          .map(
+            ([species, count]) =>
+              `<li>${species}: ${count} (${((count / totalAnimals) * 100).toFixed(1)}%)</li>`
+          )
+          .join("")}
           </ul>
         </div>
       `;
@@ -303,8 +306,8 @@ export default function ReportsScreen() {
           </thead>
           <tbody>
             ${(data as HealthRecord[])
-              .map(
-                (record) => `
+          .map(
+            (record) => `
               <tr>
                 <td>${formatDate(record.date)}</td>
                 <td>${record.animalId}</td>
@@ -314,8 +317,8 @@ export default function ReportsScreen() {
                 <td>${formatCurrency(record.cost)}</td>
               </tr>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
         </table>
       `;
@@ -342,11 +345,11 @@ export default function ReportsScreen() {
           <p>Record Types:</p>
           <ul>
             ${Object.entries(typeCount)
-              .map(
-                ([type, count]) =>
-                  `<li>${type}: ${count} (${((count / totalRecords) * 100).toFixed(1)}%)</li>`
-              )
-              .join("")}
+          .map(
+            ([type, count]) =>
+              `<li>${type}: ${count} (${((count / totalRecords) * 100).toFixed(1)}%)</li>`
+          )
+          .join("")}
           </ul>
         </div>
       `;
@@ -365,8 +368,8 @@ export default function ReportsScreen() {
           </thead>
           <tbody>
             ${(data as Transaction[])
-              .map(
-                (transaction) => `
+          .map(
+            (transaction) => `
               <tr>
                 <td>${formatDate(transaction.date)}</td>
                 <td>${transaction.type}</td>
@@ -375,8 +378,8 @@ export default function ReportsScreen() {
                 <td>${transaction.description}</td>
               </tr>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
         </table>
       `;
@@ -409,11 +412,11 @@ export default function ReportsScreen() {
           <p>Category Breakdown:</p>
           <ul>
             ${Object.entries(categoryBreakdown)
-              .map(
-                ([category, amount]) =>
-                  `<li>${category}: ${formatCurrency(amount)}</li>`
-              )
-              .join("")}
+          .map(
+            ([category, amount]) =>
+              `<li>${category}: ${formatCurrency(amount)}</li>`
+          )
+          .join("")}
           </ul>
         </div>
       `;
@@ -499,6 +502,16 @@ export default function ReportsScreen() {
           >
             Weight
           </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Price
+          </Text>
+          <Text
+            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
+          >
+            Bought Price
+          </Text>
         </View>
       );
     } else if (reportType === "health") {
@@ -570,31 +583,108 @@ export default function ReportsScreen() {
     }
 
     if (reportType === "animals") {
-      return (data as Animal[]).map((animal, index) => (
-        <View
-          key={animal.id}
-          style={[
-            styles.tableRow,
-            {
-              backgroundColor:
-                index % 2 === 0 ? colors.card : colors.background,
-            },
-          ]}
-        >
-          <Text style={[styles.tableCell, { flex: 1.5, color: colors.text }]}>
-            {animal.identificationNumber}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
-            {animal.species}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
-            {animal.status}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
-            {animal.weight} {animal.weightUnit}
-          </Text>
-        </View>
-      ));
+      let totalAnimals = 0;
+      let soldCount = 0;
+      let speciesCount: Record<string, number> = {};
+      let allSpecies: string[] = [];
+      let allStatuses: string[] = [];
+
+      totalAnimals = animals.length;
+      soldCount = animals.filter(a => a.status === 'Sold').length;
+      speciesCount = animals.reduce((acc, animal) => {
+        acc[animal.species] = (acc[animal.species] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      allSpecies = Array.from(new Set(animals.map(a => a.species)));
+      allStatuses = Array.from(new Set(animals.map(a => a.status)));
+
+      return (
+        <>
+          <View style={fmisStyles.summaryRow}>
+            <View style={fmisStyles.summaryCard}>
+              <Text style={fmisStyles.summaryLabel}>Total Animals</Text>
+              <Text style={fmisStyles.summaryValue}>{totalAnimals}</Text>
+            </View>
+            <View style={fmisStyles.summaryCard}>
+              <Text style={fmisStyles.summaryLabel}>Sold</Text>
+              <Text style={fmisStyles.summaryValue}>{soldCount}</Text>
+            </View>
+            <View style={fmisStyles.summaryCard}>
+              <Text style={fmisStyles.summaryLabel}>Species</Text>
+              <Text style={fmisStyles.summaryValue}>{Object.keys(speciesCount).length}</Text>
+            </View>
+          </View>
+          <View style={fmisStyles.filterBar}>
+            <View style={fmisStyles.filterDropdownContainer}>
+              <Text style={fmisStyles.filterLabel}>Species:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity onPress={() => setAnimalSpeciesFilter(null)} style={[fmisStyles.filterPill, !animalSpeciesFilter && fmisStyles.filterPillActive]}>
+                  <Text style={[fmisStyles.filterPillText, !animalSpeciesFilter && fmisStyles.filterPillTextActive]}>All</Text>
+                </TouchableOpacity>
+                {allSpecies.map(species => (
+                  <TouchableOpacity key={species} onPress={() => setAnimalSpeciesFilter(species)} style={[fmisStyles.filterPill, animalSpeciesFilter === species && fmisStyles.filterPillActive]}>
+                    <Text style={[fmisStyles.filterPillText, animalSpeciesFilter === species && fmisStyles.filterPillTextActive]}>{species}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={fmisStyles.filterDropdownContainer}>
+              <Text style={fmisStyles.filterLabel}>Status:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity onPress={() => setAnimalStatusFilter(null)} style={[fmisStyles.filterPill, !animalStatusFilter && fmisStyles.filterPillActive]}>
+                  <Text style={[fmisStyles.filterPillText, !animalStatusFilter && fmisStyles.filterPillTextActive]}>All</Text>
+                </TouchableOpacity>
+                {allStatuses.map(status => (
+                  <TouchableOpacity key={status} onPress={() => setAnimalStatusFilter(status)} style={[fmisStyles.filterPill, animalStatusFilter === status && fmisStyles.filterPillActive]}>
+                    <Text style={[fmisStyles.filterPillText, animalStatusFilter === status && fmisStyles.filterPillTextActive]}>{status}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={fmisStyles.searchContainer}>
+              <TextInput
+                style={fmisStyles.searchInput}
+                placeholder="Search by ID..."
+                placeholderTextColor={colors.muted}
+                value={animalSearch}
+                onChangeText={setAnimalSearch}
+              />
+            </View>
+          </View>
+          <Card style={{ backgroundColor: colors.card, borderRadius: 8, padding: 0, marginBottom: 16, overflow: 'hidden', elevation: 3 }}>
+            <View style={fmisStyles.tableHeader}>
+              <Text style={[fmisStyles.headerCell, { flex: 1.2 }]}>ID</Text>
+              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Species</Text>
+              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Status</Text>
+              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Weight</Text>
+              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Price</Text>
+              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Bought</Text>
+              <Text style={[fmisStyles.headerCell, { flex: 0.7 }]}>Actions</Text>
+            </View>
+            {animals.length === 0 ? (
+              <View style={styles.emptyState}>
+                <FileText size={40} color={colors.muted} />
+                <Text style={[styles.emptyStateText, { color: colors.text }]}>No animals found</Text>
+              </View>
+            ) : (
+              animals.map((animal, index) => (
+                <View key={animal.id} style={[fmisStyles.tableRow, { backgroundColor: index % 2 === 0 ? colors.background : colors.card }]}>
+                  <Text style={[fmisStyles.cell, { flex: 1.2 }]}>{animal.identificationNumber}</Text>
+                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.species}</Text>
+                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.status}</Text>
+                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.weight} {animal.weightUnit}</Text>
+                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.status === 'Sold' && animal.price ? formatCurrency(animal.price) : '-'}</Text>
+                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.acquisitionPrice ? formatCurrency(animal.acquisitionPrice) : '-'}</Text>
+                  <View style={[fmisStyles.actionsCell, { flex: 0.7 }]}>
+                    <TouchableOpacity onPress={() => {/* TODO: Implement edit */ }} style={fmisStyles.actionIcon}><FileBarChart size={18} color={colors.tint} /></TouchableOpacity>
+                    <TouchableOpacity onPress={() => {/* TODO: Implement delete */ }} style={fmisStyles.actionIcon}><Download size={18} color={colors.danger} /></TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </Card>
+        </>
+      );
     } else if (reportType === "health") {
       return (data as HealthRecord[]).map((record, index) => (
         <View
@@ -899,9 +989,8 @@ export default function ReportsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <TopNavigation />
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
@@ -1027,7 +1116,7 @@ export default function ReportsScreen() {
                     {filterPeriod === "all"
                       ? "All Time"
                       : filterPeriod.charAt(0).toUpperCase() +
-                        filterPeriod.slice(1)}
+                      filterPeriod.slice(1)}
                   </Text>
                   <ChevronDown size={16} color={colors.text} />
                 </TouchableOpacity>
@@ -1234,7 +1323,7 @@ export default function ReportsScreen() {
           </>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1470,5 +1559,116 @@ const styles = StyleSheet.create({
   financialSummaryValue: {
     fontSize: 18,
     fontWeight: "700",
+  },
+});
+
+const fmisStyles = StyleSheet.create({
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 8,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#f5f8fa',
+    borderRadius: 10,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    elevation: 1,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterDropdownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  filterLabel: {
+    fontSize: 13,
+    color: '#555',
+    marginRight: 4,
+  },
+  filterPill: {
+    backgroundColor: '#e0e7ef',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 6,
+  },
+  filterPillActive: {
+    backgroundColor: '#3498db',
+  },
+  filterPillText: {
+    color: '#555',
+    fontSize: 13,
+  },
+  filterPillTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    flex: 1,
+    minWidth: 120,
+  },
+  searchInput: {
+    backgroundColor: '#f5f8fa',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: '#222',
+    borderWidth: 1,
+    borderColor: '#e0e7ef',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#3498db',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  headerCell: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+    textAlign: 'left',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e7ef',
+  },
+  cell: {
+    fontSize: 13,
+    color: '#222',
+  },
+  actionsCell: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionIcon: {
+    marginHorizontal: 4,
+    padding: 4,
+    borderRadius: 16,
   },
 });

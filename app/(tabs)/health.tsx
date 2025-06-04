@@ -16,16 +16,14 @@ import HealthRecordCard from "@/components/HealthRecordCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import FarmSelector from "@/components/FarmSelector";
-import { getMockData } from "@/utils/mockData";
 
 export default function HealthScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
-  // HARDCODED: Use mock data directly instead of store
-  const healthRecords = getMockData("healthRecords") as HealthRecord[];
-  const farms = getMockData("farms") as Farm[];
-  const currentFarm = farms[0];
+  // Use the store instead:
+  const healthRecords = useHealthStore(state => state.healthRecords);
+  const { farms, currentFarm } = useFarmStore();
   const isLoading = false;
 
   const loadHealthRecords = async () => {

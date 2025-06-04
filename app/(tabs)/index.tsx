@@ -24,7 +24,6 @@ import { useHealthStore } from "@/store/healthStore";
 import { useFinancialStore } from "@/store/financialStore";
 import { useThemeStore } from "@/store/themeStore";
 import { formatCurrency } from "@/utils/helpers";
-import { loadMockData, getMockData } from "@/utils/mockData";
 import Colors from "@/constants/colors";
 import TopNavigation from "@/components/TopNavigation";
 import StatCard from "@/components/StatCard";
@@ -98,17 +97,14 @@ export default function DashboardScreen() {
           onPress: async () => {
             try {
               setRefreshing(true);
-              const success = await loadMockData();
-              if (success) {
-                // Refresh all stores to load the new data
-                await Promise.all([
-                  useFarmStore.getState().fetchFarms(),
-                  loadData(),
-                ]);
-                Alert.alert("Success", "Mock data loaded successfully!");
-              } else {
-                Alert.alert("Error", "Failed to load mock data");
-              }
+              // loadData() doesn't return a success flag, so we should just call it directly
+              await loadData();
+              // Refresh all stores to load the new data
+              await Promise.all([
+                useFarmStore.getState().fetchFarms(),
+                loadData(),
+              ]);
+              Alert.alert("Success", "Mock data loaded successfully!");
             } catch (error) {
               console.error("Error loading mock data:", error);
               Alert.alert("Error", "Failed to load mock data");
@@ -159,11 +155,11 @@ export default function DashboardScreen() {
   const financialStats = currentFarm
     ? getFinancialStats(currentFarm.id)
     : {
-        totalIncome: 0,
-        totalExpenses: 0,
-        netProfit: 0,
-        recentTransactions: 0,
-      };
+      totalIncome: 0,
+      totalExpenses: 0,
+      netProfit: 0,
+      recentTransactions: 0,
+    };
 
   // Get search results
   const searchResults = searchQuery.trim() ? searchAnimals(searchQuery) : [];
