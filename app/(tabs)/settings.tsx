@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Switch,
+  Switch,                         
 } from "react-native";
 import { useRouter } from "expo-router";
 import {

@@ -20,9 +20,29 @@ import TopNavigation from "@/components/TopNavigation";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
+// Helper to generate animal ID
+const getNextAnimalId = (species: string, animals: any[]) => {
+  const speciesPrefixes: Record<string, string> = {
+    Cattle: "C",
+    Sheep: "S",
+    Goat: "G",
+    Pig: "P",
+    Chicken: "CH",
+    Duck: "D",
+    Turkey: "T",
+    Horse: "H",
+    Rabbit: "R",
+    Other: "O",
+  };
+  const prefix = speciesPrefixes[species] || "O";
+  const count = animals.filter((a) => a.species === species).length;
+  const nextNumber = (count + 1).toString().padStart(3, "0");
+  return `${prefix}${nextNumber}`;
+};
+
 export default function AddAnimalScreen() {
   const router = useRouter();
-  const { createAnimal, isLoading, error } = useAnimalStore();
+  const { createAnimal, isLoading, error, animals } = useAnimalStore();
   const { currentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
 
@@ -94,6 +114,12 @@ export default function AddAnimalScreen() {
       setAcquisitionDate(formattedDate);
     }
   };
+
+  // When species changes, update the ID
+  useEffect(() => {
+    const nextId = getNextAnimalId(formData.species, animals);
+    setFormData((prev) => ({ ...prev, identificationNumber: nextId }));
+  }, [formData.species, animals]);
 
   const handleCreateAnimal = async () => {
     if (!currentFarm) {
@@ -191,9 +217,10 @@ export default function AddAnimalScreen() {
           <View style={styles.formContainer}>
             <Input
               label="Identification Number *"
-              placeholder="Enter unique ID number (e.g., A001, COW-123)"
               value={formData.identificationNumber}
-              onChangeText={text => setFormData({ ...formData, identificationNumber: text })}
+              editable={false}
+              inputStyle={{ color: colors.muted, backgroundColor: colors.card }}
+              containerStyle={{ opacity: 0.8 }}
             />
 
             <View style={styles.inputContainer}>

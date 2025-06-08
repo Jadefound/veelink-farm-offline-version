@@ -9,9 +9,10 @@ import {
   Text,
   Image,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, Search } from "lucide-react-native";
+import { Plus, Search, FileBarChart, Download, Edit } from "lucide-react-native";
 import { useAnimalStore } from "@/store/animalStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
@@ -22,6 +23,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
 import { Ionicons } from "@expo/vector-icons";
+import Button from "@/components/Button";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 30) / 2;
@@ -98,10 +100,133 @@ const getAnimalEmoji = (species: string) => {
   return animalEmojis[species as keyof typeof animalEmojis] || "🐾";
 };
 
+// FMIS-style styles (copied from reports.tsx)
+const fmisStyles = StyleSheet.create({
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 8,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#f5f8fa',
+    borderRadius: 10,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    elevation: 1,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterDropdownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  filterLabel: {
+    fontSize: 13,
+    color: '#555',
+    marginRight: 4,
+  },
+  filterPill: {
+    backgroundColor: '#e0e7ef',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 6,
+  },
+  filterPillActive: {
+    backgroundColor: '#3498db',
+  },
+  filterPillText: {
+    color: '#555',
+    fontSize: 13,
+  },
+  filterPillTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    flex: 1,
+    minWidth: 120,
+  },
+  searchInput: {
+    backgroundColor: '#f5f8fa',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: '#222',
+    borderWidth: 1,
+    borderColor: '#e0e7ef',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#3498db',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  headerCell: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+    textAlign: 'left',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e7ef',
+  },
+  cell: {
+    fontSize: 13,
+    color: '#222',
+  },
+  actionsCell: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionIcon: {
+    marginHorizontal: 4,
+    padding: 4,
+    borderRadius: 16,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    color: '#6B7280',
+    fontSize: 14,
+  },
+});
+
 export default function AnimalsScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [animalSpeciesFilter, setAnimalSpeciesFilter] = useState<string | null>(null);
+  const [animalStatusFilter, setAnimalStatusFilter] = useState<string | null>(null);
 
   // Use the store instead:
   const animals = useAnimalStore(state => state.animals);
@@ -143,145 +268,67 @@ export default function AnimalsScreen() {
     );
   }
 
-  // Get filtered animals based on search by ID
-  const filteredAnimals = searchQuery.trim()
-    ? animals.filter((animal) => {
+  // Compute summary stats
+  const totalAnimals = animals.length;
+  const soldCount = animals.filter(a => a.status === 'Sold').length;
+  const speciesCount = Array.from(new Set(animals.map(a => a.species))).length;
+  const allSpecies = Array.from(new Set(animals.map(a => a.species)));
+  const allStatuses = Array.from(new Set(animals.map(a => a.status)));
+
+  // Filtered animals for FMIS table
+  let filteredAnimals = animals;
+  if (animalSpeciesFilter) {
+    filteredAnimals = filteredAnimals.filter(a => a.species === animalSpeciesFilter);
+  }
+  if (animalStatusFilter) {
+    filteredAnimals = filteredAnimals.filter(a => a.status === animalStatusFilter);
+  }
+  if (searchQuery.trim()) {
+    filteredAnimals = filteredAnimals.filter((animal) => {
       const animalId = generateAnimalId(animal.species || "Other", animals);
       return (
         animalId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        animal.identificationNumber
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase())
+        animal.identificationNumber?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    })
-    : animals;
+    });
+  }
 
-  const getHealthStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "healthy":
-        return "#10B981";
-      case "sick":
-        return "#EF4444";
-      case "recovering":
-        return "#F59E0B";
-      default:
-        return "#6B7280";
-    }
-  };
-
-  const getHealthStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "healthy":
-        return "checkmark-circle";
-      case "sick":
-        return "medical";
-      case "recovering":
-        return "time";
-      default:
-        return "help-circle";
-    }
-  };
-
-  const renderAnimalCard = ({
-    item,
-    index,
-  }: {
-    item: Animal;
-    index: number;
-  }) => {
-    const animalId = generateAnimalId(
-      item.species || "Other",
-      animals.slice(0, index + 1)
-    );
-
+  // Card grid renderer (two-column)
+  const renderAnimalCard = ({ item, index }: { item: Animal; index: number }) => {
+    const animalId = generateAnimalId(item.species || "Other", animals.slice(0, index + 1));
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={styles.horizontalCard}
         onPress={() => router.push(`/animal/${item.id}`)}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
       >
-        <View style={styles.imageContainer}>
-          <Image
-            source={{
-              uri: getAnimalImage(item.species || "Other"),
-            }}
-            style={styles.animalImage}
-            resizeMode="cover"
-          />
-
-          {/* Emoji overlay for guaranteed species recognition */}
-          <View style={styles.emojiOverlay}>
-            <Text style={styles.emojiText}>
-              {getAnimalEmoji(item.species || "Other")}
-            </Text>
+        <Image
+          source={{ uri: getAnimalImage(item.species || "Other") }}
+          style={styles.horizontalCardImage}
+          resizeMode="cover"
+        />
+        <View style={styles.horizontalCardContent}>
+          <Text style={styles.horizontalCardTitle} numberOfLines={1}>{animalId}</Text>
+          <View style={styles.horizontalCardVitalsRow}>
+            <Text style={styles.horizontalCardVital}>{item.species}</Text>
+            <Text style={styles.horizontalCardDot}>•</Text>
+            <Text style={styles.horizontalCardVital}>{item.gender}</Text>
+            <Text style={styles.horizontalCardDot}>•</Text>
+            <Text style={styles.horizontalCardVital}>{item.age || 0}y</Text>
+            <Text style={styles.horizontalCardDot}>•</Text>
+            <Text style={styles.horizontalCardVital}>{item.weight || 0}{item.weightUnit || "kg"}</Text>
           </View>
-
-          <View
-            style={[
-              styles.healthBadge,
-              {
-                backgroundColor: getHealthStatusColor(
-                  item.healthStatus || "unknown"
-                ),
-              },
-            ]}
-          >
-            <Ionicons
-              name={getHealthStatusIcon(item.healthStatus || "unknown")}
-              size={12}
-              color="white"
-            />
-          </View>
-
-          <View style={styles.speciesBadge}>
-            <Text style={styles.speciesText}>{item.species || "Unknown"}</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardContent}>
-          <Text style={styles.animalId} numberOfLines={1}>
-            {animalId}
-          </Text>
-          <Text style={styles.breedText} numberOfLines={1}>
-            {item.breed}
-          </Text>
-
-          <View style={styles.detailsRow}>
-            <View style={styles.ageContainer}>
-              <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-              <Text style={styles.ageText}>{item.age || 0}y</Text>
+          <View style={styles.horizontalCardStatsRow}>
+            <View style={styles.horizontalCardStatItem}>
+              <Ionicons name="heart-outline" size={18} color="#10B981" />
+              <Text style={styles.horizontalCardStatText}>{item.status}</Text>
             </View>
-            <Text style={styles.genderText}>{item.gender}</Text>
-          </View>
-
-          <View style={styles.weightRow}>
-            <Ionicons name="fitness-outline" size={14} color="#6B7280" />
-            <Text style={styles.weightText}>
-              {item.weight || 0} {item.weightUnit || "kg"}
-            </Text>
-          </View>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.priceText}>
-              ${(item.estimatedValue || item.price || 0).toLocaleString()}
-            </Text>
-            <Text style={styles.priceLabel}>Market Value</Text>
-          </View>
-
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.primaryButton]}
-              onPress={() => router.push(`/animal/${item.id}`)}
-            >
-              <Ionicons name="eye-outline" size={16} color="white" />
-              <Text style={styles.primaryButtonText}>Details</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.secondaryButton]}
-              onPress={() => router.push(`/health/add?animalId=${item.id}`)}
-            >
-              <Ionicons name="medical-outline" size={16} color="#059669" />
+            <View style={styles.horizontalCardStatItem}>
+              <Ionicons name="pricetag-outline" size={18} color="#10B981" />
+              <Text style={styles.horizontalCardStatText}>${(item.estimatedValue || item.price || 0).toLocaleString()}</Text>
+            </View>
+            <TouchableOpacity style={styles.horizontalCardStatItem} onPress={() => router.push(`/animal/${item.id}`)}>
+              <Ionicons name="eye-outline" size={18} color="#10B981" />
             </TouchableOpacity>
           </View>
         </View>
@@ -289,68 +336,93 @@ export default function AnimalsScreen() {
     );
   };
 
+  // FlatList ListHeaderComponent: summary + filter bar
+  const listHeader = (
+    <>
+      <View style={fmisStyles.summaryRow}>
+        <View style={fmisStyles.summaryCard}>
+          <Text style={fmisStyles.summaryLabel}>Total Animals</Text>
+          <Text style={fmisStyles.summaryValue}>{totalAnimals}</Text>
+        </View>
+        <View style={fmisStyles.summaryCard}>
+          <Text style={fmisStyles.summaryLabel}>Sold</Text>
+          <Text style={fmisStyles.summaryValue}>{soldCount}</Text>
+        </View>
+        <View style={fmisStyles.summaryCard}>
+          <Text style={fmisStyles.summaryLabel}>Species</Text>
+          <Text style={fmisStyles.summaryValue}>{speciesCount}</Text>
+        </View>
+      </View>
+      <View style={fmisStyles.filterBar}>
+        <View style={fmisStyles.filterDropdownContainer}>
+          <Text style={fmisStyles.filterLabel}>Species:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <TouchableOpacity onPress={() => setAnimalSpeciesFilter(null)} style={[fmisStyles.filterPill, !animalSpeciesFilter && fmisStyles.filterPillActive]}>
+              <Text style={[fmisStyles.filterPillText, !animalSpeciesFilter && fmisStyles.filterPillTextActive]}>All</Text>
+            </TouchableOpacity>
+            {allSpecies.map(species => (
+              <TouchableOpacity key={species} onPress={() => setAnimalSpeciesFilter(species)} style={[fmisStyles.filterPill, animalSpeciesFilter === species && fmisStyles.filterPillActive]}>
+                <Text style={[fmisStyles.filterPillText, animalSpeciesFilter === species && fmisStyles.filterPillTextActive]}>{species}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+        <View style={fmisStyles.filterDropdownContainer}>
+          <Text style={fmisStyles.filterLabel}>Status:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <TouchableOpacity onPress={() => setAnimalStatusFilter(null)} style={[fmisStyles.filterPill, !animalStatusFilter && fmisStyles.filterPillActive]}>
+              <Text style={[fmisStyles.filterPillText, !animalStatusFilter && fmisStyles.filterPillTextActive]}>All</Text>
+            </TouchableOpacity>
+            {allStatuses.map(status => (
+              <TouchableOpacity key={status} onPress={() => setAnimalStatusFilter(status)} style={[fmisStyles.filterPill, animalStatusFilter === status && fmisStyles.filterPillActive]}>
+                <Text style={[fmisStyles.filterPillText, animalStatusFilter === status && fmisStyles.filterPillTextActive]}>{status}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+        <View style={fmisStyles.searchContainer}>
+          <TextInput
+            style={fmisStyles.searchInput}
+            placeholder="Search by ID..."
+            placeholderTextColor={colors.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
+    </>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
-
-      <View style={styles.header}>
-        <Card style={[styles.searchCard, { backgroundColor: colors.card }]}>
-          <View
-            style={[styles.searchContainer, { backgroundColor: colors.card }]}
-          >
-            <Search size={20} color={colors.muted} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search animals by ID..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor={colors.muted}
-            />
-          </View>
-        </Card>
+      <View style={{ padding: 16 }}>
+        {/* Card Grid Rows */}
+        <FlatList
+          data={filteredAnimals}
+          keyExtractor={(item) => item.id}
+          renderItem={renderAnimalCard}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={
+            <View style={fmisStyles.emptyState}>
+              <Text style={fmisStyles.emptyStateText}>No animals found</Text>
+            </View>
+          }
+          contentContainerStyle={[
+            styles.listContent,
+            { alignItems: 'center', justifyContent: 'flex-start' }
+          ]}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
-
-      {isLoading && !refreshing ? (
-        <LoadingIndicator message="Loading animals..." />
-      ) : (
-        <>
-          {filteredAnimals.length === 0 ? (
-            <EmptyState
-              title={searchQuery ? "No Animals Found" : "No Animals"}
-              message={
-                searchQuery
-                  ? `No animals found with ID containing "${searchQuery}"`
-                  : "Add your first animal to start tracking"
-              }
-              buttonTitle={searchQuery ? "Clear Search" : "Add Animal"}
-              onButtonPress={
-                searchQuery ? () => setSearchQuery("") : handleAddAnimal
-              }
-            />
-          ) : (
-            <FlatList
-              data={filteredAnimals}
-              keyExtractor={(item) => item.id}
-              renderItem={renderAnimalCard}
-              numColumns={2}
-              columnWrapperStyle={styles.row}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-
-          <TouchableOpacity
-            style={[styles.fab, { backgroundColor: colors.tint }]}
-            onPress={handleAddAnimal}
-            activeOpacity={0.8}
-          >
-            <Plus size={24} color="white" />
-          </TouchableOpacity>
-        </>
-      )}
+      {/* Floating Add Animal Button */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={handleAddAnimal}
+        activeOpacity={0.85}
+      >
+        <Plus size={32} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -551,5 +623,71 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     fontWeight: "600",
+  },
+  horizontalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 16,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
+    minWidth: 320,
+    maxWidth: 380,
+    width: '95%',
+  },
+  horizontalCardImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    marginRight: 14,
+    backgroundColor: '#F3F4F6',
+  },
+  horizontalCardContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  horizontalCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 2,
+  },
+  horizontalCardVitalsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  horizontalCardVital: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  horizontalCardDot: {
+    fontSize: 13,
+    color: '#A7F3D0',
+    marginHorizontal: 4,
+  },
+  horizontalCardStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+    gap: 12,
+  },
+  horizontalCardStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+    gap: 4,
+  },
+  horizontalCardStatText: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+    marginLeft: 2,
   },
 });

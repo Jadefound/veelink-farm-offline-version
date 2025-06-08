@@ -32,6 +32,7 @@ import * as yup from "yup";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import { useThemeStore } from "@/store/themeStore";
 
 const { width } = Dimensions.get('window');
 
@@ -101,6 +102,7 @@ export default function OnboardingScreen() {
     isLoading,
     error
   } = useAuthStore();
+  const { isDarkMode } = useThemeStore();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [farmData, setFarmData] = useState<FarmFormData | null>(null);
@@ -194,6 +196,11 @@ export default function OnboardingScreen() {
       <View style={[styles.stepLine, currentStep >= 1 && styles.stepLineActive]} />
     </View>
   );
+
+  const formContainerStyle = [
+    styles.formContainer,
+    { backgroundColor: isDarkMode ? Colors.dark.background : '#f0fdf4', borderColor: Colors.light.tint, borderWidth: 1 }
+  ];
 
   const renderFarmSetup = () => (
     <View style={styles.stepContainer}>
@@ -302,8 +309,11 @@ export default function OnboardingScreen() {
         style={styles.headerImage}
       />
 
-      <View style={styles.formContainer}>
-        <Text style={styles.stepTitle}>Secure Your Farm</Text>
+      <View style={formContainerStyle}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Shield size={28} color={Colors.light.tint} style={{ marginRight: 8 }} />
+          <Text style={styles.stepTitle}>Secure Your Farm</Text>
+        </View>
         <Text style={styles.stepSubtitle}>Setup authentication to protect your data</Text>
 
         {error && (
@@ -356,7 +366,10 @@ export default function OnboardingScreen() {
         {/* PIN Option */}
         <View style={styles.authOption}>
           <TouchableOpacity
-            style={styles.authToggle}
+            style={[
+              styles.authToggle,
+              authForm.watch('usePin') && { backgroundColor: Colors.light.tint + '10' }
+            ]}
             onPress={() => authForm.setValue('usePin', !authForm.watch('usePin'))}
           >
             <View style={[styles.checkbox, authForm.watch('usePin') && styles.checkboxChecked]}>
@@ -422,7 +435,10 @@ export default function OnboardingScreen() {
         {isBiometricSupported && (
           <View style={styles.authOption}>
             <TouchableOpacity
-              style={styles.authToggle}
+              style={[
+                styles.authToggle,
+                authForm.watch('useBiometric') && { backgroundColor: Colors.light.tint + '10' }
+              ]}
               onPress={() => authForm.setValue('useBiometric', !authForm.watch('useBiometric'))}
             >
               <View style={[styles.checkbox, authForm.watch('useBiometric') && styles.checkboxChecked]}>
@@ -452,7 +468,8 @@ export default function OnboardingScreen() {
             onPress={authForm.handleSubmit(handleAuthSubmit)}
             loading={isLoading}
             disabled={isLoading}
-            style={styles.completeButton}
+            style={{ ...styles.completeButton, backgroundColor: Colors.light.tint, borderColor: Colors.light.tint }}
+            textStyle={{ color: '#fff', fontWeight: 'bold' }}
           />
         </View>
       </View>
@@ -608,7 +625,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#f8f9fa',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.light.muted + "20",
@@ -618,7 +634,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: Colors.light.muted,
+    borderColor: Colors.light.tint,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,

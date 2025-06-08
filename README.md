@@ -1,6 +1,6 @@
-# 🐄 Farm Management App
+# 🐄 Veelink Farm Management App
 
-A modern, production-ready React Native application for livestock and farm management. 
+A modern, production-ready React Native application for livestock and farm management, built with Expo and TypeScript.
 
 ## ✨ Features
 
@@ -10,21 +10,19 @@ A modern, production-ready React Native application for livestock and farm manag
 - Guided farm setup for new users
 
 ### 🐮 Animal Management
-- ID-based animal identification system
+- ID-based animal identification system (no name-based IDs)
 - Add, view, and manage livestock
 - Search animals by ID
-- Detailed animal profiles with health records
+- Detailed animal profiles with health and financial records
 
 ### 💰 Financial Tracking
-- Income and expense tracking for animals
-- Overall farm financial overview
+- Income and expense tracking for animals and farms
 - Transaction history and management
-- Profit/loss calculations
+- Profit/loss calculations and financial overview
 
 ### 🏥 Health Records
-- Comprehensive health tracking
-- Medical history for each animal
-- Health record management
+- Comprehensive health tracking for each animal
+- Medical history and health record management
 
 ### 🎨 Modern UI/UX
 - Dark and light theme support
@@ -33,8 +31,7 @@ A modern, production-ready React Native application for livestock and farm manag
 - Smooth animations and transitions
 
 ### 🔍 Search & Navigation
-- Quick search functionality on dashboard
-- Animal search by ID
+- Quick search functionality on dashboard and animal lists
 - Intuitive tab-based navigation
 
 ## 🚀 Getting Started
@@ -51,7 +48,7 @@ A modern, production-ready React Native application for livestock and farm manag
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd farm-management-app
+cd veelink-farm-offline-version
 ```
 
 2. Install dependencies:
@@ -82,8 +79,8 @@ npx expo start
 3. Start adding animals and managing your livestock
 
 ### Daily Operations
-- **Dashboard**: Overview of your farm statistics and quick actions
-- **Animals**: Browse, search, and manage your livestock
+- **Dashboard**: Overview of farm statistics and quick actions
+- **Animals**: Browse, search, and manage livestock
 - **Health**: Track medical records and health status
 - **Financial**: Monitor income, expenses, and profitability
 - **Settings**: Manage account, theme, and app preferences
@@ -92,23 +89,24 @@ npx expo start
 
 ```
 ├── app/                    # Expo Router pages
-│   ├── (tabs)/            # Tab navigation screens
-│   ├── auth/              # Authentication screens
-│   ├── animal/            # Animal management screens
-│   ├── health/            # Health record screens
-│   ├── financial/         # Financial tracking screens
-│   └── farm/              # Farm management screens
-├── components/            # Reusable UI components
-├── store/                 # Zustand state management
-├── constants/             # App constants and configuration
+│   ├── (tabs)/            # Tab navigation screens (Dashboard, Animals, Health, Financial, Reports, Settings)
+│   ├── auth/              # Authentication screens (login, register)
+│   ├── animal/            # Animal management (add, view, edit)
+│   ├── health/            # Health record management (add, view, edit)
+│   ├── financial/         # Financial tracking (add, view)
+│   ├── farm/              # Farm management (add)
+│   └── transaction/       # Transaction management (add)
+├── components/            # Reusable UI components (Button, Card, Input, StatCard, AnimalCard, etc.)
+├── store/                 # Zustand state management (animalStore, financialStore, etc.)
+├── constants/             # App constants and configuration (colors)
 ├── types/                 # TypeScript type definitions
-├── utils/                 # Utility functions
-└── assets/               # Images and static assets
+├── utils/                 # Utility functions (helpers, validation, mockData, etc.)
+└── assets/                # Images and static assets
 ```
 
 ## 🛠️ Technologies Used
 
-- **Framework**: React Native with Expo SDK 52
+- **Framework**: React Native with Expo SDK 53
 - **Navigation**: Expo Router (file-based routing)
 - **State Management**: Zustand with AsyncStorage persistence
 - **Styling**: React Native StyleSheet
@@ -134,10 +132,9 @@ The app follows a modern design system inspired by:
 ## 📊 Key Features in Detail
 
 ### Animal Management
-- No name-based identification (ID-only system)
+- ID-only system for animal identification
 - Comprehensive animal profiles
-- Health history tracking
-- Financial records per animal
+- Health and financial history tracking
 
 ### Financial System
 - Track animal purchases and sales
@@ -146,7 +143,7 @@ The app follows a modern design system inspired by:
 - Generate financial reports
 
 ### Search Functionality
-- Quick search on dashboard
+- Quick search on dashboard and animal lists
 - Animal ID-based search
 - Real-time search results
 
@@ -177,7 +174,7 @@ The app follows a modern design system inspired by:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is intended for educational and demonstration purposes. For production use, please add your own LICENSE file.
 
 ## 🤝 Contributing
 

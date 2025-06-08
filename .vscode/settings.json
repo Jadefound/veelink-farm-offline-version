@@ -1,4 +1,12 @@
 {
   "zencoder.enableRepoIndexing": true,
-  "cSpell.words": ["datetimepicker", "myapp", "rork", "veelink"]
+  "cSpell.words": [
+    "datetimepicker",
+    "fmis",
+    "FMIS",
+    "myapp",
+    "pricetag",
+    "rork",
+    "veelink"
+  ]
 }
