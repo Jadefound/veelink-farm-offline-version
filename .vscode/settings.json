@@ -4,9 +4,13 @@
     "datetimepicker",
     "fmis",
     "FMIS",
+    "medkit",
     "myapp",
     "pricetag",
     "rork",
     "veelink"
+  ],
+  "cSpell.ignoreWords": [
+    "nativewind"
   ]
 }

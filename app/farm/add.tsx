@@ -24,6 +24,10 @@ export default function AddFarmScreen() {
   const [sizeUnit, setSizeUnit] = useState("acres");
   const [type, setType] = useState("");
   const [formError, setFormError] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [locationError, setLocationError] = useState("");
+  const [sizeError, setSizeError] = useState("");
+  const [typeError, setTypeError] = useState("");
 
   // Farm type options
   const farmTypes = [
@@ -39,13 +43,33 @@ export default function AddFarmScreen() {
   const sizeUnits = ["acres", "hectares", "square meters", "square feet"];
 
   const handleCreateFarm = async () => {
-    // Validate form
-    if (!name || !location || !size || !type) {
-      setFormError("Please fill in all required fields");
-      return;
-    }
-
+    let hasError = false;
+    setNameError("");
+    setLocationError("");
+    setSizeError("");
+    setTypeError("");
     setFormError("");
+
+    if (!name) {
+      setNameError("Farm name is required");
+      hasError = true;
+    }
+    if (!location) {
+      setLocationError("Location is required");
+      hasError = true;
+    }
+    if (!size) {
+      setSizeError("Size is required");
+      hasError = true;
+    } else if (isNaN(parseFloat(size)) || parseFloat(size) <= 0) {
+      setSizeError("Size must be a positive number");
+      hasError = true;
+    }
+    if (!type) {
+      setTypeError("Farm type is required");
+      hasError = true;
+    }
+    if (hasError) return;
 
     try {
       await createFarm({
@@ -55,7 +79,6 @@ export default function AddFarmScreen() {
         sizeUnit,
         type,
       });
-
       router.back();
     } catch (error: any) {
       setFormError(error.message || "Failed to create farm");
@@ -82,6 +105,7 @@ export default function AddFarmScreen() {
           placeholder="Enter farm name"
           value={name}
           onChangeText={setName}
+          error={nameError}
         />
 
         <Input
@@ -89,6 +113,7 @@ export default function AddFarmScreen() {
           placeholder="Enter farm location"
           value={location}
           onChangeText={setLocation}
+          error={locationError}
         />
 
         <View style={styles.row}>
@@ -99,11 +124,12 @@ export default function AddFarmScreen() {
             value={size}
             onChangeText={setSize}
             containerStyle={styles.sizeInput}
+            error={sizeError}
           />
 
           <View style={[styles.unitInput, styles.inputContainer]}>
             <Text style={styles.label}>Unit</Text>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer]}>
               <Picker
                 selectedValue={sizeUnit}
                 onValueChange={(itemValue) => setSizeUnit(itemValue)}
@@ -119,7 +145,7 @@ export default function AddFarmScreen() {
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Farm Type *</Text>
-          <View style={styles.pickerContainer}>
+          <View style={[styles.pickerContainer, typeError ? { borderColor: Colors.light.danger, borderWidth: 1 } : {}]}>
             <Picker
               selectedValue={type}
               onValueChange={(itemValue) => setType(itemValue)}
@@ -131,6 +157,7 @@ export default function AddFarmScreen() {
               ))}
             </Picker>
           </View>
+          {typeError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{typeError}</Text> : null}
         </View>
 
         <View style={styles.buttonContainer}>

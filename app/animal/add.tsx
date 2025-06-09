@@ -19,6 +19,7 @@ import Button from "@/components/Button";
 import TopNavigation from "@/components/TopNavigation";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { ChevronDown, Calendar } from "lucide-react-native";
 
 // Helper to generate animal ID
 const getNextAnimalId = (species: string, animals: any[]) => {
@@ -67,6 +68,11 @@ export default function AddAnimalScreen() {
   const [showAcquisitionDatePicker, setShowAcquisitionDatePicker] =
     useState(false);
 
+  // Picker modal state
+  const [showSpeciesPicker, setShowSpeciesPicker] = useState(false);
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [showWeightUnitPicker, setShowWeightUnitPicker] = useState(false);
+
   const speciesOptions: AnimalSpecies[] = [
     "Cattle", "Sheep", "Goat", "Pig", "Chicken", "Duck", "Turkey", "Horse", "Rabbit", "Other"
   ];
@@ -91,6 +97,12 @@ export default function AddAnimalScreen() {
     acquisitionCost: '',
     currentValue: '',
   });
+
+  const [speciesError, setSpeciesError] = useState("");
+  const [birthDateError, setBirthDateError] = useState("");
+  const [acquisitionDateError, setAcquisitionDateError] = useState("");
+  const [statusError, setStatusError] = useState("");
+  const [weightUnitError, setWeightUnitError] = useState("");
 
   useEffect(() => {
     // Set today's date as default for acquisition date
@@ -126,23 +138,44 @@ export default function AddAnimalScreen() {
       setFormError("Please select a farm");
       return;
     }
+    let hasError = false;
+    setSpeciesError("");
+    setBirthDateError("");
+    setAcquisitionDateError("");
+    setStatusError("");
+    setWeightUnitError("");
+    setFormError("");
 
-    // Validate form
+    if (!formData.species) {
+      setSpeciesError("Species is required");
+      hasError = true;
+    }
+    if (!formData.birthDate) {
+      setBirthDateError("Birth date is required");
+      hasError = true;
+    }
+    if (!formData.acquisitionDate) {
+      setAcquisitionDateError("Acquisition date is required");
+      hasError = true;
+    }
+    if (!formData.status) {
+      setStatusError("Status is required");
+      hasError = true;
+    }
+    if (!formData.weightUnit) {
+      setWeightUnitError("Unit is required");
+      hasError = true;
+    }
     if (
       !formData.identificationNumber ||
-      !formData.species ||
       !formData.breed ||
       !formData.gender ||
-      !formData.birthDate ||
-      !formData.acquisitionDate ||
-      !formData.status ||
       !formData.weight
     ) {
       setFormError("Please fill in all required fields");
-      return;
+      hasError = true;
     }
-
-    setFormError("");
+    if (hasError) return;
 
     try {
       // Calculate age from birth date
@@ -225,18 +258,37 @@ export default function AddAnimalScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Species *</Text>
-              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.card }}>
-                <Picker
-                  selectedValue={formData.species}
-                  onValueChange={(value) => setFormData({ ...formData, species: value as AnimalSpecies })}
-                  style={{ color: colors.text }}
-                  dropdownIconColor={colors.text}
-                >
-                  {speciesOptions.map((option) => (
-                    <Picker.Item key={option} label={option} value={option} />
-                  ))}
-                </Picker>
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[
+                  styles.pickerTouchable,
+                  !formData.species && speciesError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
+                  { backgroundColor: colors.card },
+                ]}
+                onPress={() => setShowSpeciesPicker(true)}
+              >
+                <Text style={{ color: formData.species ? colors.text : colors.muted }}>
+                  {formData.species || "Select species"}
+                </Text>
+                <ChevronDown size={18} color={colors.muted} style={{ position: "absolute", right: 16 }} />
+              </TouchableOpacity>
+              {speciesError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{speciesError}</Text> : null}
+              {/* Modal Picker for Species */}
+              {showSpeciesPicker && (
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.card, zIndex: 100 }}>
+                  <Picker
+                    selectedValue={formData.species}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, species: value as AnimalSpecies });
+                      setShowSpeciesPicker(false);
+                    }}
+                  >
+                    {speciesOptions.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} />
+                    ))}
+                  </Picker>
+                </View>
+              )}
             </View>
 
             <Input
@@ -265,23 +317,22 @@ export default function AddAnimalScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.text }]}>
-                Birth Date *
-              </Text>
+              <Text style={[styles.label, { color: colors.text }]}>Birth Date *</Text>
               <TouchableOpacity
                 style={[
                   styles.dateInput,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
-                  },
+                  !formData.birthDate && birthDateError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
+                  { backgroundColor: colors.card, flexDirection: "row", alignItems: "center" },
                 ]}
                 onPress={() => setShowBirthDatePicker(true)}
+                activeOpacity={0.8}
               >
+                <Calendar size={18} color={colors.muted} style={{ marginRight: 8 }} />
                 <Text style={{ color: formData.birthDate ? colors.text : colors.muted }}>
                   {formData.birthDate || "YYYY-MM-DD"}
                 </Text>
               </TouchableOpacity>
+              {birthDateError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{birthDateError}</Text> : null}
               {showBirthDatePicker && (
                 <DateTimePicker
                   value={formData.birthDate ? new Date(formData.birthDate) : new Date()}
@@ -294,32 +345,25 @@ export default function AddAnimalScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.text }]}>
-                Acquisition Date *
-              </Text>
+              <Text style={[styles.label, { color: colors.text }]}>Acquisition Date *</Text>
               <TouchableOpacity
                 style={[
                   styles.dateInput,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
-                  },
+                  !formData.acquisitionDate && acquisitionDateError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
+                  { backgroundColor: colors.card, flexDirection: "row", alignItems: "center" },
                 ]}
                 onPress={() => setShowAcquisitionDatePicker(true)}
+                activeOpacity={0.8}
               >
-                <Text
-                  style={{
-                    color: formData.acquisitionDate ? colors.text : colors.muted,
-                  }}
-                >
+                <Calendar size={18} color={colors.muted} style={{ marginRight: 8 }} />
+                <Text style={{ color: formData.acquisitionDate ? colors.text : colors.muted }}>
                   {formData.acquisitionDate || "YYYY-MM-DD"}
                 </Text>
               </TouchableOpacity>
+              {acquisitionDateError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{acquisitionDateError}</Text> : null}
               {showAcquisitionDatePicker && (
                 <DateTimePicker
-                  value={
-                    formData.acquisitionDate ? new Date(formData.acquisitionDate) : new Date()
-                  }
+                  value={formData.acquisitionDate ? new Date(formData.acquisitionDate) : new Date()}
                   mode="date"
                   display="default"
                   onChange={onAcquisitionDateChange}
@@ -329,18 +373,37 @@ export default function AddAnimalScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Status *</Text>
-              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.card }}>
-                <Picker
-                  selectedValue={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value as AnimalStatus })}
-                  style={{ color: colors.text }}
-                  dropdownIconColor={colors.text}
-                >
-                  {statusOptions.map((option) => (
-                    <Picker.Item key={option} label={option} value={option} />
-                  ))}
-                </Picker>
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={[
+                  styles.pickerTouchable,
+                  !formData.status && statusError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
+                  { backgroundColor: colors.card },
+                ]}
+                onPress={() => setShowStatusPicker(true)}
+              >
+                <Text style={{ color: formData.status ? colors.text : colors.muted }}>
+                  {formData.status || "Select status"}
+                </Text>
+                <ChevronDown size={18} color={colors.muted} style={{ position: "absolute", right: 16 }} />
+              </TouchableOpacity>
+              {statusError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{statusError}</Text> : null}
+              {/* Modal Picker for Status */}
+              {showStatusPicker && (
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.card, zIndex: 100 }}>
+                  <Picker
+                    selectedValue={formData.status}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, status: value as AnimalStatus });
+                      setShowStatusPicker(false);
+                    }}
+                  >
+                    {statusOptions.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} />
+                    ))}
+                  </Picker>
+                </View>
+              )}
             </View>
 
             <View style={styles.row}>
@@ -355,18 +418,37 @@ export default function AddAnimalScreen() {
 
               <View style={[styles.inputContainer, styles.unitInput]}>
                 <Text style={styles.label}>Unit</Text>
-                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.card }}>
-                  <Picker
-                    selectedValue={formData.weightUnit}
-                    onValueChange={(value) => setFormData({ ...formData, weightUnit: value as string })}
-                    style={{ color: colors.text }}
-                    dropdownIconColor={colors.text}
-                  >
-                    {weightUnitOptions.map((unit) => (
-                      <Picker.Item key={unit} label={unit} value={unit} />
-                    ))}
-                  </Picker>
-                </View>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[
+                    styles.pickerTouchable,
+                    !formData.weightUnit && weightUnitError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
+                    { backgroundColor: colors.card },
+                  ]}
+                  onPress={() => setShowWeightUnitPicker(true)}
+                >
+                  <Text style={{ color: formData.weightUnit ? colors.text : colors.muted }}>
+                    {formData.weightUnit || "Select unit"}
+                  </Text>
+                  <ChevronDown size={18} color={colors.muted} style={{ position: "absolute", right: 16 }} />
+                </TouchableOpacity>
+                {weightUnitError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{weightUnitError}</Text> : null}
+                {/* Modal Picker for Weight Unit */}
+                {showWeightUnitPicker && (
+                  <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.card, zIndex: 100 }}>
+                    <Picker
+                      selectedValue={formData.weightUnit}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, weightUnit: value as string });
+                        setShowWeightUnitPicker(false);
+                      }}
+                    >
+                      {weightUnitOptions.map((unit) => (
+                        <Picker.Item key={unit} label={unit} value={unit} />
+                      ))}
+                    </Picker>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -545,5 +627,18 @@ const styles = StyleSheet.create({
   },
   radioText: {
     fontSize: 16,
+  },
+  pickerTouchable: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });

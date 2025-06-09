@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TextInput,
   Alert,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -83,40 +84,6 @@ export default function DashboardScreen() {
     }
   };
 
-  const handleLoadMockData = async () => {
-    Alert.alert(
-      "Load Mock Data",
-      "This will load sample farm data including animals, health records, and transactions. Continue?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Load Data",
-          onPress: async () => {
-            try {
-              setRefreshing(true);
-              // loadData() doesn't return a success flag, so we should just call it directly
-              await loadData();
-              // Refresh all stores to load the new data
-              await Promise.all([
-                useFarmStore.getState().fetchFarms(),
-                loadData(),
-              ]);
-              Alert.alert("Success", "Mock data loaded successfully!");
-            } catch (error) {
-              console.error("Error loading mock data:", error);
-              Alert.alert("Error", "Failed to load mock data");
-            } finally {
-              setRefreshing(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
@@ -135,11 +102,17 @@ export default function DashboardScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <EmptyState
-          title="Welcome to Veelink Farm"
+          title="Welcome to Veelink Manager"
           message="Start by adding your first farm to manage your livestock, health records, and financial activities."
           buttonTitle="Add Your First Farm"
           onButtonPress={handleAddFarm}
-          icon={<PawPrint size={48} color={colors.tint} />}
+          icon={
+            <Image
+              source={require("../../assets/images/adaptive-icon.png")}
+              style={{ width: 72, height: 72, borderRadius: 20 }}
+              resizeMode="contain"
+            />
+          }
         />
       </View>
     );
@@ -181,11 +154,17 @@ export default function DashboardScreen() {
       >
         {!currentFarm ? (
           <EmptyState
-            title="Welcome to Veelink Farm"
+            title="Welcome to Veelink Manager"
             message="Start by adding your first farm to manage your livestock, health records, and financial activities."
             buttonTitle="Add Your First Farm"
             onButtonPress={handleAddFarm}
-            icon={<PawPrint size={48} color={colors.tint} />}
+            icon={
+              <Image
+                source={require("../../assets/images/adaptive-icon.png")}
+                style={{ width: 72, height: 72, borderRadius: 20 }}
+                resizeMode="contain"
+              />
+            }
           />
         ) : (
           <>
@@ -219,44 +198,6 @@ export default function DashboardScreen() {
                 </View>
               </View>
             </Card>
-
-            {/* Mock Data Card */}
-            {animalStats.total === 0 && (
-              <Card variant="info" style={styles.mockDataCard}>
-                <View style={styles.mockDataContent}>
-                  <View
-                    style={[
-                      styles.mockDataIcon,
-                      { backgroundColor: colors.info + "15" },
-                    ]}
-                  >
-                    <Database size={24} color={colors.info} />
-                  </View>
-                  <View style={styles.mockDataText}>
-                    <Text
-                      style={[styles.mockDataTitle, { color: colors.text }]}
-                    >
-                      No Data Available
-                    </Text>
-                    <Text
-                      style={[
-                        styles.mockDataDescription,
-                        { color: colors.muted },
-                      ]}
-                    >
-                      Load sample data to explore the dashboard features
-                    </Text>
-                  </View>
-                  <Button
-                    title="Load Sample Data"
-                    onPress={handleLoadMockData}
-                    variant="outline"
-                    size="small"
-                    style={styles.mockDataButton}
-                  />
-                </View>
-              </Card>
-            )}
 
             {/* Search Card */}
             <Card variant="outlined" style={styles.searchCard}>
@@ -546,38 +487,6 @@ const styles = StyleSheet.create({
   farmDetails: {
     fontSize: 14,
     fontWeight: "500",
-  },
-  mockDataCard: {
-    marginBottom: 20,
-  },
-  mockDataContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 4,
-  },
-  mockDataIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  mockDataText: {
-    flex: 1,
-    marginRight: 12,
-  },
-  mockDataTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  mockDataDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  mockDataButton: {
-    minWidth: 120,
   },
   searchCard: {
     marginBottom: 24,

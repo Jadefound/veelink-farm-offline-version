@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   TextInput,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -57,6 +58,8 @@ export default function ReportsScreen() {
   const [animalSpeciesFilter, setAnimalSpeciesFilter] = useState<string | null>(null);
   const [animalStatusFilter, setAnimalStatusFilter] = useState<string | null>(null);
   const [animalSearch, setAnimalSearch] = useState("");
+  const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [showAnimalModal, setShowAnimalModal] = useState(false);
 
   const { isDarkMode } = useThemeStore();
 
@@ -481,37 +484,12 @@ export default function ReportsScreen() {
   const renderTableHeaders = () => {
     if (reportType === "animals") {
       return (
-        <View style={styles.tableHeader}>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}
-          >
-            ID
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Species
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Status
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Weight
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Price
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Bought Price
-          </Text>
+        <View style={fmisStyles.tableHeader}>
+          <Text style={[fmisStyles.headerCell, { flex: 1.2 }]}>ID</Text>
+          <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Species</Text>
+          <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Status</Text>
+          <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Weight</Text>
+          <Text style={[fmisStyles.headerCell, { flex: 0.7 }]}></Text>
         </View>
       );
     } else if (reportType === "health") {
@@ -583,106 +561,46 @@ export default function ReportsScreen() {
     }
 
     if (reportType === "animals") {
-      let totalAnimals = 0;
-      let soldCount = 0;
-      let speciesCount: Record<string, number> = {};
-      let allSpecies: string[] = [];
-      let allStatuses: string[] = [];
-
-      totalAnimals = animals.length;
-      soldCount = animals.filter(a => a.status === 'Sold').length;
-      speciesCount = animals.reduce((acc, animal) => {
-        acc[animal.species] = (acc[animal.species] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      allSpecies = Array.from(new Set(animals.map(a => a.species)));
-      allStatuses = Array.from(new Set(animals.map(a => a.status)));
-
       return (
         <>
-          <View style={fmisStyles.summaryRow}>
-            <View style={fmisStyles.summaryCard}>
-              <Text style={fmisStyles.summaryLabel}>Total Animals</Text>
-              <Text style={fmisStyles.summaryValue}>{totalAnimals}</Text>
-            </View>
-            <View style={fmisStyles.summaryCard}>
-              <Text style={fmisStyles.summaryLabel}>Sold</Text>
-              <Text style={fmisStyles.summaryValue}>{soldCount}</Text>
-            </View>
-            <View style={fmisStyles.summaryCard}>
-              <Text style={fmisStyles.summaryLabel}>Species</Text>
-              <Text style={fmisStyles.summaryValue}>{Object.keys(speciesCount).length}</Text>
-            </View>
-          </View>
-          <View style={fmisStyles.filterBar}>
-            <View style={fmisStyles.filterDropdownContainer}>
-              <Text style={fmisStyles.filterLabel}>Species:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <TouchableOpacity onPress={() => setAnimalSpeciesFilter(null)} style={[fmisStyles.filterPill, !animalSpeciesFilter && fmisStyles.filterPillActive]}>
-                  <Text style={[fmisStyles.filterPillText, !animalSpeciesFilter && fmisStyles.filterPillTextActive]}>All</Text>
+          {(data as Animal[]).map((animal: Animal, index: number) => (
+            <View key={animal.id} style={[fmisStyles.tableRow, { backgroundColor: index % 2 === 0 ? colors.background : colors.card }]}>
+              <Text style={[fmisStyles.cell, { flex: 1.2 }]}>{animal.identificationNumber}</Text>
+              <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.species}</Text>
+              <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.status}</Text>
+              <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.weight} {animal.weightUnit}</Text>
+              <View style={[fmisStyles.actionsCell, { flex: 0.7, alignItems: 'flex-end' }]}>
+                <TouchableOpacity onPress={() => { setSelectedAnimal(animal); setShowAnimalModal(true); }} style={fmisStyles.actionIcon}>
+                  <FileBarChart size={18} color={colors.tint} />
                 </TouchableOpacity>
-                {allSpecies.map(species => (
-                  <TouchableOpacity key={species} onPress={() => setAnimalSpeciesFilter(species)} style={[fmisStyles.filterPill, animalSpeciesFilter === species && fmisStyles.filterPillActive]}>
-                    <Text style={[fmisStyles.filterPillText, animalSpeciesFilter === species && fmisStyles.filterPillTextActive]}>{species}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            <View style={fmisStyles.filterDropdownContainer}>
-              <Text style={fmisStyles.filterLabel}>Status:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <TouchableOpacity onPress={() => setAnimalStatusFilter(null)} style={[fmisStyles.filterPill, !animalStatusFilter && fmisStyles.filterPillActive]}>
-                  <Text style={[fmisStyles.filterPillText, !animalStatusFilter && fmisStyles.filterPillTextActive]}>All</Text>
-                </TouchableOpacity>
-                {allStatuses.map(status => (
-                  <TouchableOpacity key={status} onPress={() => setAnimalStatusFilter(status)} style={[fmisStyles.filterPill, animalStatusFilter === status && fmisStyles.filterPillActive]}>
-                    <Text style={[fmisStyles.filterPillText, animalStatusFilter === status && fmisStyles.filterPillTextActive]}>{status}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            <View style={fmisStyles.searchContainer}>
-              <TextInput
-                style={fmisStyles.searchInput}
-                placeholder="Search by ID..."
-                placeholderTextColor={colors.muted}
-                value={animalSearch}
-                onChangeText={setAnimalSearch}
-              />
-            </View>
-          </View>
-          <Card style={{ backgroundColor: colors.card, borderRadius: 8, padding: 0, marginBottom: 16, overflow: 'hidden', elevation: 3 }}>
-            <View style={fmisStyles.tableHeader}>
-              <Text style={[fmisStyles.headerCell, { flex: 1.2 }]}>ID</Text>
-              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Species</Text>
-              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Status</Text>
-              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Weight</Text>
-              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Price</Text>
-              <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Bought</Text>
-              <Text style={[fmisStyles.headerCell, { flex: 0.7 }]}>Actions</Text>
-            </View>
-            {animals.length === 0 ? (
-              <View style={styles.emptyState}>
-                <FileText size={40} color={colors.muted} />
-                <Text style={[styles.emptyStateText, { color: colors.text }]}>No animals found</Text>
               </View>
-            ) : (
-              animals.map((animal, index) => (
-                <View key={animal.id} style={[fmisStyles.tableRow, { backgroundColor: index % 2 === 0 ? colors.background : colors.card }]}>
-                  <Text style={[fmisStyles.cell, { flex: 1.2 }]}>{animal.identificationNumber}</Text>
-                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.species}</Text>
-                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.status}</Text>
-                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.weight} {animal.weightUnit}</Text>
-                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.status === 'Sold' && animal.price ? formatCurrency(animal.price) : '-'}</Text>
-                  <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.acquisitionPrice ? formatCurrency(animal.acquisitionPrice) : '-'}</Text>
-                  <View style={[fmisStyles.actionsCell, { flex: 0.7 }]}>
-                    <TouchableOpacity onPress={() => {/* TODO: Implement edit */ }} style={fmisStyles.actionIcon}><FileBarChart size={18} color={colors.tint} /></TouchableOpacity>
-                    <TouchableOpacity onPress={() => {/* TODO: Implement delete */ }} style={fmisStyles.actionIcon}><Download size={18} color={colors.danger} /></TouchableOpacity>
-                  </View>
-                </View>
-              ))
-            )}
-          </Card>
+            </View>
+          ))}
+          {/* Animal Details Modal */}
+          <Modal
+            visible={showAnimalModal && !!selectedAnimal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowAnimalModal(false)}
+          >
+            <View style={fmisStyles.modalOverlay}>
+              <View style={fmisStyles.modalContent}>
+                <Text style={fmisStyles.modalTitle}>Animal Details</Text>
+                {selectedAnimal && (
+                  <>
+                    <Text style={fmisStyles.modalLabel}>ID: <Text style={fmisStyles.modalValue}>{selectedAnimal.identificationNumber}</Text></Text>
+                    <Text style={fmisStyles.modalLabel}>Species: <Text style={fmisStyles.modalValue}>{selectedAnimal.species}</Text></Text>
+                    <Text style={fmisStyles.modalLabel}>Status: <Text style={fmisStyles.modalValue}>{selectedAnimal.status}</Text></Text>
+                    <Text style={fmisStyles.modalLabel}>Weight: <Text style={fmisStyles.modalValue}>{selectedAnimal.weight} {selectedAnimal.weightUnit}</Text></Text>
+                    <Text style={fmisStyles.modalLabel}>Price: <Text style={fmisStyles.modalValue}>{selectedAnimal.status === 'Sold' && selectedAnimal.price ? formatCurrency(selectedAnimal.price) : '-'}</Text></Text>
+                    <Text style={fmisStyles.modalLabel}>Bought Price: <Text style={fmisStyles.modalValue}>{selectedAnimal.acquisitionPrice ? formatCurrency(selectedAnimal.acquisitionPrice) : '-'}</Text></Text>
+                    <Text style={fmisStyles.modalLabel}>Notes: <Text style={fmisStyles.modalValue}>{selectedAnimal.notes || '-'}</Text></Text>
+                  </>
+                )}
+                <Button title="Close" onPress={() => setShowAnimalModal(false)} style={{ marginTop: 16 }} />
+              </View>
+            </View>
+          </Modal>
         </>
       );
     } else if (reportType === "health") {
@@ -1652,23 +1570,59 @@ const fmisStyles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e7ef',
   },
   cell: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#222',
+    paddingRight: 4,
   },
   actionsCell: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
   actionIcon: {
-    marginHorizontal: 4,
-    padding: 4,
+    padding: 8,
     borderRadius: 16,
+    backgroundColor: '#f5f8fa',
+    marginLeft: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#222',
+  },
+  modalLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 8,
+    color: '#444',
+  },
+  modalValue: {
+    fontWeight: '400',
+    color: '#222',
   },
 });
