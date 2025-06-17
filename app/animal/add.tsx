@@ -116,6 +116,7 @@ export default function AddAnimalScreen() {
     if (selectedDate) {
       const formattedDate = selectedDate.toISOString().split("T")[0];
       setBirthDate(formattedDate);
+      setFormData(prev => ({ ...prev, birthDate: formattedDate })); // Update formData as well
     }
   };
 
@@ -124,6 +125,7 @@ export default function AddAnimalScreen() {
     if (selectedDate) {
       const formattedDate = selectedDate.toISOString().split("T")[0];
       setAcquisitionDate(formattedDate);
+      setFormData(prev => ({ ...prev, acquisitionDate: formattedDate })); // Update formData as well
     }
   };
 

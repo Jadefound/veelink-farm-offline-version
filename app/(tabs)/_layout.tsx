@@ -3,9 +3,8 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
-import { useColorScheme, StatusBar, Platform } from "react-native";
+import { useColorScheme, StatusBar } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AnimatedTabBar from "../../components/AnimatedTabBar";
 
 export default function TabLayout() {
   // Use fallback for theme store in case it's undefined
@@ -33,10 +32,37 @@ export default function TabLayout() {
         translucent
       />
       <Tabs
-        tabBar={props => <AnimatedTabBar {...props} />}
-        screenOptions={{
+        screenOptions={({ route }) => ({
           headerShown: false,
-        }}
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName: React.ComponentProps<typeof Ionicons>["name"] = "home-outline";
+            
+            if (route.name === 'index') {
+              iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === 'animals') {
+              iconName = focused ? 'paw' : 'paw-outline';
+            } else if (route.name === 'health') {
+              iconName = focused ? 'medkit' : 'medkit-outline';
+            } else if (route.name === 'financial') {
+              iconName = focused ? 'card' : 'card-outline';
+            } else if (route.name === 'settings') {
+              iconName = focused ? 'settings' : 'settings-outline';
+            }
+
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: colors.primary || '#38a169',
+          tabBarInactiveTintColor: colors.tabIconDefault || '#A1A1AA',
+          tabBarStyle: {
+            backgroundColor: isDarkMode ? '#18181B' : '#FFFFFF',
+            borderTopWidth: 0,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }
+        })}
       >
         <Tabs.Screen name="index" options={{ title: "Home" }} />
         <Tabs.Screen name="animals" options={{ title: "Animals" }} />

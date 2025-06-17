@@ -64,16 +64,23 @@ export default function SettingsScreen() {
         {
           text: "Load Data",
           onPress: async () => {
-            const success = await loadMockData();
-            if (success) {
-              Alert.alert(
-                "Success",
-                "Mock data loaded successfully! You can now explore the app with sample data."
-              );
-            } else {
+            try {
+              const success = await loadMockData();
+              if (success) {
+                Alert.alert(
+                  "Success",
+                  "Mock data loaded successfully! You can now explore the app with sample data."
+                );
+              } else {
+                Alert.alert(
+                  "Error",
+                  "Failed to load mock data. Please check the console for more details."
+                );
+              }
+            } catch (error) {
               Alert.alert(
                 "Error",
-                "Failed to load mock data. Please try again."
+                `Failed to load mock data: ${error instanceof Error ? error.message : 'Unknown error'}`
               );
             }
           },

@@ -4,6 +4,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-na
 import Svg, { Path } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import Colors from "@/constants/colors";
+import { useThemeStore } from "@/store/themeStore";
 
 // Tab icon definitions
 const TAB_ICONS = [
@@ -31,7 +33,9 @@ export default function AnimatedTabBar({ state, descriptors, navigation }: Anima
     const activeIndex = state.index;
     const tabWidth = SCREEN_WIDTH / TAB_ICONS.length;
     const animatedX = useSharedValue(activeIndex * tabWidth);
-
+    const { isDarkMode } = useThemeStore();
+    const theme = isDarkMode ? Colors.dark : Colors.light;
+    
     React.useEffect(() => {
         animatedX.value = withTiming(activeIndex * tabWidth, { duration: 350 });
     }, [activeIndex]);
@@ -70,19 +74,19 @@ export default function AnimatedTabBar({ state, descriptors, navigation }: Anima
             >
                 <Path
                     d={getPillPath(animatedX.value)}
-                    fill="#18181B"
+                    fill={isDarkMode ? "#1e293b" : "#18181B"}
                 />
             </Svg>
             {/* Animated floating active icon */}
             <Animated.View style={[styles.activeCircle, activeIconStyle]}>
-                <View style={styles.activeIconBg}>
+                <View style={[styles.activeIconBg, { backgroundColor: theme.primary }]}>
                     <Ionicons
                         name={TAB_ICONS[activeIndex].iconActive as any}
                         size={ICON_SIZE}
                         color="#fff"
                     />
                 </View>
-                <Text style={styles.activeLabel}>{TAB_ICONS[activeIndex].label}</Text>
+                <Text style={[styles.activeLabel, { color: theme.primary }]}>{TAB_ICONS[activeIndex].label}</Text>
             </Animated.View>
             {/* Tab icons */}
             <View style={styles.tabRow}>
@@ -111,7 +115,7 @@ export default function AnimatedTabBar({ state, descriptors, navigation }: Anima
                             <Ionicons
                                 name={(isFocused ? tab.iconActive : tab.icon) as any}
                                 size={ICON_SIZE}
-                                color={isFocused ? "#F97316" : "#A1A1AA"}
+                                color={isFocused ? theme.primary : theme.tabIconDefault}
                             />
                         </TouchableOpacity>
                     );
@@ -182,7 +186,6 @@ const styles = StyleSheet.create({
         width: ACTIVE_CIRCLE_SIZE,
         height: ACTIVE_CIRCLE_SIZE,
         borderRadius: ACTIVE_CIRCLE_SIZE / 2,
-        backgroundColor: "#F97316",
         alignItems: "center",
         justifyContent: "center",
         shadowColor: "#000",
@@ -194,8 +197,7 @@ const styles = StyleSheet.create({
     activeLabel: {
         marginTop: 2,
         fontSize: 12,
-        color: "#F97316",
         fontWeight: "700",
         textAlign: "center",
     },
-}); 
+});

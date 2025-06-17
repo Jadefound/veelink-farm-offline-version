@@ -1,8 +1,8 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import * as ExpoSplashScreen from "expo-splash-screen"; // Renamed import
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/store/authStore";
 import { useFarmStore } from "@/store/farmStore";
@@ -10,18 +10,12 @@ import { useThemeStore } from "@/store/themeStore";
 import { Platform, View, Text } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
-export const unstable_settings = {
-  initialRouteName: "(tabs)",
-};
-
-// Prevent splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync().catch(() => {
-  // If we can't prevent auto-hide, it's not a critical error
-  console.warn("Could not prevent splash screen from auto-hiding");
-});
+import SplashScreen from "../components/SplashScreen";
 
 export default function RootLayout() {
+  // Add state for custom splash screen
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
+  
   // Load fonts with error handling
   const [fontsLoaded, fontError] = useFonts({
     ...FontAwesome.font,
@@ -47,7 +41,7 @@ export default function RootLayout() {
         }
 
         if (fontsLoaded) {
-          await SplashScreen.hideAsync();
+          await ExpoSplashScreen.hideAsync(); // Change SplashScreen to ExpoSplashScreen
 
           // Load farms if authenticated
           if (isAuthenticated && !isFirstTimeUser && typeof fetchFarms === 'function') {
@@ -57,7 +51,7 @@ export default function RootLayout() {
       } catch (error) {
         console.error('App initialization error:', error);
         // Always hide splash screen even if there's an error
-        await SplashScreen.hideAsync().catch(console.error);
+        await ExpoSplashScreen.hideAsync().catch(console.error); // Change SplashScreen to ExpoSplashScreen
       }
     };
 
@@ -87,6 +81,11 @@ export default function RootLayout() {
       </View>
     );
   }
+  
+  // Show custom splash screen
+  if (showCustomSplash) {
+    return <SplashScreen onFinish={() => setShowCustomSplash(false)} />;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -108,3 +107,13 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export const unstable_settings = {
+  initialRouteName: "(tabs)",
+};
+
+// Prevent splash screen from auto-hiding
+ExpoSplashScreen.preventAutoHideAsync().catch(() => {
+  // If we can't prevent auto-hide, it's not a critical error
+  console.warn("Could not prevent splash screen from auto-hiding");
+});

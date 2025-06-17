@@ -490,22 +490,23 @@ const styles = StyleSheet.create({
   },
   searchCard: {
     marginBottom: 24,
+    padding: 8, // Reduced padding (was likely 16)
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12, // Reduced padding (was likely 16)
+    paddingVertical: 8, // Reduced padding (was likely 12)
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.1)",
   },
   searchIcon: {
-    marginRight: 12,
+    marginRight: 8, // Reduced margin (was 12)
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14, // Reduced font size (was 16)
     fontWeight: "500",
   },
   searchResults: {

@@ -10,7 +10,7 @@
     "rork",
     "veelink"
   ],
-  "cSpell.ignoreWords": [
-    "nativewind"
-  ]
+  "cSpell.ignoreWords": ["nativewind"],
+  "diffEditor.codeLens": true,
+  "MutableAI.upsell": true
 }
