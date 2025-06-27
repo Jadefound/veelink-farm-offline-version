@@ -21,7 +21,7 @@ interface FinancialState {
   getTransactionsByType: (type: TransactionType) => Transaction[];
   getTransactionsByCategory: (category: TransactionCategory) => Transaction[];
   getTransactionsByCategoryAndFarm: (category: TransactionCategory, farmId?: string) => Transaction[];
-  getFinancialStats: (farmId: string) => {
+  getFinancialStats: (farmId: string) => Promise<{
     totalIncome: number;
     totalExpenses: number;
     netProfit: number;
@@ -31,7 +31,7 @@ interface FinancialState {
     totalAssetValue: number;
     recentTransactions: number;
     byCategory: { category: string; amount: number; type: TransactionType }[];
-  };
+  }>;
   getAssetStats: (farmId?: string) => Promise<{
     totalAnimalAssets: number;
     totalAcquisitionCost: number;
@@ -274,69 +274,54 @@ export const useFinancialStore = create<FinancialState>()(
         );
       },
 
-      getFinancialStats: (farmId: string) => {
-        const { transactions } = get();
-        const farmTransactions = transactions.filter(t => t.farmId === farmId);
+      getFinancialStats: async (farmId) => {
+        const state = get();
+        const transactions = state.transactions.filter(t => t.farmId === farmId);
 
-        // Get health records costs from health store
-        const healthStore = useHealthStore.getState();
-        const healthRecords = healthStore.healthRecords.filter(h => h.farmId === farmId);
-        const healthCosts = healthRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
-
-        // Get animal acquisition costs and sales
+        // Calculate total asset value from animals
         const animalStore = useAnimalStore.getState();
-        const animals = animalStore.animals.filter(a => a.farmId === farmId);
+        const animals = await animalStore.fetchAnimals(farmId);
+        const totalAssetValue = animals.reduce((sum, animal) => sum + (animal.estimatedValue || 0), 0);
 
-        const acquisitionCosts = animals.reduce((sum, animal) => {
-          return sum + (animal.acquisitionPrice || 0);
-        }, 0);
+        const totalIncome = transactions
+          .filter((t) => t.type === 'Income')
+          .reduce((sum, t) => sum + t.amount, 0);
 
-        const animalSales = animals
-          .filter(animal => animal.status === 'Sold' && animal.price)
-          .reduce((sum, animal) => sum + (animal.price || 0), 0);
+        const totalExpenses = transactions
+          .filter((t) => t.type === 'Expense')
+          .reduce((sum, t) => sum + t.amount, 0);
 
-        const totalIncome = farmTransactions
-          .filter(t => t.type === 'Income')
-          .reduce((sum, t) => sum + t.amount, 0) + animalSales;
+        const healthCosts = transactions
+          .filter((t) => t.category === 'Medication')
+          .reduce((sum, t) => sum + t.amount, 0);
 
-        const totalExpenses = farmTransactions
-          .filter(t => t.type === 'Expense')
-          .reduce((sum, t) => sum + t.amount, 0) + healthCosts + acquisitionCosts;
+        const acquisitionCosts = transactions
+          .filter((t) => t.category === 'Purchase')
+          .reduce((sum, t) => sum + t.amount, 0);
 
-        const netProfit = totalIncome - totalExpenses;
+        const animalSales = transactions
+          .filter((t) => t.category === 'Sales')
+          .reduce((sum, t) => sum + t.amount, 0);
 
-        // Calculate asset value for healthy animals
-        const healthyAnimals = animals.filter(animal =>
-          animal.status === 'Healthy' || animal.status === 'Pregnant'
+        const byCategory = Object.values(
+          transactions.reduce((acc, t) => {
+            if (!acc[t.category]) {
+              acc[t.category] = { category: t.category, amount: 0, type: t.type };
+            }
+            acc[t.category].amount += t.amount;
+            return acc;
+          }, {} as { [key: string]: { category: string; amount: number; type: TransactionType } })
         );
-        const totalAssetValue = healthyAnimals.reduce((sum, animal) => {
-          return sum + (animal.estimatedValue || animal.acquisitionPrice || 0);
-        }, 0);
-
-        // Group transactions by category for farm
-        const categoryGroups: Record<string, { amount: number; type: TransactionType }> = {};
-        farmTransactions.forEach(transaction => {
-          if (!categoryGroups[transaction.category]) {
-            categoryGroups[transaction.category] = { amount: 0, type: transaction.type };
-          }
-          categoryGroups[transaction.category].amount += transaction.amount;
-        });
-
-        const byCategory = Object.entries(categoryGroups).map(([category, data]) => ({
-          category,
-          amount: data.amount,
-          type: data.type
-        }));
 
         return {
           totalIncome,
           totalExpenses,
-          netProfit,
+          netProfit: totalIncome - totalExpenses,
           healthCosts,
           acquisitionCosts,
           animalSales,
           totalAssetValue,
-          recentTransactions: farmTransactions.length,
+          recentTransactions: transactions.slice(0, 5).length,
           byCategory,
         };
       },

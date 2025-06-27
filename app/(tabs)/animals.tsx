@@ -29,7 +29,7 @@ const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 30) / 2;
 
 // Generate species-based ID
-const generateAnimalId = (species: string, existingAnimals: Animal[]) => {
+export const generateAnimalId = (species: string, existingAnimals: Animal[]) => {
   const speciesPrefixes = {
     Cattle: "C",
     Sheep: "S",
@@ -43,15 +43,20 @@ const generateAnimalId = (species: string, existingAnimals: Animal[]) => {
     Other: "O",
   };
 
-  const prefix =
-    speciesPrefixes[species as keyof typeof speciesPrefixes] || "O";
+  const prefix = speciesPrefixes[species as keyof typeof speciesPrefixes] || "O";
 
-  // Count existing animals of the same species
-  const sameSpeciesCount = existingAnimals.filter(
-    (animal: Animal) => animal.species === species
-  ).length;
+  // Get all IDs for this species
+  const speciesIds = existingAnimals
+    .filter((animal: Animal) => animal.species === species)
+    .map(animal => {
+      const id = animal.id || '';
+      return id.startsWith(prefix) ? parseInt(id.replace(prefix, '')) : 0;
+    });
 
-  const nextNumber = (sameSpeciesCount + 1).toString().padStart(3, "0");
+  // Find the highest existing number
+  const maxNumber = speciesIds.length > 0 ? Math.max(...speciesIds) : 0;
+  
+  const nextNumber = (maxNumber + 1).toString().padStart(3, "0");
   return `${prefix}${nextNumber}`;
 };
 
@@ -61,14 +66,14 @@ const getAnimalImage = (species: string) => {
     Cattle:
       "https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
     Sheep:
-      "https://images.pexels.com/photos/2318466/pexels-photo-2318466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      "https://th.bing.com/th/id/OIP.cHOpiC21p07NjMl7nY8YxgHaEK?w=327&h=183&c=7&r=0&o=7&pid=1.7&rm=3",
     Goat: "https://images.pexels.com/photos/751689/pexels-photo-751689.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
     Pig: "https://images.pexels.com/photos/1300361/pexels-photo-1300361.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
     Chicken:
       "https://images.pexels.com/photos/1300358/pexels-photo-1300358.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
     Duck: "https://images.pexels.com/photos/416179/pexels-photo-416179.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
     Turkey:
-      "https://images.pexels.com/photos/372166/pexels-photo-372166.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+      "https://th.bing.com/th/id/OIP.0b24h87IrPK3cHoNPsV_qAHaGU?w=220&h=187&c=7&r=0&o=7&pid=1.7&rm=3",
     Horse:
       "https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
     Rabbit:
@@ -83,22 +88,6 @@ const getAnimalImage = (species: string) => {
   );
 };
 
-// Get animal emoji for visual identification
-const getAnimalEmoji = (species: string) => {
-  const animalEmojis = {
-    Cattle: "🐄",
-    Sheep: "🐑",
-    Goat: "🐐",
-    Pig: "🐷",
-    Chicken: "🐔",
-    Duck: "🦆",
-    Turkey: "🦃",
-    Horse: "🐴",
-    Rabbit: "🐰",
-    Other: "🐾",
-  };
-  return animalEmojis[species as keyof typeof animalEmojis] || "🐾";
-};
 
 // FMIS-style styles (copied from reports.tsx)
 const fmisStyles = StyleSheet.create({
@@ -285,17 +274,19 @@ export default function AnimalsScreen() {
   }
   if (searchQuery.trim()) {
     filteredAnimals = filteredAnimals.filter((animal) => {
+      // Use the full animals array to generate the ID for search consistency
       const animalId = generateAnimalId(animal.species || "Other", animals);
       return (
         animalId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        animal.identificationNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+        animal.identificationNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        animal.species?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     });
   }
 
   // Card grid renderer (two-column)
-  const renderAnimalCard = ({ item, index }: { item: Animal; index: number }) => {
-    const animalId = generateAnimalId(item.species || "Other", animals.slice(0, index + 1));
+  const renderAnimalCard = ({ item }: { item: Animal }) => {
+    const animalId = generateAnimalId(item.species || "Other", animals.filter(a => a.species === item.species));
     return (
       <TouchableOpacity
         style={styles.horizontalCard}
@@ -308,7 +299,7 @@ export default function AnimalsScreen() {
           resizeMode="cover"
         />
         <View style={styles.horizontalCardContent}>
-          <Text style={styles.horizontalCardTitle} numberOfLines={1}>{animalId}</Text>
+          <Text style={styles.horizontalCardTitle} numberOfLines={1}>{item.identificationNumber}</Text>
           <View style={styles.horizontalCardVitalsRow}>
             <Text style={styles.horizontalCardVital}>{item.species}</Text>
             <Text style={styles.horizontalCardDot}>•</Text>
@@ -339,7 +330,7 @@ export default function AnimalsScreen() {
   // FlatList ListHeaderComponent: summary + filter bar
   const listHeader = (
     <>
-      <View style={fmisStyles.summaryRow}>
+      {/* <View style={fmisStyles.summaryRow}>
         <View style={fmisStyles.summaryCard}>
           <Text style={fmisStyles.summaryLabel}>Total Animals</Text>
           <Text style={fmisStyles.summaryValue}>{totalAnimals}</Text>
@@ -352,7 +343,7 @@ export default function AnimalsScreen() {
           <Text style={fmisStyles.summaryLabel}>Species</Text>
           <Text style={fmisStyles.summaryValue}>{speciesCount}</Text>
         </View>
-      </View>
+      </View> */}
       <View style={fmisStyles.filterBar}>
         <View style={fmisStyles.filterDropdownContainer}>
           <Text style={fmisStyles.filterLabel}>Species:</Text>

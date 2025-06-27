@@ -33,12 +33,16 @@ import Button from "@/components/Button";
 export default function FinancialScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [assetStats, setAssetStats] = useState({
-    totalAnimalAssets: 0,
-    totalAcquisitionCost: 0,
-    assetAppreciation: 0,
-    animalCount: 0,
-    averageAnimalValue: 0,
+  const [financialStats, setFinancialStats] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    healthCosts: 0,
+    acquisitionCosts: 0,
+    animalSales: 0,
+    totalAssetValue: 0,
+    recentTransactions: 0,
+    byCategory: [] as { category: string; amount: number; type: "Income" | "Expense" }[],
   });
 
   // Use the store instead:
@@ -52,17 +56,15 @@ export default function FinancialScreen() {
 
   useEffect(() => {
     if (currentFarm) {
-      loadTransactions();
-      loadAssetStats();
+      loadFinancialData();
     }
   }, [currentFarm]);
 
-  const loadTransactions = async () => {
-    // Mock function - no longer needed
-  };
-
-  const loadAssetStats = async () => {
-    // Mock function - no longer needed
+  const loadFinancialData = async () => {
+    if (currentFarm) {
+      const stats = await useFinancialStore.getState().getFinancialStats(currentFarm.id);
+      setFinancialStats(stats);
+    }
   };
 
   const onRefresh = async () => {
@@ -99,32 +101,7 @@ export default function FinancialScreen() {
     );
   }
 
-  // HARDCODED: Calculate financial stats from mock data
-  const financialStats = {
-    totalIncome: transactions
-      .filter((t) => t.type === "Income")
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalExpenses: transactions
-      .filter((t) => t.type === "Expense")
-      .reduce((sum, t) => sum + t.amount, 0),
-    netProfit:
-      transactions
-        .filter((t) => t.type === "Income")
-        .reduce((sum, t) => sum + t.amount, 0) -
-      transactions
-        .filter((t) => t.type === "Expense")
-        .reduce((sum, t) => sum + t.amount, 0),
-    healthCosts: transactions
-      .filter((t) => t.category === "Medication")
-      .reduce((sum, t) => sum + t.amount, 0),
-    acquisitionCosts: 0,
-    animalSales: transactions
-      .filter((t) => t.category === "Sales")
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalAssetValue: 15000, // Hardcoded total asset value
-    recentTransactions: transactions.length,
-    byCategory: [],
-  };
+
 
   const screenWidth = Dimensions.get("window").width;
   const isTablet = screenWidth > 768;
@@ -216,7 +193,7 @@ export default function FinancialScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Recent
             </Text>
-            <TouchableOpacity onPress={() => router.push("/reports")}>
+            <TouchableOpacity onPress={() => router.push({ pathname: "/reports", params: { reportType: "financial" } })}>
               <Text style={[styles.viewAllText, { color: colors.tint }]}>
                 View All
               </Text>

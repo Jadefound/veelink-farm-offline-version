@@ -8,8 +8,10 @@ import {
   TextInput,
   Alert,
   Image,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 import {
   PawPrint,
   Stethoscope,
@@ -33,6 +35,7 @@ import Button from "@/components/Button";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import EmptyState from "@/components/EmptyState";
 import AnimalCard from "@/components/AnimalCard";
+import CollapsibleCard from "@/components/CollapsibleCard";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -81,6 +84,8 @@ export default function DashboardScreen() {
         fetchHealthRecords(currentFarm.id),
         fetchTransactions(currentFarm.id),
       ]);
+      const stats = await getFinancialStats(currentFarm.id);
+      setFinancialStats(stats);
     }
   };
 
@@ -125,14 +130,22 @@ export default function DashboardScreen() {
   const healthStats = currentFarm
     ? getHealthStats(currentFarm.id)
     : { total: 0, totalCost: 0, recentRecords: 0 };
-  const financialStats = currentFarm
-    ? getFinancialStats(currentFarm.id)
-    : {
-      totalIncome: 0,
-      totalExpenses: 0,
-      netProfit: 0,
-      recentTransactions: 0,
+  const [financialStats, setFinancialStats] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    recentTransactions: 0,
+  });
+
+  useEffect(() => {
+    const loadFinancials = async () => {
+      if (currentFarm) {
+        const stats = await getFinancialStats(currentFarm.id);
+        setFinancialStats(stats);
+      }
     };
+    loadFinancials();
+  }, [currentFarm, getFinancialStats]);
 
   // Get search results
   const searchResults = searchQuery.trim() ? searchAnimals(searchQuery) : [];
@@ -168,7 +181,7 @@ export default function DashboardScreen() {
           />
         ) : (
           <>
-            {/* Farm Welcome Card */}
+            {/* Farm Welcome Card - Moved to Top Priority */}
             <Card
               variant="outlined"
               style={[
@@ -198,6 +211,168 @@ export default function DashboardScreen() {
                 </View>
               </View>
             </Card>
+
+            {/* Critical Alerts Section */}
+            {(animalStats.byStatus.find((s) => s.status === "Sick")?.count ||
+              0) > 0 && (
+              <Card
+                variant="warning"
+                style={[
+                  styles.alertCard,
+                  { backgroundColor: colors.warning + "08" },
+                ]}
+                onPress={() => router.push("/health")}
+              >
+                <View style={styles.alertContent}>
+                  <View
+                    style={[
+                      styles.alertIcon,
+                      { backgroundColor: colors.warning + "20" },
+                    ]}
+                  >
+                    <TrendingDown size={24} color={colors.warning} />
+                  </View>
+                  <View style={styles.alertText}>
+                    <Text
+                      style={[styles.alertTitle, { color: colors.warning }]}
+                    >
+                      Health Alert
+                    </Text>
+                    <Text style={[styles.alertMessage, { color: colors.text }]}>
+                      {
+                        animalStats.byStatus.find((s) => s.status === "Sick")
+                          ?.count
+                      }{" "}
+                      animals need attention
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.alertChevron,
+                      { backgroundColor: colors.warning + "15" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.chevronText, { color: colors.warning }]}
+                    >
+                      ›
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+            )}
+
+            {/* Key Performance Indicators */}
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Key Metrics
+            </Text>
+            <View style={styles.kpiGrid}>
+              <Card
+                variant="info"
+                style={[styles.kpiCard, styles.totalAnimalsKPI]}
+                onPress={() => router.push("/animals")}
+              >
+                <View style={styles.kpiContent}>
+                  <Text style={[styles.kpiNumber, { color: colors.tint }]}>
+                    {animalStats.total}
+                  </Text>
+                  <Text style={[styles.kpiLabel, { color: colors.text }]}>
+                    Total Animals
+                  </Text>
+                  <View
+                    style={[
+                      styles.kpiChevron,
+                      { backgroundColor: colors.tint + "15" },
+                    ]}
+                  >
+                    <Text style={[styles.chevronText, { color: colors.tint }]}>
+                      ›
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+
+              <Card
+                variant={financialStats.netProfit >= 0 ? "success" : "warning"}
+                style={[styles.kpiCard, styles.profitKPI]}
+                onPress={() => router.push("/financial")}
+              >
+                <View style={styles.kpiContent}>
+                  <Text
+                    style={[
+                      styles.kpiNumber,
+                      {
+                        color:
+                          financialStats.netProfit >= 0
+                            ? colors.success
+                            : colors.danger,
+                      },
+                    ]}
+                  >
+                    {formatCurrency(financialStats.netProfit)}
+                  </Text>
+                  <Text style={[styles.kpiLabel, { color: colors.text }]}>
+                    Net Profit
+                  </Text>
+                  <View
+                    style={[
+                      styles.kpiChevron,
+                      {
+                        backgroundColor:
+                          (financialStats.netProfit >= 0
+                            ? colors.success
+                            : colors.danger) + "15",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chevronText,
+                        {
+                          color:
+                            financialStats.netProfit >= 0
+                              ? colors.success
+                              : colors.danger,
+                        },
+                      ]}
+                    >
+                      ›
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.quickActionsContainer}>
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={() => router.push("/animal/add")}
+              >
+                <Feather name="plus-circle" size={24} color={colors.primary} />
+                <Text style={[styles.quickActionText, { color: colors.text }]}>
+                  Add Animal
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={() => router.push("/financial/add")}
+              >
+                <Feather name="dollar-sign" size={24} color={colors.primary} />
+                <Text style={[styles.quickActionText, { color: colors.text }]}>
+                  Add Expense
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={() => router.push("/inventory/add")}
+              >
+                <Feather name="archive" size={24} color={colors.primary} />
+                <Text style={[styles.quickActionText, { color: colors.text }]}>
+                  Add Item
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Search Card */}
             <Card variant="outlined" style={styles.searchCard}>
@@ -241,199 +416,136 @@ export default function DashboardScreen() {
               )}
             </Card>
 
-            {/* Financial Overview */}
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Financial Overview
-            </Text>
-            <View style={styles.statsContainer}>
-              <Card variant="success" style={styles.statCard}>
-                <View style={styles.statContent}>
-                  <View
-                    style={[
-                      styles.statIcon,
-                      { backgroundColor: colors.success + "20" },
-                    ]}
+            {/* Detailed Statistics - Collapsible */}
+            <CollapsibleCard title="Detailed Overview">
+
+
+
+            {/* Livestock Breakdown */}
+            <View style={styles.detailsSection}>
+              <Text style={[styles.subsectionTitle, { color: colors.text }]}>
+                Livestock Breakdown
+              </Text>
+              <View style={styles.animalStatsGrid}>
+                {animalStats.bySpecies.slice(0, 4).map((species) => (
+                  <Card
+                    key={species.species}
+                    variant="outlined"
+                    style={[styles.speciesCard, { backgroundColor: '#F9FAFB' }]}
+                    onPress={() =>
+                      router.push(`/animals?species=${species.species}`)
+                    }
                   >
-                    <DollarSign size={20} color={colors.success} />
-                  </View>
-                  <View style={styles.statText}>
-                    <Text style={[styles.statLabel, { color: colors.muted }]}>
-                      Net Profit
-                    </Text>
-                    <Text
+                    <View style={styles.speciesContent}>
+                      <Text
+                        style={[styles.speciesCount, { color: colors.text }]}
+                      >
+                        {species.count}
+                      </Text>
+                      <Text
+                        style={[styles.speciesName, { color: colors.muted }]}
+                      >
+                        {species.species}
+                      </Text>
+                      <View
+                        style={[
+                          styles.speciesChevron,
+                          { backgroundColor: colors.border + "30" },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.chevronText, { color: colors.muted }]}
+                        >
+                          ›
+                        </Text>
+                      </View>
+                    </View>
+                  </Card>
+                ))}
+              </View>
+            </View>
+
+            {/* Health Status */}
+            <View style={styles.detailsSection}>
+              <Text style={[styles.subsectionTitle, { color: colors.text }]}>
+                Health Status
+              </Text>
+              <View style={styles.healthGrid}>
+                <Card
+                  variant="success"
+                  style={[styles.healthCard, { backgroundColor: '#F0FFF4' }]}
+                  onPress={() => router.push("/animals?status=Healthy")}
+                >
+                  <View style={styles.healthContent}>
+                    <View
                       style={[
-                        styles.statValue,
-                        {
-                          color:
-                            financialStats.netProfit >= 0
-                              ? colors.success
-                              : colors.danger,
-                        },
+                        styles.healthIcon,
+                        { backgroundColor: colors.success + "15" },
                       ]}
                     >
-                      {formatCurrency(financialStats.netProfit)}
+                      <TrendingUp size={18} color={colors.success} />
+                    </View>
+                    <Text style={[styles.healthLabel, { color: colors.muted }]}>
+                      Healthy
                     </Text>
-                  </View>
-                </View>
-              </Card>
-
-              <Card variant="warning" style={styles.statCard}>
-                <View style={styles.statContent}>
-                  <View
-                    style={[
-                      styles.statIcon,
-                      { backgroundColor: colors.info + "20" },
-                    ]}
-                  >
-                    <Stethoscope size={20} color={colors.info} />
-                  </View>
-                  <View style={styles.statText}>
-                    <Text style={[styles.statLabel, { color: colors.muted }]}>
-                      Health Costs
+                    <Text style={[styles.healthValue, { color: colors.text }]}>
+                      {animalStats.byStatus.find((s) => s.status === "Healthy")
+                        ?.count || 0}
                     </Text>
-                    <Text style={[styles.statValue, { color: colors.text }]}>
-                      {formatCurrency(healthStats.totalCost)}
-                    </Text>
-                  </View>
-                </View>
-              </Card>
-            </View>
-
-            {/* Animal Stats Grid */}
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Livestock Overview
-            </Text>
-            <View style={styles.animalStatsGrid}>
-              <Card variant="info" style={styles.totalAnimalsCard}>
-                <View style={styles.totalAnimalsContent}>
-                  <Text
-                    style={[styles.totalAnimalsNumber, { color: colors.tint }]}
-                  >
-                    {animalStats.total}
-                  </Text>
-                  <Text
-                    style={[styles.totalAnimalsLabel, { color: colors.text }]}
-                  >
-                    Total Animals
-                  </Text>
-                </View>
-              </Card>
-
-              {animalStats.bySpecies.slice(0, 3).map((species) => (
-                <Card
-                  key={species.species}
-                  variant="outlined"
-                  style={styles.speciesCard}
-                >
-                  <View style={styles.speciesContent}>
-                    <Text style={[styles.speciesCount, { color: colors.text }]}>
-                      {species.count}
-                    </Text>
-                    <Text style={[styles.speciesName, { color: colors.muted }]}>
-                      {species.species}
-                    </Text>
+                    <View
+                      style={[
+                        styles.healthChevron,
+                        { backgroundColor: colors.success + "15" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.chevronText, { color: colors.success }]}
+                      >
+                        ›
+                      </Text>
+                    </View>
                   </View>
                 </Card>
-              ))}
-            </View>
 
-            {/* Health Overview */}
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Health Summary
-            </Text>
-            <View style={styles.healthGrid}>
-              <Card variant="success" style={styles.healthCard}>
-                <View style={styles.healthContent}>
-                  <View
-                    style={[
-                      styles.healthIcon,
-                      { backgroundColor: colors.success + "15" },
-                    ]}
-                  >
-                    <TrendingUp size={18} color={colors.success} />
+                <Card
+                  variant="warning"
+                  style={[styles.healthCard, { backgroundColor: '#FFFBEB' }]}
+                  onPress={() => router.push("/animals?status=Sick")}
+                >
+                  <View style={styles.healthContent}>
+                    <View
+                      style={[
+                        styles.healthIcon,
+                        { backgroundColor: colors.warning + "15" },
+                      ]}
+                    >
+                      <TrendingDown size={18} color={colors.warning} />
+                    </View>
+                    <Text style={[styles.healthLabel, { color: colors.muted }]}>
+                      Sick
+                    </Text>
+                    <Text style={[styles.healthValue, { color: colors.text }]}>
+                      {animalStats.byStatus.find((s) => s.status === "Sick")
+                        ?.count || 0}
+                    </Text>
+                    <View
+                      style={[
+                        styles.healthChevron,
+                        { backgroundColor: colors.warning + "15" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.chevronText, { color: colors.warning }]}
+                      >
+                        ›
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={[styles.healthLabel, { color: colors.muted }]}>
-                    Healthy
-                  </Text>
-                  <Text style={[styles.healthValue, { color: colors.text }]}>
-                    {animalStats.byStatus.find((s) => s.status === "Healthy")
-                      ?.count || 0}
-                  </Text>
-                </View>
-              </Card>
-
-              <Card variant="warning" style={styles.healthCard}>
-                <View style={styles.healthContent}>
-                  <View
-                    style={[
-                      styles.healthIcon,
-                      { backgroundColor: colors.warning + "15" },
-                    ]}
-                  >
-                    <TrendingDown size={18} color={colors.warning} />
-                  </View>
-                  <Text style={[styles.healthLabel, { color: colors.muted }]}>
-                    Needs Attention
-                  </Text>
-                  <Text style={[styles.healthValue, { color: colors.text }]}>
-                    {animalStats.byStatus.find((s) => s.status === "Sick")
-                      ?.count || 0}
-                  </Text>
-                </View>
-              </Card>
-
-              <Card variant="info" style={styles.healthCard}>
-                <View style={styles.healthContent}>
-                  <View
-                    style={[
-                      styles.healthIcon,
-                      { backgroundColor: colors.info + "15" },
-                    ]}
-                  >
-                    <Stethoscope size={18} color={colors.info} />
-                  </View>
-                  <Text style={[styles.healthLabel, { color: colors.muted }]}>
-                    Records
-                  </Text>
-                  <Text style={[styles.healthValue, { color: colors.text }]}>
-                    {healthStats.total}
-                  </Text>
-                </View>
-              </Card>
-            </View>
-
-            {/* Quick Actions */}
-            <Card variant="elevated" style={styles.actionsCard}>
-              <Text style={[styles.actionsTitle, { color: colors.text }]}>
-                Quick Actions
-              </Text>
-              <View style={styles.buttonGrid}>
-                <Button
-                  title="Add Animal"
-                  onPress={() => router.push("/animal/add")}
-                  variant="primary"
-                  style={styles.actionButton}
-                />
-                <Button
-                  title="Record Health"
-                  onPress={() => router.push("/health/add")}
-                  variant="secondary"
-                  style={styles.actionButton}
-                />
-                <Button
-                  title="Add Transaction"
-                  onPress={() => router.push("/financial/add")}
-                  variant="outline"
-                  style={styles.actionButton}
-                />
-                <Button
-                  title="View Reports"
-                  onPress={() => router.push("/reports")}
-                  variant="outline"
-                  style={styles.actionButton}
-                />
+                </Card>
               </View>
-            </Card>
+            </View>
+
+            </CollapsibleCard>
           </>
         )}
       </ScrollView>
@@ -450,7 +562,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   welcomeCard: {
-    marginBottom: 20,
+    marginBottom: 30,
     borderWidth: 1,
     borderRadius: 16,
     shadowColor: "transparent",
@@ -490,23 +602,20 @@ const styles = StyleSheet.create({
   },
   searchCard: {
     marginBottom: 24,
-    padding: 8, // Reduced padding (was likely 16)
+    padding: 8,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
-    paddingHorizontal: 12, // Reduced padding (was likely 16)
-    paddingVertical: 8, // Reduced padding (was likely 12)
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.1)",
   },
   searchIcon: {
-    marginRight: 8, // Reduced margin (was 12)
+    marginRight: 8,
+    marginLeft: 4
   },
   searchInput: {
     flex: 1,
-    fontSize: 14, // Reduced font size (was 16)
+    fontSize: 14,
     fontWeight: "500",
   },
   searchResults: {
@@ -517,49 +626,167 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 12,
   },
+
+  // Typography Improvements
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 20,
+    letterSpacing: -0.5,
+  },
+  subsectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
     marginBottom: 16,
     marginTop: 8,
+    letterSpacing: -0.3,
   },
+
+  // Alert Section
+  alertCard: {
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: "#f59e0b",
+  },
+  alertContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 4,
+  },
+  alertIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  alertText: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  alertMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  alertChevron: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+  },
+
+  // KPI Section
+  kpiGrid: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 32,
+  },
+  kpiCard: {
+    flex: 1,
+    minHeight: 120,
+  },
+  totalAnimalsKPI: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#3b82f6",
+  },
+  profitKPI: {
+    borderLeftWidth: 4,
+  },
+  kpiContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    position: "relative",
+  },
+  kpiNumber: {
+    fontSize: 28,
+    fontWeight: "800",
+    marginBottom: 8,
+    letterSpacing: -1,
+  },
+  kpiLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  kpiChevron: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Details Sections
+  detailsSection: {
+    marginBottom: 16,
+    paddingHorizontal: 0, 
+  },
+
+  // Financial Stats
   statsContainer: {
     flexDirection: "row",
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
+    minHeight: 100,
   },
   statContent: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
+    position: "relative",
   },
   statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   statText: {
     flex: 1,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
-    marginBottom: 2,
+    marginBottom: 4,
+    letterSpacing: 0.2,
   },
   statValue: {
     fontSize: 18,
     fontWeight: "700",
+    letterSpacing: -0.5,
   },
+  statChevron: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Animal Stats
   animalStatsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 0,
   },
   totalAnimalsCard: {
     width: "100%",
@@ -579,32 +806,54 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   speciesCard: {
-    flex: 1,
-    minWidth: 100,
+    width: "47%",
+    minWidth: 140,
+    minHeight: 90,
   },
   speciesContent: {
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    position: "relative",
   },
   speciesCount: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: -0.5,
   },
   speciesName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
     textAlign: "center",
+    letterSpacing: 0.2,
   },
+  speciesChevron: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Health Stats
   healthGrid: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   healthCard: {
     flex: 1,
+    minHeight: 110,
   },
   healthContent: {
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    position: "relative",
   },
   healthIcon: {
     width: 36,
@@ -612,33 +861,49 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   healthLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "500",
-    marginBottom: 4,
+    marginBottom: 6,
     textAlign: "center",
+    letterSpacing: 0.2,
   },
   healthValue: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  actionsCard: {
-    marginBottom: 20,
-  },
-  actionsTitle: {
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 16,
+    letterSpacing: -0.5,
   },
-  buttonGrid: {
+  healthChevron: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Quick Actions
+  quickActionsContainer: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-around",
+    marginVertical: 20,
   },
-  actionButton: {
-    flex: 1,
-    minWidth: 150,
+  quickActionButton: {
+    alignItems: "center",
+  },
+  quickActionText: {
+    marginTop: 5,
+    fontSize: 12,
+  },
+
+  // Interactive States
+  chevronText: {
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 16,
   },
 });

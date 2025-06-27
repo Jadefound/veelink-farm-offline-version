@@ -38,6 +38,7 @@ import { formatCurrency, formatDate } from "@/utils/helpers";
 import { Animal, HealthRecord, Transaction, Farm } from "@/types";
 import TopNavigation from "@/components/TopNavigation";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+  import { useLocalSearchParams } from "expo-router";
 
 // Define report types
 type ReportType = "animals" | "health" | "financial";
@@ -49,7 +50,11 @@ type SortDirection = "asc" | "desc";
 export default function ReportsScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [reportType, setReportType] = useState<ReportType>("animals");
+
+// ... existing code ...
+const params = useLocalSearchParams();
+const initialReportType = (params?.reportType as ReportType) || "animals";
+const [reportType, setReportType] = useState<ReportType>(initialReportType);
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilterMenu, setShowFilterMenu] = useState(false);

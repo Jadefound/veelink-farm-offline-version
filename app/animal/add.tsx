@@ -49,18 +49,6 @@ export default function AddAnimalScreen() {
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
-  const [identificationNumber, setIdentificationNumber] = useState("");
-  const [species, setSpecies] = useState<AnimalSpecies>("Cattle");
-  const [breed, setBreed] = useState("");
-  const [gender, setGender] = useState<"Male" | "Female">("Male");
-  const [birthDate, setBirthDate] = useState("");
-  const [acquisitionDate, setAcquisitionDate] = useState("");
-  const [status, setStatus] = useState<AnimalStatus>("Healthy");
-  const [weight, setWeight] = useState("");
-  const [weightUnit, setWeightUnit] = useState("kg");
-  const [price, setPrice] = useState("");
-  const [acquisitionPrice, setAcquisitionPrice] = useState("");
-  const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState("");
 
   // Date picker state
@@ -82,18 +70,18 @@ export default function AddAnimalScreen() {
   const weightUnitOptions = ["kg", "lb", "g"];
 
   const [formData, setFormData] = useState({
-    identificationNumber,
-    species,
-    breed,
-    gender,
-    birthDate,
-    acquisitionDate,
-    status,
-    weight,
-    weightUnit,
-    price,
-    acquisitionPrice,
-    notes,
+    identificationNumber: "",
+    species: "Cattle" as AnimalSpecies,
+    breed: "",
+    gender: "Male" as "Male" | "Female",
+    birthDate: "",
+    acquisitionDate: "",
+    status: "Healthy" as AnimalStatus,
+    weight: "",
+    weightUnit: "kg",
+    price: "",
+    acquisitionPrice: "",
+    notes: "",
     acquisitionCost: '',
     currentValue: '',
   });
@@ -107,16 +95,21 @@ export default function AddAnimalScreen() {
   useEffect(() => {
     // Set today's date as default for acquisition date
     const today = new Date().toISOString().split("T")[0];
-    setAcquisitionDate(today);
+    setFormData(prev => ({ ...prev, acquisitionDate: today }));
   }, []);
+
+  // Initialize formData with default species and generate ID
+  useEffect(() => {
+    const nextId = getNextAnimalId(formData.species, animals);
+    setFormData(prev => ({ ...prev, identificationNumber: nextId }));
+  }, [animals]);
 
   // Date picker handlers
   const onBirthDateChange = (event: any, selectedDate?: Date) => {
     setShowBirthDatePicker(false);
     if (selectedDate) {
       const formattedDate = selectedDate.toISOString().split("T")[0];
-      setBirthDate(formattedDate);
-      setFormData(prev => ({ ...prev, birthDate: formattedDate })); // Update formData as well
+      setFormData(prev => ({ ...prev, birthDate: formattedDate }));
     }
   };
 
@@ -124,8 +117,7 @@ export default function AddAnimalScreen() {
     setShowAcquisitionDatePicker(false);
     if (selectedDate) {
       const formattedDate = selectedDate.toISOString().split("T")[0];
-      setAcquisitionDate(formattedDate);
-      setFormData(prev => ({ ...prev, acquisitionDate: formattedDate })); // Update formData as well
+      setFormData(prev => ({ ...prev, acquisitionDate: formattedDate }));
     }
   };
 
@@ -259,46 +251,39 @@ export default function AddAnimalScreen() {
             />
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Species *</Text>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={[
-                  styles.pickerTouchable,
-                  !formData.species && speciesError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
-                  { backgroundColor: colors.card },
-                ]}
-                onPress={() => setShowSpeciesPicker(true)}
-              >
-                <Text style={{ color: formData.species ? colors.text : colors.muted }}>
-                  {formData.species || "Select species"}
-                </Text>
-                <ChevronDown size={18} color={colors.muted} style={{ position: "absolute", right: 16 }} />
-              </TouchableOpacity>
-              {speciesError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{speciesError}</Text> : null}
-              {/* Modal Picker for Species */}
-              {showSpeciesPicker && (
-                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.card, zIndex: 100 }}>
+              <Text style={[styles.label, { color: colors.text }]}>Species *</Text>
+                <View style={{ marginBottom: 8 }}>
                   <Picker
                     selectedValue={formData.species}
                     onValueChange={(value) => {
-                      setFormData({ ...formData, species: value as AnimalSpecies });
+                      setFormData(prev => ({ ...prev, species: value as AnimalSpecies }));
                       setShowSpeciesPicker(false);
                     }}
+                    style={{ 
+                      color: colors.text,
+                      backgroundColor: colors.card
+                    }}
+                    dropdownIconColor={colors.text}
                   >
                     {speciesOptions.map((option) => (
-                      <Picker.Item key={option} label={option} value={option} />
+                      <Picker.Item 
+                        key={option} 
+                        label={option} 
+                        value={option}
+                        color={colors.text}
+                      />
                     ))}
                   </Picker>
                 </View>
-              )}
-            </View>
 
-            <Input
-              label="Breed *"
-              placeholder="Enter breed"
-              value={formData.breed}
-              onChangeText={text => setFormData({ ...formData, breed: text })}
-            />
+            <View style={styles.inputContainer}>
+              <Input
+                label="Breed *"
+                placeholder="Enter breed"
+                value={formData.breed}
+                onChangeText={text => setFormData({ ...formData, breed: text })}
+              />
+            </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Gender *</Text>
@@ -374,38 +359,30 @@ export default function AddAnimalScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Status *</Text>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={[
-                  styles.pickerTouchable,
-                  !formData.status && statusError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
-                  { backgroundColor: colors.card },
-                ]}
-                onPress={() => setShowStatusPicker(true)}
-              >
-                <Text style={{ color: formData.status ? colors.text : colors.muted }}>
-                  {formData.status || "Select status"}
-                </Text>
-                <ChevronDown size={18} color={colors.muted} style={{ position: "absolute", right: 16 }} />
-              </TouchableOpacity>
-              {statusError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{statusError}</Text> : null}
-              {/* Modal Picker for Status */}
-              {showStatusPicker && (
-                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.card, zIndex: 100 }}>
+              <Text style={[styles.label, { color: colors.text }]}>Status *</Text>
+                <View style={{ marginBottom: 8 }}>
                   <Picker
                     selectedValue={formData.status}
                     onValueChange={(value) => {
                       setFormData({ ...formData, status: value as AnimalStatus });
-                      setShowStatusPicker(false);
                     }}
+                    style={{
+                      color: colors.text,
+                      backgroundColor: colors.card
+                    }}
+                    dropdownIconColor={colors.text}
                   >
                     {statusOptions.map((option) => (
-                      <Picker.Item key={option} label={option} value={option} />
+                      <Picker.Item
+                        key={option}
+                        label={option}
+                        value={option}
+                        color={colors.text}
+                      />
                     ))}
                   </Picker>
                 </View>
-              )}
+              {statusError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{statusError}</Text> : null}
             </View>
 
             <View style={styles.row}>
@@ -419,87 +396,90 @@ export default function AddAnimalScreen() {
               />
 
               <View style={[styles.inputContainer, styles.unitInput]}>
-                <Text style={styles.label}>Unit</Text>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={[
-                    styles.pickerTouchable,
-                    !formData.weightUnit && weightUnitError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
-                    { backgroundColor: colors.card },
-                  ]}
-                  onPress={() => setShowWeightUnitPicker(true)}
-                >
-                  <Text style={{ color: formData.weightUnit ? colors.text : colors.muted }}>
-                    {formData.weightUnit || "Select unit"}
-                  </Text>
-                  <ChevronDown size={18} color={colors.muted} style={{ position: "absolute", right: 16 }} />
-                </TouchableOpacity>
+                <Text style={[styles.label, { color: colors.text }]}>Unit</Text>
+                <View style={{ marginBottom: 8 }}>
+                  <Picker
+                    selectedValue={formData.weightUnit}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, weightUnit: value as string });
+                    }}
+                    style={{
+                      color: colors.text,
+                      backgroundColor: colors.card
+                    }}
+                    dropdownIconColor={colors.text}
+                  >
+                    {weightUnitOptions.map((unit) => (
+                      <Picker.Item
+                        key={unit}
+                        label={unit}
+                        value={unit}
+                        color={colors.text}
+                      />
+                    ))}
+                  </Picker>
+                </View>
                 {weightUnitError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{weightUnitError}</Text> : null}
-                {/* Modal Picker for Weight Unit */}
-                {showWeightUnitPicker && (
-                  <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.card, zIndex: 100 }}>
-                    <Picker
-                      selectedValue={formData.weightUnit}
-                      onValueChange={(value) => {
-                        setFormData({ ...formData, weightUnit: value as string });
-                        setShowWeightUnitPicker(false);
-                      }}
-                    >
-                      {weightUnitOptions.map((unit) => (
-                        <Picker.Item key={unit} label={unit} value={unit} />
-                      ))}
-                    </Picker>
-                  </View>
-                )}
+              </View>
               </View>
             </View>
 
             <View style={styles.row}>
-              <Input
-                label="Current Price *"
-                placeholder="Enter current market value"
-                keyboardType="numeric"
-                value={formData.price}
-                onChangeText={text => setFormData({ ...formData, price: text })}
-                containerStyle={styles.weightInput}
-              />
+              <View style={styles.inputContainer}>
+                <Input
+                  label="Current Price *"
+                  placeholder="Enter current market value"
+                  keyboardType="numeric"
+                  value={formData.price}
+                  onChangeText={text => setFormData({ ...formData, price: text })}
+                  containerStyle={styles.weightInput}
+                />
+              </View>
 
+              <View style={styles.inputContainer}>
+                <Input
+                  label="Acquisition Price *"
+                  placeholder="Enter purchase cost"
+                  keyboardType="numeric"
+                  value={formData.acquisitionPrice}
+                  onChangeText={text => setFormData({ ...formData, acquisitionPrice: text })}
+                  containerStyle={styles.weightInput}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
               <Input
-                label="Acquisition Price *"
-                placeholder="Enter purchase cost"
+                label="Acquisition Cost"
+                value={formData.acquisitionCost}
+                onChangeText={text => setFormData({ ...formData, acquisitionCost: text })}
+                placeholder="Enter acquisition cost"
                 keyboardType="numeric"
-                value={formData.acquisitionPrice}
-                onChangeText={text => setFormData({ ...formData, acquisitionPrice: text })}
-                containerStyle={styles.weightInput}
               />
             </View>
 
-            <Input
-              label="Acquisition Cost"
-              value={formData.acquisitionCost}
-              onChangeText={text => setFormData({ ...formData, acquisitionCost: text })}
-              placeholder="Enter acquisition cost"
-              keyboardType="numeric"
-            />
+            <View style={styles.inputContainer}>
+              <Input
+                label="Current Value"
+                value={formData.currentValue}
+                onChangeText={text => setFormData({ ...formData, currentValue: text })}
+                placeholder="Enter current value"
+                keyboardType="numeric"
+              />
+            </View>
 
-            <Input
-              label="Current Value"
-              value={formData.currentValue}
-              onChangeText={text => setFormData({ ...formData, currentValue: text })}
-              placeholder="Enter current value"
-              keyboardType="numeric"
-            />
-
-            <Input
-              label="Notes"
-              placeholder="Enter any additional notes"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              value={formData.notes}
-              onChangeText={text => setFormData({ ...formData, notes: text })}
-              inputStyle={styles.notesInput}
-            />
+            <View style={styles.inputContainer}>
+              <Input
+                label="Notes"
+                placeholder="Enter any additional notes"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                value={formData.notes}
+                onChangeText={text => setFormData({ ...formData, notes: text })}
+                inputStyle={styles.notesInput}
+              />
+            </View>
           </View>
 
           <View style={styles.buttonContainer}>
@@ -523,7 +503,6 @@ export default function AddAnimalScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

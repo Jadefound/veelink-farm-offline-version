@@ -32,18 +32,21 @@ export default function EditAnimalScreen() {
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const [animal, setAnimal] = useState<Animal | null>(null);
-  const [identificationNumber, setIdentificationNumber] = useState("");
-  const [species, setSpecies] = useState<AnimalSpecies>("Cattle");
-  const [breed, setBreed] = useState("");
-  const [gender, setGender] = useState<"Male" | "Female">("Male");
-  const [birthDate, setBirthDate] = useState("");
-  const [acquisitionDate, setAcquisitionDate] = useState("");
-  const [status, setStatus] = useState<AnimalStatus>("Healthy");
-  const [weight, setWeight] = useState("");
-  const [weightUnit, setWeightUnit] = useState("kg");
-  const [price, setPrice] = useState("");
-  const [acquisitionPrice, setAcquisitionPrice] = useState("");
-  const [notes, setNotes] = useState("");
+  // State for form fields using formData approach like Add Animal
+  const [formData, setFormData] = useState({
+    identificationNumber: "",
+    species: "Cattle" as AnimalSpecies,
+    breed: "",
+    gender: "Male" as "Male" | "Female",
+    birthDate: "",
+    acquisitionDate: "",
+    status: "Healthy" as AnimalStatus,
+    weight: "",
+    weightUnit: "kg",
+    price: "",
+    acquisitionPrice: "",
+    notes: ""
+  });
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -88,18 +91,20 @@ export default function EditAnimalScreen() {
   };
 
   const populateForm = (animalData: Animal) => {
-    setIdentificationNumber(animalData.identificationNumber);
-    setSpecies(animalData.species);
-    setBreed(animalData.breed);
-    setGender(animalData.gender);
-    setBirthDate(animalData.birthDate);
-    setAcquisitionDate(animalData.acquisitionDate);
-    setStatus(animalData.status);
-    setWeight(animalData.weight.toString());
-    setWeightUnit(animalData.weightUnit);
-    setPrice(animalData.price?.toString() || "");
-    setAcquisitionPrice(animalData.acquisitionPrice?.toString() || "");
-    setNotes(animalData.notes || "");
+    setFormData({
+      identificationNumber: animalData.identificationNumber,
+      species: animalData.species,
+      breed: animalData.breed,
+      gender: animalData.gender,
+      birthDate: animalData.birthDate,
+      acquisitionDate: animalData.acquisitionDate,
+      status: animalData.status,
+      weight: animalData.weight?.toString() || "",
+      weightUnit: animalData.weightUnit || "kg",
+      price: animalData.price?.toString() || "",
+      acquisitionPrice: animalData.acquisitionPrice?.toString() || "",
+      notes: animalData.notes || ""
+    });
   };
 
   // Date picker handlers
@@ -107,7 +112,7 @@ export default function EditAnimalScreen() {
     setShowBirthDatePicker(false);
     if (selectedDate) {
       const formattedDate = selectedDate.toISOString().split("T")[0];
-      setBirthDate(formattedDate);
+      setFormData(prev => ({ ...prev, birthDate: formattedDate }));
     }
   };
 
@@ -115,7 +120,7 @@ export default function EditAnimalScreen() {
     setShowAcquisitionDatePicker(false);
     if (selectedDate) {
       const formattedDate = selectedDate.toISOString().split("T")[0];
-      setAcquisitionDate(formattedDate);
+      setFormData(prev => ({ ...prev, acquisitionDate: formattedDate }));
     }
   };
 
@@ -127,21 +132,21 @@ export default function EditAnimalScreen() {
 
     // Validate form
     if (
-      !identificationNumber ||
-      !species ||
-      !breed ||
-      !gender ||
-      !birthDate ||
-      !acquisitionDate ||
-      !status ||
-      !weight
+      !formData.identificationNumber ||
+      !formData.species ||
+      !formData.breed ||
+      !formData.gender ||
+      !formData.birthDate ||
+      !formData.acquisitionDate ||
+      !formData.status ||
+      !formData.weight
     ) {
       setFormError("Please fill in all required fields");
       return;
     }
 
     // Validate weight
-    const weightNum = parseFloat(weight);
+    const weightNum = parseFloat(formData.weight);
     if (isNaN(weightNum) || weightNum <= 0) {
       setFormError("Please enter a valid weight");
       return;
@@ -151,16 +156,16 @@ export default function EditAnimalScreen() {
     let priceNum = undefined;
     let acquisitionPriceNum = undefined;
 
-    if (price) {
-      priceNum = parseFloat(price);
+    if (formData.price) {
+      priceNum = parseFloat(formData.price);
       if (isNaN(priceNum) || priceNum < 0) {
         setFormError("Please enter a valid price");
         return;
       }
     }
 
-    if (acquisitionPrice) {
-      acquisitionPriceNum = parseFloat(acquisitionPrice);
+    if (formData.acquisitionPrice) {
+      acquisitionPriceNum = parseFloat(formData.acquisitionPrice);
       if (isNaN(acquisitionPriceNum) || acquisitionPriceNum < 0) {
         setFormError("Please enter a valid acquisition price");
         return;
@@ -168,8 +173,8 @@ export default function EditAnimalScreen() {
     }
 
     // Validate dates
-    const birthDateObj = new Date(birthDate);
-    const acquisitionDateObj = new Date(acquisitionDate);
+    const birthDateObj = new Date(formData.birthDate);
+    const acquisitionDateObj = new Date(formData.acquisitionDate);
     const today = new Date();
 
     if (birthDateObj > today) {
@@ -191,18 +196,18 @@ export default function EditAnimalScreen() {
 
     const updatedAnimal = {
       ...animal,
-      identificationNumber,
-      species,
-      breed,
-      gender,
-      birthDate,
-      acquisitionDate,
-      status,
+      identificationNumber: formData.identificationNumber,
+      species: formData.species,
+      breed: formData.breed,
+      gender: formData.gender,
+      birthDate: formData.birthDate,
+      acquisitionDate: formData.acquisitionDate,
+      status: formData.status,
       weight: weightNum,
-      weightUnit,
+      weightUnit: formData.weightUnit,
       price: priceNum,
       acquisitionPrice: acquisitionPriceNum,
-      notes,
+      notes: formData.notes,
       updatedAt: new Date().toISOString(),
     };
 
@@ -256,18 +261,18 @@ export default function EditAnimalScreen() {
 
           <Input
             label="Identification Number *"
-            value={identificationNumber}
-            onChangeText={setIdentificationNumber}
-            placeholder="Enter animal ID"
-            autoCapitalize="characters"
+            value={formData.identificationNumber}
+            editable={false}
+            inputStyle={{ color: colors.muted, backgroundColor: colors.card }}
+            containerStyle={{ opacity: 0.8 }}
           />
 
           <View style={styles.pickerContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Species *</Text>
             <View style={[styles.picker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Picker
-                selectedValue={species}
-                onValueChange={(itemValue) => setSpecies(itemValue as AnimalSpecies)}
+                selectedValue={formData.species}
+                onValueChange={(itemValue) => setFormData(prev => ({ ...prev, species: itemValue as AnimalSpecies }))}
                 style={[styles.pickerStyle, { color: colors.text }]}
               >
                 {speciesOptions.map((option) => (
@@ -279,8 +284,8 @@ export default function EditAnimalScreen() {
 
           <Input
             label="Breed *"
-            value={breed}
-            onChangeText={setBreed}
+            value={formData.breed}
+            onChangeText={(text) => setFormData(prev => ({ ...prev, breed: text }))}
             placeholder="Enter breed"
           />
 
@@ -290,11 +295,11 @@ export default function EditAnimalScreen() {
               {["Male", "Female"].map((option) => (
                 <TouchableOpacity
                   key={option}
-                  style={[styles.radioOption, gender === option && styles.radioSelected]}
-                  onPress={() => setGender(option as "Male" | "Female")}
+                  style={[styles.radioOption, formData.gender === option && styles.radioSelected]}
+                  onPress={() => setFormData(prev => ({ ...prev, gender: option as "Male" | "Female" }))}
                 >
-                  <View style={[styles.radioButton, gender === option && styles.radioButtonSelected, { borderColor: colors.tint }]}>
-                    {gender === option && <View style={[styles.radioButtonInner, { backgroundColor: colors.tint }]} />}
+                  <View style={[styles.radioButton, formData.gender === option && styles.radioButtonSelected, { borderColor: colors.tint }]}>
+                    {formData.gender === option && <View style={[styles.radioButtonInner, { backgroundColor: colors.tint }]} />}
                   </View>
                   <Text style={[styles.radioText, { color: colors.text }]}>{option}</Text>
                 </TouchableOpacity>
@@ -316,10 +321,10 @@ export default function EditAnimalScreen() {
               <Text
                 style={[
                   styles.dateText,
-                  { color: birthDate ? colors.text : colors.muted },
+                  { color: formData.birthDate ? colors.text : colors.muted },
                 ]}
               >
-                {birthDate || "Select birth date"}
+                {formData.birthDate || "Select birth date"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -338,10 +343,10 @@ export default function EditAnimalScreen() {
               <Text
                 style={[
                   styles.dateText,
-                  { color: acquisitionDate ? colors.text : colors.muted },
+                  { color: formData.acquisitionDate ? colors.text : colors.muted },
                 ]}
               >
-                {acquisitionDate || "Select acquisition date"}
+                {formData.acquisitionDate || "Select acquisition date"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -350,8 +355,8 @@ export default function EditAnimalScreen() {
             <Text style={[styles.label, { color: colors.text }]}>Status *</Text>
             <View style={[styles.picker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Picker
-                selectedValue={status}
-                onValueChange={(itemValue) => setStatus(itemValue as AnimalStatus)}
+                selectedValue={formData.status}
+                onValueChange={(itemValue) => setFormData(prev => ({ ...prev, status: itemValue as AnimalStatus }))}
                 style={[styles.pickerStyle, { color: colors.text }]}
               >
                 {statusOptions.map((option) => (
@@ -365,8 +370,8 @@ export default function EditAnimalScreen() {
             <View style={styles.weightInput}>
               <Input
                 label="Weight *"
-                value={weight}
-                onChangeText={setWeight}
+                value={formData.weight}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, weight: text }))}
                 placeholder="0.0"
                 keyboardType="numeric"
               />
@@ -375,8 +380,8 @@ export default function EditAnimalScreen() {
               <Text style={[styles.label, { color: colors.text }]}>Unit</Text>
               <View style={[styles.picker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Picker
-                  selectedValue={weightUnit}
-                  onValueChange={(itemValue) => setWeightUnit(itemValue as string)}
+                  selectedValue={formData.weightUnit}
+                  onValueChange={(itemValue) => setFormData(prev => ({ ...prev, weightUnit: itemValue as string }))}
                   style={[styles.pickerStyle, { color: colors.text }]}
                 >
                   {weightUnitOptions.map((unit) => (
@@ -389,24 +394,24 @@ export default function EditAnimalScreen() {
 
           <Input
             label="Current Price"
-            value={price}
-            onChangeText={setPrice}
+            value={formData.price}
+            onChangeText={(text) => setFormData(prev => ({ ...prev, price: text }))}
             placeholder="0.00"
             keyboardType="numeric"
           />
 
           <Input
             label="Acquisition Price"
-            value={acquisitionPrice}
-            onChangeText={setAcquisitionPrice}
+            value={formData.acquisitionPrice}
+            onChangeText={(text) => setFormData(prev => ({ ...prev, acquisitionPrice: text }))}
             placeholder="0.00"
             keyboardType="numeric"
           />
 
           <Input
             label="Notes"
-            value={notes}
-            onChangeText={setNotes}
+            value={formData.notes}
+            onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
             placeholder="Additional notes about the animal"
             multiline
             numberOfLines={4}
@@ -431,7 +436,7 @@ export default function EditAnimalScreen() {
 
       {showBirthDatePicker && (
         <DateTimePicker
-          value={birthDate ? new Date(birthDate) : new Date()}
+          value={formData.birthDate ? new Date(formData.birthDate) : new Date()}
           mode="date"
           display="default"
           onChange={onBirthDateChange}
@@ -441,7 +446,7 @@ export default function EditAnimalScreen() {
 
       {showAcquisitionDatePicker && (
         <DateTimePicker
-          value={acquisitionDate ? new Date(acquisitionDate) : new Date()}
+          value={formData.acquisitionDate ? new Date(formData.acquisitionDate) : new Date()}
           mode="date"
           display="default"
           onChange={onAcquisitionDateChange}

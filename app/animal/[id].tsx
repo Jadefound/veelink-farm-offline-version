@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -107,14 +107,14 @@ export default function AnimalDetailScreen() {
       Cattle:
         "https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
       Sheep:
-        "https://images.pexels.com/photos/2318466/pexels-photo-2318466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+        "https://th.bing.com/th/id/OIP.cHOpiC21p07NjMl7nY8YxgHaEK?w=327&h=183&c=7&r=0&o=7&pid=1.7&rm=3",
       Goat: "https://images.pexels.com/photos/751689/pexels-photo-751689.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
       Pig: "https://images.pexels.com/photos/1300361/pexels-photo-1300361.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
       Chicken:
         "https://images.pexels.com/photos/1300358/pexels-photo-1300358.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
       Duck: "https://images.pexels.com/photos/416179/pexels-photo-416179.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
       Turkey:
-        "https://images.pexels.com/photos/372166/pexels-photo-372166.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+        "https://th.bing.com/th/id/OIP.0b24h87IrPK3cHoNPsV_qAHaGU?w=220&h=187&c=7&r=0&o=7&pid=1.7&rm=3",
       Horse:
         "https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
       Rabbit:
@@ -148,36 +148,6 @@ export default function AnimalDetailScreen() {
     }
   };
 
-  // Generate species-based ID
-  const generateAnimalId = (
-    species: string,
-    animals: Animal[],
-    currentAnimal: Animal
-  ) => {
-    const speciesPrefixes = {
-      Cattle: "C",
-      Sheep: "S",
-      Goat: "G",
-      Pig: "P",
-      Chicken: "CH",
-      Duck: "D",
-      Turkey: "T",
-      Horse: "H",
-      Rabbit: "R",
-      Other: "O",
-    };
-
-    const prefix =
-      speciesPrefixes[species as keyof typeof speciesPrefixes] || "O";
-    const sameSpeciesAnimals = animals.filter(
-      (animal: Animal) => animal.species === species
-    );
-    const animalIndex =
-      sameSpeciesAnimals.findIndex((animal) => animal.id === currentAnimal.id) +
-      1;
-    const nextNumber = animalIndex.toString().padStart(3, "0");
-    return `${prefix}${nextNumber}`;
-  };
 
   if (isLoading) {
     return (
@@ -206,8 +176,6 @@ export default function AnimalDetailScreen() {
     );
   }
 
-  const animalId = generateAnimalId(animal.species || "Other", [], animal);
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
@@ -221,7 +189,7 @@ export default function AnimalDetailScreen() {
           />
 
           <View style={styles.overlay}>
-            <Text style={styles.id}>ID: {animalId}</Text>
+            <Text style={styles.id}>ID: {animal.identificationNumber}</Text>
             <View
               style={[
                 styles.statusBadge,
