@@ -135,7 +135,7 @@ export const mockAnimals: Animal[] = [
   {
     id: 'animal-6',
     farmId: 'farm-1',
-    identificationNumber: 'C004',
+    identificationNumber: 'C003',
     species: 'Cattle',
     breed: 'Jersey',
     gender: 'Female',
