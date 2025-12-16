@@ -4,7 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { generateId } from "@/utils/helpers";
 import { Animal, AnimalSpecies, AnimalStatus } from "@/types";
 import { useFarmStore } from "./farmStore";
-import { useFinancialStore } from "./financialStore";
+import { getMockData } from "@/utils/mockData";
 
 // Mock data for animals
 const mockAnimals: Animal[] = [
@@ -159,6 +159,15 @@ export const useAnimalStore = create<AnimalState>()(
           const animalsData = await AsyncStorage.getItem("animals");
           let animals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
 
+          // If no animals in storage, fall back to mock data (first-run experience)
+          if (!animals.length) {
+            const mockAnimals = getMockData("animals") as Animal[];
+            animals = mockAnimals;
+            if (mockAnimals.length) {
+              await AsyncStorage.setItem("animals", JSON.stringify(mockAnimals));
+            }
+          }
+
           // Filter by farm if farmId is provided
           if (farmId) {
             animals = animals.filter(animal => animal.farmId === farmId);
@@ -281,6 +290,8 @@ export const useAnimalStore = create<AnimalState>()(
           };
           // Handle financial impacts
           if (animalData.status === 'Sold') {
+            // Use dynamic import to avoid circular dependency
+            const { useFinancialStore } = await import("./financialStore");
             const financialStore = useFinancialStore.getState();
             await financialStore.createTransaction({
               type: 'Income',

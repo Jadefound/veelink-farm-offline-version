@@ -385,7 +385,33 @@ export default function ReportsScreen() {
         .filter((t) => t.type === "Expense")
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const netProfit = totalIncome - totalExpense;
+      // Include health record costs in expenses so financial reports match Health module
+      const now = new Date();
+      let startDate = new Date(0);
+      if (filterPeriod === "week") {
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+      } else if (filterPeriod === "month") {
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (filterPeriod === "quarter") {
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 3);
+      } else if (filterPeriod === "year") {
+        startDate = new Date(now);
+        startDate.setFullYear(now.getFullYear() - 1);
+      }
+
+      const startTimestamp = startDate.getTime();
+      const filteredHealthCosts = healthRecords
+        .filter((record) => {
+          const recordDate = new Date(record.date).getTime();
+          return filterPeriod === "all" || recordDate >= startTimestamp;
+        })
+        .reduce((sum, record) => sum + (record.cost || 0), 0);
+
+      const totalExpensesWithHealth = totalExpense + filteredHealthCosts;
+      const netProfit = totalIncome - totalExpensesWithHealth;
 
       const categoryBreakdown = (data as Transaction[]).reduce(
         (acc, t) => {
@@ -399,7 +425,7 @@ export default function ReportsScreen() {
         <div class="summary">
           <div class="summary-title">Financial Summary</div>
           <p>Total Income: ${formatCurrency(totalIncome)}</p>
-          <p>Total Expenses: ${formatCurrency(totalExpense)}</p>
+          <p>Total Expenses: ${formatCurrency(totalExpensesWithHealth)}</p>
           <p>Net Profit: ${formatCurrency(netProfit)}</p>
           <p>Category Breakdown:</p>
           <ul>
@@ -762,7 +788,33 @@ export default function ReportsScreen() {
         .filter((t) => t.type === "Expense")
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const netProfit = totalIncome - totalExpense;
+      // Include health record costs in expenses so this summary matches Health module
+      const now = new Date();
+      let startDate = new Date(0);
+      if (filterPeriod === "week") {
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+      } else if (filterPeriod === "month") {
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (filterPeriod === "quarter") {
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 3);
+      } else if (filterPeriod === "year") {
+        startDate = new Date(now);
+        startDate.setFullYear(now.getFullYear() - 1);
+      }
+
+      const startTimestamp = startDate.getTime();
+      const filteredHealthCosts = healthRecords
+        .filter((record) => {
+          const recordDate = new Date(record.date).getTime();
+          return filterPeriod === "all" || recordDate >= startTimestamp;
+        })
+        .reduce((sum, record) => sum + (record.cost || 0), 0);
+
+      const totalExpenseWithHealth = totalExpense + filteredHealthCosts;
+      const netProfit = totalIncome - totalExpenseWithHealth;
 
       const categoryBreakdown = (data as Transaction[]).reduce(
         (acc, t) => {
@@ -804,7 +856,7 @@ export default function ReportsScreen() {
               <Text
                 style={[styles.financialSummaryValue, { color: colors.danger }]}
               >
-                {formatCurrency(totalExpense)}
+                {formatCurrency(totalExpenseWithHealth)}
               </Text>
             </View>
             <View style={styles.financialSummaryItem}>

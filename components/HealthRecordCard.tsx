@@ -4,6 +4,7 @@ import { HealthRecord } from "@/types";
 import { formatDate, formatCurrency } from "@/utils/helpers";
 import Colors from "@/constants/colors";
 import Card from "./Card";
+import { useThemeStore } from "@/store/themeStore";
 
 interface HealthRecordCardProps {
   record: HealthRecord;
@@ -11,68 +12,71 @@ interface HealthRecordCardProps {
 }
 
 export default function HealthRecordCard({ record, onPress }: HealthRecordCardProps) {
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
+
   // Get type color
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Vaccination":
-        return Colors.light.info;
+        return colors.info;
       case "Treatment":
-        return Colors.light.warning;
+        return colors.warning;
       case "Checkup":
-        return Colors.light.success;
+        return colors.success;
       case "Surgery":
-        return Colors.light.danger;
+        return colors.danger;
       case "Medication":
-        return Colors.light.secondary;
+        return colors.secondary;
       default:
-        return Colors.light.muted;
+        return colors.muted;
     }
   };
 
   return (
     <TouchableOpacity onPress={() => onPress(record)} activeOpacity={0.7}>
-      <Card style={styles.card}>
-        <View style={styles.header}>
+      <Card style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border + "30" }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <View style={[styles.typeBadge, { backgroundColor: getTypeColor(record.type) }]}>
             <Text style={styles.typeText}>{record.type}</Text>
           </View>
-          <Text style={styles.date}>
+          <Text style={[styles.date, { color: colors.muted }]}>
             {formatDate(record.date)}
           </Text>
         </View>
-        
+
         <View style={styles.content}>
-          <Text style={styles.description} numberOfLines={2}>
+          <Text style={[styles.description, { color: colors.text }]} numberOfLines={2}>
             {record.description}
           </Text>
-          
+
           {record.diagnosis && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Diagnosis:</Text>
-              <Text style={styles.detailValue} numberOfLines={1}>{record.diagnosis}</Text>
+              <Text style={[styles.detailLabel, { color: colors.muted }]}>Diagnosis:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]} numberOfLines={1}>{record.diagnosis}</Text>
             </View>
           )}
-          
+
           {record.treatment && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Treatment:</Text>
-              <Text style={styles.detailValue} numberOfLines={1}>{record.treatment}</Text>
+              <Text style={[styles.detailLabel, { color: colors.muted }]}>Treatment:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]} numberOfLines={1}>{record.treatment}</Text>
             </View>
           )}
-          
+
           {record.medication && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Medication:</Text>
-              <Text style={styles.detailValue} numberOfLines={1}>{record.medication}</Text>
+              <Text style={[styles.detailLabel, { color: colors.muted }]}>Medication:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]} numberOfLines={1}>{record.medication}</Text>
             </View>
           )}
         </View>
-        
-        <View style={styles.footer}>
-          <Text style={styles.veterinarian}>
+
+        <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+          <Text style={[styles.veterinarian, { color: colors.muted }]}>
             {record.veterinarian ? `Dr. ${record.veterinarian}` : "No veterinarian"}
           </Text>
-          <Text style={styles.cost}>{formatCurrency(record.cost)}</Text>
+          <Text style={[styles.cost, { color: colors.text }]}>{formatCurrency(record.cost)}</Text>
         </View>
       </Card>
     </TouchableOpacity>
@@ -90,7 +94,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   typeBadge: {
     paddingVertical: 4,
@@ -104,7 +107,6 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 14,
-    color: Colors.light.muted,
   },
   content: {
     padding: 12,
@@ -112,7 +114,6 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 16,
     fontWeight: "500",
-    color: Colors.light.text,
     marginBottom: 8,
   },
   detailRow: {
@@ -121,12 +122,10 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    color: Colors.light.muted,
     width: 80,
   },
   detailValue: {
     fontSize: 14,
-    color: Colors.light.text,
     flex: 1,
   },
   footer: {
@@ -135,16 +134,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-    backgroundColor: Colors.light.card,
   },
   veterinarian: {
     fontSize: 14,
-    color: Colors.light.muted,
   },
   cost: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.light.text,
   },
 });

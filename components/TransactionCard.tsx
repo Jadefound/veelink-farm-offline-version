@@ -4,6 +4,7 @@ import { Transaction } from "@/types";
 import { formatDate, formatCurrency } from "@/utils/helpers";
 import Colors from "@/constants/colors";
 import Card from "./Card";
+import { useThemeStore } from "@/store/themeStore";
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -14,15 +15,18 @@ export default function TransactionCard({
   transaction,
   onPress,
 }: TransactionCardProps) {
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
+
   // Get type color
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Income":
-        return Colors.light.success;
+        return colors.success;
       case "Expense":
-        return Colors.light.danger;
+        return colors.danger;
       default:
-        return Colors.light.muted;
+        return colors.muted;
     }
   };
 
@@ -30,29 +34,37 @@ export default function TransactionCard({
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "Feed":
-        return Colors.light.nature.wheat; // Golden wheat color
+        return colors.nature.wheat; // Golden wheat color
       case "Medication":
-        return Colors.light.nature.sky; // Sky blue
+        return colors.nature.sky; // Sky blue
       case "Equipment":
-        return Colors.light.nature.bark; // Tree bark brown
+        return colors.nature.bark; // Tree bark brown
       case "Veterinary":
-        return Colors.light.secondary; // Golden yellow
+        return colors.secondary; // Sky-ish
       case "Labor":
-        return Colors.light.nature.earth; // Rich earth brown
+        return colors.nature.earth; // Rich earth brown
       case "Sales":
-        return Colors.light.nature.grass; // Fresh grass green
+        return colors.nature.grass; // Fresh grass green
       case "Purchase":
-        return Colors.light.danger; // Natural red
+        return colors.danger; // Natural red
       case "Utilities":
-        return Colors.light.nature.soil; // Rich soil brown
+        return colors.nature.soil; // Rich soil brown
       default:
-        return Colors.light.muted;
+        return colors.muted;
     }
   };
 
   return (
     <TouchableOpacity onPress={() => onPress(transaction)} activeOpacity={0.7}>
-      <Card style={styles.card}>
+      <Card
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border + "30",
+          },
+        ]}
+      >
         <View style={styles.header}>
           <View style={styles.typeContainer}>
             <View
@@ -63,7 +75,9 @@ export default function TransactionCard({
             >
               <Text style={styles.typeText}>{transaction.type}</Text>
             </View>
-            <Text style={styles.date}>{formatDate(transaction.date)}</Text>
+            <Text style={[styles.date, { color: colors.muted }]}>
+              {formatDate(transaction.date)}
+            </Text>
           </View>
           <Text
             style={[
@@ -71,8 +85,8 @@ export default function TransactionCard({
               {
                 color:
                   transaction.type === "Income"
-                    ? Colors.light.success
-                    : Colors.light.danger,
+                    ? colors.success
+                    : colors.danger,
               },
             ]}
           >
@@ -82,14 +96,16 @@ export default function TransactionCard({
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.description} numberOfLines={2}>
+          <Text style={[styles.description, { color: colors.text }]} numberOfLines={2}>
             {transaction.description}
           </Text>
 
           <View style={styles.detailsContainer}>
             <View style={styles.detailColumn}>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Category:</Text>
+                <Text style={[styles.detailLabel, { color: colors.muted }]}>
+                  Category:
+                </Text>
                 <View style={styles.categoryContainer}>
                   <View
                     style={[
@@ -99,13 +115,17 @@ export default function TransactionCard({
                       },
                     ]}
                   />
-                  <Text style={styles.detailValue}>{transaction.category}</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {transaction.category}
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Payment:</Text>
-                <Text style={styles.detailValue}>
+                <Text style={[styles.detailLabel, { color: colors.muted }]}>
+                  Payment:
+                </Text>
+                <Text style={[styles.detailValue, { color: colors.text }]}>
                   {transaction.paymentMethod}
                 </Text>
               </View>
@@ -114,8 +134,10 @@ export default function TransactionCard({
             {transaction.reference && (
               <View style={styles.detailColumn}>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Reference:</Text>
-                  <Text style={styles.detailValue} numberOfLines={1}>
+                  <Text style={[styles.detailLabel, { color: colors.muted }]}>
+                    Reference:
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]} numberOfLines={1}>
                     {transaction.reference}
                   </Text>
                 </View>
@@ -130,12 +152,10 @@ export default function TransactionCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(56, 161, 105, 0.08)",
   },
   header: {
     flexDirection: "row",
@@ -166,7 +186,6 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 14,
-    color: Colors.light.muted,
     fontWeight: "500",
   },
   amount: {
@@ -179,7 +198,6 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
-    color: Colors.light.text,
     marginBottom: 16,
     fontWeight: "600",
     lineHeight: 22,
@@ -203,13 +221,11 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    color: Colors.light.muted,
     width: 75,
     fontWeight: "600",
   },
   detailValue: {
     fontSize: 14,
-    color: Colors.light.text,
     flex: 1,
     fontWeight: "500",
   },

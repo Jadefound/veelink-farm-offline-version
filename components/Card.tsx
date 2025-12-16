@@ -155,11 +155,21 @@ export default function Card({
 
   // If children are provided and no title, render children directly
   if (children && !title) {
-    return (
-      <View style={[getCardStyle(), style]}>
-        {children}
-      </View>
-    );
+    // Important: dashboards often use "children-only" cards as tappable tiles.
+    // If `onPress` is provided, we must render a Touchable to preserve interactivity.
+    if (onPress) {
+      return (
+        <TouchableOpacity
+          style={[getCardStyle(), style]}
+          onPress={onPress}
+          activeOpacity={0.8}
+        >
+          {children}
+        </TouchableOpacity>
+      );
+    }
+
+    return <View style={[getCardStyle(), style]}>{children}</View>;
   }
 
   return (

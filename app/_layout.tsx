@@ -15,7 +15,7 @@ import SplashScreen from "../components/SplashScreen";
 export default function RootLayout() {
   // Add state for custom splash screen
   const [showCustomSplash, setShowCustomSplash] = useState(true);
-  
+
   // Load fonts with error handling
   const [fontsLoaded, fontError] = useFonts({
     ...FontAwesome.font,
@@ -81,7 +81,7 @@ export default function RootLayout() {
       </View>
     );
   }
-  
+
   // Show custom splash screen
   if (showCustomSplash) {
     return <SplashScreen onFinish={() => setShowCustomSplash(false)} />;
@@ -93,10 +93,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />
-        <Stack.Screen name="farm/[id]" options={{ title: "Farm Details" }} />
         <Stack.Screen name="animal/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="health/[id]" options={{ title: "Health Record" }} />
-        <Stack.Screen name="transaction/[id]" options={{ title: "Transaction Details" }} />
+        <Stack.Screen name="financial/[id]" options={{ title: "Transaction Details" }} />
         <Stack.Screen name="farm/add" options={{ title: "Add Farm" }} />
         <Stack.Screen name="health/add" options={{ title: "Add Health Record" }} />
         <Stack.Screen name="transaction/add" options={{ title: "Add Transaction" }} />

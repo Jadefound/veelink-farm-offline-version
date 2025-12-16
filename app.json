@@ -35,12 +35,14 @@
           "origin": "https://rork.com/"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "sdkVersion": "53.0.0",
+    "sdkVersion": "54.0.0",
     "platforms": [
       "ios",
       "android"

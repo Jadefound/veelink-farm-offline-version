@@ -34,30 +34,29 @@ export default function TopNavigation() {
 
   return (
     <>
-      <View style={[styles.container, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.leftSection}>
-          <Text style={[styles.welcomeText, { color: colors.muted }]}>Welcome</Text>
           <Text style={[styles.userName, { color: colors.text }]}>{user?.name || "User"}</Text>
         </View>
 
         <View style={styles.rightSection}>
-          {farms.length > 0 && (
+          {farms.length > 1 && (
             <TouchableOpacity
-              style={[styles.farmSelector, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.farmSelector, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={() => setShowFarmSelector(true)}
             >
               <Text style={[styles.farmName, { color: colors.text }]} numberOfLines={1}>
-                {currentFarm?.name || "Select Farm"}
+                {currentFarm?.name || "Select"}
               </Text>
-              <ChevronDown size={16} color={colors.muted} />
+              <ChevronDown size={14} color={colors.muted} />
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
-            style={[styles.profileButton, { backgroundColor: colors.tint }]}
+            style={[styles.profileButton, { backgroundColor: colors.tint + "15" }]}
             onPress={handleProfilePress}
           >
-            <User size={20} color="white" />
+            <User size={18} color={colors.tint} />
           </TouchableOpacity>
         </View>
       </View>
@@ -115,46 +114,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
   leftSection: {
     flex: 1,
   },
-  welcomeText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
   userName: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 2,
+    fontSize: 16,
+    fontWeight: "600",
   },
   rightSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   farmSelector: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    maxWidth: 140,
+    maxWidth: 120,
   },
   farmName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    marginRight: 6,
+    marginRight: 4,
     flex: 1,
   },
   profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },

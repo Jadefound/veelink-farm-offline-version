@@ -5,7 +5,7 @@ import { generateId } from "@/utils/helpers";
 import { Transaction, TransactionType, TransactionCategory, Animal } from "@/types";
 import { useFarmStore } from "./farmStore";
 import { useHealthStore } from "./healthStore";
-import { useAnimalStore } from "./animalStore";
+import { getMockData } from "@/utils/mockData";
 
 interface FinancialState {
   transactions: Transaction[];
@@ -45,15 +45,25 @@ interface FinancialState {
     animalId: string;
     identificationNumber: string;
     totalCosts: number;
+    healthCosts: number;
+    acquisitionCost: number;
     revenue: number;
     profit: number;
     profitMargin: number;
+    potentialProfit: number;
+    currentValue: number;
+    status: string;
   }[]>;
   getPortfolioValue: (farmId: string) => Promise<{
     totalValue: number;
     totalCost: number;
+    totalAcquisitionCost: number;
+    totalHealthCosts: number;
     unrealizedGain: number;
+    realizedProfit: number;
     roi: number;
+    animalCount: number;
+    soldCount: number;
   }>;
 }
 
@@ -71,6 +81,15 @@ export const useFinancialStore = create<FinancialState>()(
           // Get transactions from storage
           const transactionsData = await AsyncStorage.getItem("transactions");
           let transactions: Transaction[] = transactionsData ? JSON.parse(transactionsData) : [];
+
+          // If no transactions in storage, fall back to mock data (first-run experience)
+          if (!transactions.length) {
+            const mockTransactions = getMockData("transactions") as Transaction[];
+            transactions = mockTransactions;
+            if (mockTransactions.length) {
+              await AsyncStorage.setItem("transactions", JSON.stringify(mockTransactions));
+            }
+          }
 
           // Filter by farm if farmId is provided
           if (farmId) {
@@ -124,6 +143,8 @@ export const useFinancialStore = create<FinancialState>()(
 
           // Handle animal sale transactions
           if (transactionData.category === 'Sales' && transactionData.reference?.startsWith('ANIMAL-')) {
+            // Use dynamic import to avoid circular dependency
+            const { useAnimalStore } = await import("./animalStore");
             const animalStore = useAnimalStore.getState();
             const animalId = transactionData.reference.replace('ANIMAL-', '');
 
@@ -278,22 +299,66 @@ export const useFinancialStore = create<FinancialState>()(
         const state = get();
         const transactions = state.transactions.filter(t => t.farmId === farmId);
 
-        // Calculate total asset value from animals
+        // Calculate total asset value from animals (exclude sold/dead)
+        // Use dynamic import to avoid circular dependency
+        const { useAnimalStore } = await import("./animalStore");
         const animalStore = useAnimalStore.getState();
         const animals = await animalStore.fetchAnimals(farmId);
-        const totalAssetValue = animals.reduce((sum, animal) => sum + (animal.estimatedValue || 0), 0);
+        const activeAnimals = animals.filter(a => a.status !== 'Sold' && a.status !== 'Dead');
+        const totalAssetValue = activeAnimals.reduce((sum, animal) => sum + (animal.estimatedValue || animal.price || 0), 0);
 
         const totalIncome = transactions
           .filter((t) => t.type === 'Income')
           .reduce((sum, t) => sum + t.amount, 0);
 
-        const totalExpenses = transactions
+        const totalExpensesFromTransactions = transactions
           .filter((t) => t.type === 'Expense')
           .reduce((sum, t) => sum + t.amount, 0);
 
-        const healthCosts = transactions
-          .filter((t) => t.category === 'Medication')
-          .reduce((sum, t) => sum + t.amount, 0);
+        // Health costs can come from:
+        // - explicit financial transactions (Medication/Veterinary)
+        // - health records (Health module) which may not create transactions
+        //
+        // To avoid double-counting when a health record is linked to a transaction,
+        // we de-dupe using a stable reference (HEALTH-<recordId>) and a fallback
+        // heuristic (same day + same amount in a Medication/Veterinary expense).
+        const healthExpenseTransactions = transactions
+          .filter((t) => t.category === 'Medication' || t.category === 'Veterinary')
+
+        const healthCostsFromTransactions = healthExpenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+        const healthStore = useHealthStore.getState();
+        const healthRecords = await healthStore.fetchHealthRecords(farmId);
+
+        const toDayKey = (isoDate: string) => {
+          try {
+            return new Date(isoDate).toISOString().slice(0, 10); // YYYY-MM-DD
+          } catch {
+            return isoDate.slice(0, 10);
+          }
+        };
+
+        const additionalHealthCostsFromRecords = healthRecords.reduce((sum, record) => {
+          const cost = record.cost || 0;
+          if (cost <= 0) return sum;
+
+          const linkedRef = `HEALTH-${record.id}`;
+          const hasLinkedTransaction = transactions.some(t => t.reference === linkedRef);
+          if (hasLinkedTransaction) return sum;
+
+          const recordDay = toDayKey(record.date);
+          const hasSimilarTxn = healthExpenseTransactions.some(t =>
+            t.type === 'Expense' &&
+            t.amount === cost &&
+            toDayKey(t.date) === recordDay
+          );
+
+          return hasSimilarTxn ? sum : sum + cost;
+        }, 0);
+
+        const healthCosts = healthCostsFromTransactions + additionalHealthCostsFromRecords;
+
+        const totalExpenses = totalExpensesFromTransactions + additionalHealthCostsFromRecords;
 
         const acquisitionCosts = transactions
           .filter((t) => t.category === 'Purchase')
@@ -379,24 +444,55 @@ export const useFinancialStore = create<FinancialState>()(
 
       getAnimalProfitability: async (farmId) => {
         try {
+          // Use dynamic import to avoid circular dependency
+          const { useAnimalStore } = await import("./animalStore");
           const animalStore = useAnimalStore.getState();
           const animals = await animalStore.fetchAnimals(farmId);
+          
+          // Get health records for cost calculation
+          const healthStore = useHealthStore.getState();
+          const healthRecords = await healthStore.fetchHealthRecords(farmId);
+          
+          // Get transactions for additional costs (feed, etc.)
+          const state = get();
+          const transactions = state.transactions.filter(t => t.farmId === farmId);
 
           return animals.map(animal => {
-            const totalCosts = animal.acquisitionPrice || 0; // Use acquisitionPrice instead of acquisitionCost
+            // Base acquisition cost
+            const acquisitionCost = animal.acquisitionPrice || 0;
+            
+            // Health costs for this specific animal
+            const animalHealthRecords = healthRecords.filter(r => r.animalId === animal.id);
+            const healthCosts = animalHealthRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+            
+            // Get any transactions linked to this animal
+            const animalTransactions = transactions.filter(t => t.animalId === animal.id && t.type === 'Expense');
+            const otherCosts = animalTransactions.reduce((sum, t) => sum + t.amount, 0);
+            
+            // Total costs = acquisition + health + other expenses
+            const totalCosts = acquisitionCost + healthCosts + otherCosts;
 
             // Calculate revenue from sales
-            const revenue = animal.status === 'Sold' ? (animal.price || 0) : 0; // Use price instead of salePrice
+            const revenue = animal.status === 'Sold' ? (animal.price || 0) : 0;
             const profit = revenue - totalCosts;
             const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
+            
+            // For unsold animals, calculate potential profit based on current value
+            const currentValue = animal.estimatedValue || animal.price || 0;
+            const potentialProfit = animal.status !== 'Sold' ? currentValue - totalCosts : 0;
 
             return {
               animalId: animal.id,
               identificationNumber: animal.identificationNumber,
               totalCosts,
+              healthCosts,
+              acquisitionCost,
               revenue,
               profit,
               profitMargin,
+              potentialProfit,
+              currentValue,
+              status: animal.status,
             };
           });
         } catch (error) {
@@ -407,30 +503,70 @@ export const useFinancialStore = create<FinancialState>()(
 
       getPortfolioValue: async (farmId) => {
         try {
+          // Use dynamic import to avoid circular dependency
+          const { useAnimalStore } = await import("./animalStore");
           const animalStore = useAnimalStore.getState();
           const animals = await animalStore.fetchAnimals(farmId);
-
-          const totalValue = animals.reduce((sum, animal) => {
-            return sum + (animal.estimatedValue || animal.acquisitionPrice || 0); // Use estimatedValue instead of currentValue
+          
+          // Get health records for accurate cost calculation
+          const healthStore = useHealthStore.getState();
+          const healthRecords = await healthStore.fetchHealthRecords(farmId);
+          
+          // Filter to only active animals (not sold or dead) for portfolio value
+          const activeAnimals = animals.filter(a => a.status !== 'Sold' && a.status !== 'Dead');
+          
+          // Calculate total current value of active animals
+          const totalValue = activeAnimals.reduce((sum, animal) => {
+            return sum + (animal.estimatedValue || animal.price || 0);
           }, 0);
 
-          const totalCost = animals.reduce((sum, animal) => {
-            return sum + (animal.acquisitionPrice || 0); // Use acquisitionPrice instead of acquisitionCost
+          // Calculate total acquisition cost of active animals
+          const totalAcquisitionCost = activeAnimals.reduce((sum, animal) => {
+            return sum + (animal.acquisitionPrice || 0);
+          }, 0);
+          
+          // Calculate total health costs for active animals
+          const totalHealthCosts = activeAnimals.reduce((sum, animal) => {
+            const animalHealthRecords = healthRecords.filter(r => r.animalId === animal.id);
+            return sum + animalHealthRecords.reduce((hSum, record) => hSum + (record.cost || 0), 0);
+          }, 0);
+          
+          // Total cost includes acquisition + health expenses
+          const totalCost = totalAcquisitionCost + totalHealthCosts;
+          
+          // Calculate realized profit from sold animals
+          const soldAnimals = animals.filter(a => a.status === 'Sold');
+          const realizedProfit = soldAnimals.reduce((sum, animal) => {
+            const salePrice = animal.price || 0;
+            const animalHealthRecords = healthRecords.filter(r => r.animalId === animal.id);
+            const healthCost = animalHealthRecords.reduce((hSum, record) => hSum + (record.cost || 0), 0);
+            const totalAnimalCost = (animal.acquisitionPrice || 0) + healthCost;
+            return sum + (salePrice - totalAnimalCost);
           }, 0);
 
           return {
             totalValue,
             totalCost,
+            totalAcquisitionCost,
+            totalHealthCosts,
             unrealizedGain: totalValue - totalCost,
+            realizedProfit,
             roi: totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0,
+            animalCount: activeAnimals.length,
+            soldCount: soldAnimals.length,
           };
         } catch (error) {
           console.error('Failed to calculate portfolio value:', error);
           return {
             totalValue: 0,
             totalCost: 0,
+            totalAcquisitionCost: 0,
+            totalHealthCosts: 0,
             unrealizedGain: 0,
+            realizedProfit: 0,
             roi: 0,
+            animalCount: 0,
+            soldCount: 0,
           };
         }
       },

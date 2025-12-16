@@ -1,6 +1,7 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View, ViewStyle } from "react-native";
 import Colors from "@/constants/colors";
+import { useThemeStore } from "@/store/themeStore";
 
 interface LoadingIndicatorProps {
   message?: string;
@@ -17,11 +18,15 @@ export default function LoadingIndicator({
   style,
   fullScreen = false,
 }: LoadingIndicatorProps) {
+  const { isDarkMode } = useThemeStore();
+  const themeColors = isDarkMode ? Colors.dark : Colors.light;
+  const messageColor = isDarkMode ? "#FFFFFF" : themeColors.muted;
+
   if (fullScreen) {
     return (
       <View style={[styles.fullScreen, style]}>
         <ActivityIndicator size={size} color={color} />
-        {message && <Text style={styles.message}>{message}</Text>}
+        {message && <Text style={[styles.message, { color: messageColor }]}>{message}</Text>}
       </View>
     );
   }
@@ -29,7 +34,7 @@ export default function LoadingIndicator({
   return (
     <View style={[styles.container, style]}>
       <ActivityIndicator size={size} color={color} />
-      {message && <Text style={styles.message}>{message}</Text>}
+      {message && <Text style={[styles.message, { color: messageColor }]}>{message}</Text>}
     </View>
   );
 }
@@ -49,7 +54,6 @@ const styles = StyleSheet.create({
   message: {
     marginTop: 12,
     fontSize: 16,
-    color: Colors.light.muted,
     textAlign: "center",
   },
 });

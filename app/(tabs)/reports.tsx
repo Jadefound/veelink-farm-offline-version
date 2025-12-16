@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,18 +9,31 @@ import {
   RefreshControl,
   Platform,
   Alert,
-  TextInput,
   Modal,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
   FileText,
   Download,
-  Filter,
   ChevronDown,
   Calendar,
   ArrowUpDown,
   FileBarChart,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Heart,
+  Users,
+  PieChart,
+  BarChart3,
+  Activity,
+  CheckCircle,
+  XCircle,
+  ChevronRight,
+  Layers,
+  Wallet,
+  Target,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Print from "expo-print";
@@ -31,67 +44,64 @@ import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
-import Card from "@/components/Card";
 import Button from "@/components/Button";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { formatCurrency, formatDate } from "@/utils/helpers";
-import { Animal, HealthRecord, Transaction, Farm } from "@/types";
+import { Animal, HealthRecord, Transaction } from "@/types";
 import TopNavigation from "@/components/TopNavigation";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-  import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - 48) / 2;
 
 // Define report types
-type ReportType = "animals" | "health" | "financial";
-
-// Define filter options
+type ReportType = "overview" | "animals" | "health" | "financial";
 type FilterPeriod = "all" | "week" | "month" | "quarter" | "year";
 type SortDirection = "asc" | "desc";
+
+// Animated number component
+const AnimatedValue = ({ value, prefix = "", suffix = "", color }: { value: number; prefix?: string; suffix?: string; color: string }) => {
+  return (
+    <Text style={[styles.metricValue, { color }]}>
+      {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
+    </Text>
+  );
+};
 
 export default function ReportsScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-
-// ... existing code ...
-const params = useLocalSearchParams();
-const initialReportType = (params?.reportType as ReportType) || "animals";
-const [reportType, setReportType] = useState<ReportType>(initialReportType);
+  const params = useLocalSearchParams();
+  const initialReportType = (params?.reportType as ReportType) || "overview";
+  const [reportType, setReportType] = useState<ReportType>(initialReportType);
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [showSortMenu, setShowSortMenu] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [animalSpeciesFilter, setAnimalSpeciesFilter] = useState<string | null>(null);
-  const [animalStatusFilter, setAnimalStatusFilter] = useState<string | null>(null);
-  const [animalSearch, setAnimalSearch] = useState("");
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [showAnimalModal, setShowAnimalModal] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<string | null>("summary");
 
   const { isDarkMode } = useThemeStore();
-
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const animals = useAnimalStore(state => state.animals);
   const healthRecords = useHealthStore(state => state.healthRecords);
   const transactions = useFinancialStore(state => state.transactions);
-  const { farms, currentFarm } = useFarmStore();
+  const { currentFarm } = useFarmStore();
   const isLoading = false;
-
   const insets = useSafeAreaInsets();
-
-  const loadData = async () => {
-    // Mock function - no longer needed
-  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh delay
     setTimeout(() => setRefreshing(false), 500);
   };
 
-  // Filter data based on selected period
-  const getFilteredData = () => {
+  // Calculate comprehensive statistics
+  const stats = useMemo(() => {
     const now = new Date();
-    let startDate = new Date(0); // Default to all time
+    let startDate = new Date(0);
 
     if (filterPeriod === "week") {
       startDate = new Date(now);
@@ -109,805 +119,726 @@ const [reportType, setReportType] = useState<ReportType>(initialReportType);
 
     const startTimestamp = startDate.getTime();
 
-    if (reportType === "animals") {
-      return animals
-        .filter((animal) => {
-          const createdAt = new Date(animal.createdAt).getTime();
-          return filterPeriod === "all" || createdAt >= startTimestamp;
-        })
-        .sort((a, b) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
-          return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-        });
-    } else if (reportType === "health") {
-      return healthRecords
-        .filter((record) => {
-          const recordDate = new Date(record.date).getTime();
-          return filterPeriod === "all" || recordDate >= startTimestamp;
-        })
-        .sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-        });
-    } else {
-      return transactions
-        .filter((transaction) => {
-          const transactionDate = new Date(transaction.date).getTime();
-          return filterPeriod === "all" || transactionDate >= startTimestamp;
-        })
-        .sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-        });
-    }
-  };
+    // Filter data by period
+    const filteredAnimals = animals.filter(a =>
+      filterPeriod === "all" || new Date(a.createdAt).getTime() >= startTimestamp
+    );
+    const filteredHealth = healthRecords.filter(r =>
+      filterPeriod === "all" || new Date(r.date).getTime() >= startTimestamp
+    );
+    const filteredTransactions = transactions.filter(t =>
+      filterPeriod === "all" || new Date(t.date).getTime() >= startTimestamp
+    );
 
-  // Generate HTML for PDF export
+    // Animal stats
+    const totalAnimals = animals.length;
+    const activeAnimals = animals.filter(a => a.status !== 'Sold' && a.status !== 'Dead');
+    const soldAnimals = animals.filter(a => a.status === 'Sold');
+    const healthyAnimals = animals.filter(a => a.healthStatus === 'healthy' || a.status === 'Healthy');
+    const sickAnimals = animals.filter(a => a.healthStatus === 'sick' || a.status === 'Sick');
+
+    // Health costs (Health module)
+    const totalHealthCosts = filteredHealth.reduce((sum, r) => sum + r.cost, 0);
+
+    // Financial stats
+    // IMPORTANT: include Health costs in expenses so net profit matches the Health module.
+    const totalIncome = filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
+    const baseExpenses = filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = baseExpenses + totalHealthCosts;
+    const netProfit = totalIncome - totalExpenses;
+    const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+    const avgHealthCostPerAnimal = totalAnimals > 0 ? totalHealthCosts / totalAnimals : 0;
+
+    // Asset value
+    const totalAssetValue = activeAnimals.reduce((sum, a) => sum + (a.estimatedValue || a.price || 0), 0);
+    const totalAcquisitionCost = activeAnimals.reduce((sum, a) => sum + (a.acquisitionPrice || 0), 0);
+    const assetAppreciation = totalAssetValue - totalAcquisitionCost;
+    const appreciationPercent = totalAcquisitionCost > 0 ? (assetAppreciation / totalAcquisitionCost) * 100 : 0;
+
+    // Sales performance
+    const salesRevenue = soldAnimals.reduce((sum, a) => sum + (a.price || 0), 0);
+    const salesCost = soldAnimals.reduce((sum, a) => sum + (a.acquisitionPrice || 0), 0);
+    const salesProfit = salesRevenue - salesCost;
+
+    // Species breakdown
+    const speciesData = animals.reduce((acc, a) => {
+      acc[a.species] = (acc[a.species] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Transaction categories
+    const categoryData = filteredTransactions.reduce((acc, t) => {
+      if (!acc[t.category]) {
+        acc[t.category] = { income: 0, expense: 0 };
+      }
+      if (t.type === 'Income') {
+        acc[t.category].income += t.amount;
+      } else {
+        acc[t.category].expense += t.amount;
+      }
+      return acc;
+    }, {} as Record<string, { income: number; expense: number }>);
+
+    // Health record types
+    const healthTypeData = filteredHealth.reduce((acc, r) => {
+      acc[r.type] = (acc[r.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      animals: {
+        total: totalAnimals,
+        active: activeAnimals.length,
+        sold: soldAnimals.length,
+        healthy: healthyAnimals.length,
+        sick: sickAnimals.length,
+        healthRate: totalAnimals > 0 ? (healthyAnimals.length / totalAnimals) * 100 : 0,
+        speciesData,
+      },
+      financial: {
+        totalIncome,
+        totalExpenses,
+        netProfit,
+        profitMargin,
+        healthCosts: totalHealthCosts,
+        totalAssetValue,
+        totalAcquisitionCost,
+        assetAppreciation,
+        appreciationPercent,
+        salesRevenue,
+        salesCost,
+        salesProfit,
+        categoryData,
+      },
+      health: {
+        totalRecords: filteredHealth.length,
+        totalCosts: totalHealthCosts,
+        avgCostPerAnimal: avgHealthCostPerAnimal,
+        typeData: healthTypeData,
+      },
+      filteredAnimals,
+      filteredHealth,
+      filteredTransactions,
+    };
+  }, [animals, healthRecords, transactions, filterPeriod]);
+
+  // Generate PDF HTML
   const generateReportHtml = () => {
-    const data = getFilteredData();
     const farmName = currentFarm?.name || "Farm";
     const reportDate = new Date().toLocaleDateString();
-    const reportTitle = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
 
-    // Common styles for the PDF
-    const styles = `
-      <style>
-        body {
-          font-family: 'Helvetica', sans-serif;
-          margin: 0;
-          padding: 20px;
-          color: #333;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-          padding-bottom: 10px;
-          border-bottom: 2px solid #3498db;
-        }
-        .farm-name {
-          font-size: 24px;
-          font-weight: bold;
-          color: #2c3e50;
-          margin: 0;
-        }
-        .report-title {
-          font-size: 20px;
-          color: #3498db;
-          margin: 5px 0;
-        }
-        .report-date {
-          font-size: 14px;
-          color: #7f8c8d;
-          margin: 5px 0;
-        }
-        .filter-info {
-          font-size: 14px;
-          color: #7f8c8d;
-          margin-bottom: 20px;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 30px;
-        }
-        th {
-          background-color: #3498db;
-          color: white;
-          padding: 10px;
-          text-align: left;
-          font-weight: bold;
-        }
-        td {
-          padding: 8px 10px;
-          border-bottom: 1px solid #e0e0e0;
-        }
-        tr:nth-child(even) {
-          background-color: #f9f9f9;
-        }
-        .summary {
-          margin-top: 30px;
-          padding: 15px;
-          background-color: #f8f9fa;
-          border-radius: 5px;
-          border-left: 4px solid #3498db;
-        }
-        .summary-title {
-          font-weight: bold;
-          margin-bottom: 10px;
-          color: #2c3e50;
-        }
-        .footer {
-          margin-top: 50px;
-          text-align: center;
-          font-size: 12px;
-          color: #7f8c8d;
-          border-top: 1px solid #e0e0e0;
-          padding-top: 10px;
-        }
-      </style>
-    `;
-
-    // Generate table based on report type
-    let tableHtml = "";
-    let summaryHtml = "";
-
-    if (reportType === "animals") {
-      // Animals table
-      tableHtml = `
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Species</th>
-              <th>Breed</th>
-              <th>Gender</th>
-              <th>Status</th>
-              <th>Weight</th>
-              <th>Birth Date</th>
-              <th>Price</th>
-              <th>Bought Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(data as Animal[])
-          .map(
-            (animal) => `
-              <tr>
-                <td>${animal.identificationNumber}</td>
-                <td>${animal.species}</td>
-                <td>${animal.breed}</td>
-                <td>${animal.gender}</td>
-                <td>${animal.status}</td>
-                <td>${animal.weight} ${animal.weightUnit}</td>
-                <td>${formatDate(animal.birthDate)}</td>
-                <td>${animal.status === 'Sold' && animal.price ? formatCurrency(animal.price) : ''}</td>
-                <td>${animal.acquisitionPrice ? formatCurrency(animal.acquisitionPrice) : ''}</td>
-              </tr>
-            `
-          )
-          .join("")}
-          </tbody>
-        </table>
-      `;
-
-      // Summary for animals
-      const totalAnimals = (data as Animal[]).length;
-      const speciesCount = (data as Animal[]).reduce(
-        (acc, animal) => {
-          acc[animal.species] = (acc[animal.species] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-
-      summaryHtml = `
-        <div class="summary">
-          <div class="summary-title">Summary</div>
-          <p>Total Animals: ${totalAnimals}</p>
-          <p>Species Breakdown:</p>
-          <ul>
-            ${Object.entries(speciesCount)
-          .map(
-            ([species, count]) =>
-              `<li>${species}: ${count} (${((count / totalAnimals) * 100).toFixed(1)}%)</li>`
-          )
-          .join("")}
-          </ul>
-        </div>
-      `;
-    } else if (reportType === "health") {
-      // Health records table
-      tableHtml = `
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Animal ID</th>
-              <th>Type</th>
-              <th>Diagnosis</th>
-              <th>Treatment</th>
-              <th>Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(data as HealthRecord[])
-          .map(
-            (record) => `
-              <tr>
-                <td>${formatDate(record.date)}</td>
-                <td>${record.animalId}</td>
-                <td>${record.type}</td>
-                <td>${record.diagnosis}</td>
-                <td>${record.treatment}</td>
-                <td>${formatCurrency(record.cost)}</td>
-              </tr>
-            `
-          )
-          .join("")}
-          </tbody>
-        </table>
-      `;
-
-      // Summary for health records
-      const totalRecords = (data as HealthRecord[]).length;
-      const totalCost = (data as HealthRecord[]).reduce(
-        (sum, record) => sum + record.cost,
-        0
-      );
-      const typeCount = (data as HealthRecord[]).reduce(
-        (acc, record) => {
-          acc[record.type] = (acc[record.type] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-
-      summaryHtml = `
-        <div class="summary">
-          <div class="summary-title">Summary</div>
-          <p>Total Health Records: ${totalRecords}</p>
-          <p>Total Cost: ${formatCurrency(totalCost)}</p>
-          <p>Record Types:</p>
-          <ul>
-            ${Object.entries(typeCount)
-          .map(
-            ([type, count]) =>
-              `<li>${type}: ${count} (${((count / totalRecords) * 100).toFixed(1)}%)</li>`
-          )
-          .join("")}
-          </ul>
-        </div>
-      `;
-    } else {
-      // Financial transactions table
-      tableHtml = `
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(data as Transaction[])
-          .map(
-            (transaction) => `
-              <tr>
-                <td>${formatDate(transaction.date)}</td>
-                <td>${transaction.type}</td>
-                <td>${transaction.category}</td>
-                <td>${formatCurrency(transaction.amount)}</td>
-                <td>${transaction.description}</td>
-              </tr>
-            `
-          )
-          .join("")}
-          </tbody>
-        </table>
-      `;
-
-      // Summary for financial transactions
-      const totalIncome = (data as Transaction[])
-        .filter((t) => t.type === "Income")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const totalExpense = (data as Transaction[])
-        .filter((t) => t.type === "Expense")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const netProfit = totalIncome - totalExpense;
-
-      const categoryBreakdown = (data as Transaction[]).reduce(
-        (acc, t) => {
-          acc[t.category] = (acc[t.category] || 0) + t.amount;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-
-      summaryHtml = `
-        <div class="summary">
-          <div class="summary-title">Financial Summary</div>
-          <p>Total Income: ${formatCurrency(totalIncome)}</p>
-          <p>Total Expenses: ${formatCurrency(totalExpense)}</p>
-          <p>Net Profit: ${formatCurrency(netProfit)}</p>
-          <p>Category Breakdown:</p>
-          <ul>
-            ${Object.entries(categoryBreakdown)
-          .map(
-            ([category, amount]) =>
-              `<li>${category}: ${formatCurrency(amount)}</li>`
-          )
-          .join("")}
-          </ul>
-        </div>
-      `;
-    }
-
-    // Combine all HTML parts
     return `
       <!DOCTYPE html>
       <html>
         <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-          ${styles}
+          <meta charset="utf-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a2e; padding: 40px; background: #fff; }
+            .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #6366f1; }
+            .farm-name { font-size: 32px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.5px; }
+            .report-title { font-size: 18px; color: #6366f1; margin-top: 8px; font-weight: 500; }
+            .report-date { font-size: 14px; color: #64748b; margin-top: 8px; }
+            .section { margin-bottom: 32px; }
+            .section-title { font-size: 20px; font-weight: 600; color: #1a1a2e; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+            .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+            .metric-card { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #e2e8f0; }
+            .metric-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+            .metric-value { font-size: 24px; font-weight: 700; color: #1a1a2e; }
+            .metric-value.positive { color: #10b981; }
+            .metric-value.negative { color: #ef4444; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th { background: #6366f1; color: white; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; }
+            td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+            tr:nth-child(even) { background: #f8fafc; }
+            .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+            .summary-box { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+            .summary-title { font-size: 16px; opacity: 0.9; margin-bottom: 8px; }
+            .summary-value { font-size: 36px; font-weight: 700; }
+          </style>
         </head>
         <body>
           <div class="header">
             <h1 class="farm-name">${farmName}</h1>
-            <h2 class="report-title">${reportTitle}</h2>
-            <p class="report-date">Generated on: ${reportDate}</p>
+            <p class="report-title">Comprehensive Farm Report</p>
+            <p class="report-date">Generated: ${reportDate} | Period: ${filterPeriod === 'all' ? 'All Time' : filterPeriod}</p>
           </div>
-          
-          <div class="filter-info">
-            <p>Period: ${filterPeriod === "all" ? "All Time" : filterPeriod.charAt(0).toUpperCase() + filterPeriod.slice(1)}</p>
-            <p>Sort Order: ${sortDirection === "asc" ? "Oldest First" : "Newest First"}</p>
+
+          <div class="summary-box">
+            <p class="summary-title">Net Profit</p>
+            <p class="summary-value">${formatCurrency(stats.financial.netProfit)}</p>
           </div>
-          
-          ${tableHtml}
-          ${summaryHtml}
-          
+
+          <div class="section">
+            <h2 class="section-title">📊 Financial Overview</h2>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <p class="metric-label">Total Income</p>
+                <p class="metric-value positive">${formatCurrency(stats.financial.totalIncome)}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Total Expenses</p>
+                <p class="metric-value negative">${formatCurrency(stats.financial.totalExpenses)}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Asset Value</p>
+                <p class="metric-value">${formatCurrency(stats.financial.totalAssetValue)}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Profit Margin</p>
+                <p class="metric-value ${stats.financial.profitMargin >= 0 ? 'positive' : 'negative'}">${stats.financial.profitMargin.toFixed(1)}%</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">🐄 Animal Inventory</h2>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <p class="metric-label">Total Animals</p>
+                <p class="metric-value">${stats.animals.total}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Active</p>
+                <p class="metric-value">${stats.animals.active}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Sold</p>
+                <p class="metric-value">${stats.animals.sold}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Health Rate</p>
+                <p class="metric-value positive">${stats.animals.healthRate.toFixed(1)}%</p>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Species</th>
+                  <th>Status</th>
+                  <th>Weight</th>
+                  <th>Value</th>
+                  <th>Acquisition</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${stats.filteredAnimals.map(a => `
+                  <tr>
+                    <td>${a.identificationNumber}</td>
+                    <td>${a.species}</td>
+                    <td>${a.status}</td>
+                    <td>${a.weight} ${a.weightUnit}</td>
+                    <td>${formatCurrency(a.price || 0)}</td>
+                    <td>${formatCurrency(a.acquisitionPrice || 0)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">🏥 Health Records</h2>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <p class="metric-label">Total Records</p>
+                <p class="metric-value">${stats.health.totalRecords}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Total Costs</p>
+                <p class="metric-value negative">${formatCurrency(stats.health.totalCosts)}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Avg Cost/Animal</p>
+                <p class="metric-value">${formatCurrency(stats.health.avgCostPerAnimal)}</p>
+              </div>
+              <div class="metric-card">
+                <p class="metric-label">Healthy Animals</p>
+                <p class="metric-value positive">${stats.animals.healthy}</p>
+              </div>
+            </div>
+          </div>
+
           <div class="footer">
-            <p>Generated by Veelink Farm Management System</p>
+            <p>Generated by VeeLink Farm Management System</p>
           </div>
         </body>
       </html>
     `;
   };
 
-  // Generate and share PDF
   const generatePdf = async () => {
     try {
       setIsGeneratingPdf(true);
       const html = generateReportHtml();
       const { uri } = await Print.printToFileAsync({ html });
-
-      const reportTypeName =
-        reportType.charAt(0).toUpperCase() + reportType.slice(1);
-      const fileName = `${reportTypeName}_Report_${new Date().toISOString().split("T")[0]}.pdf`;
-
       await shareAsync(uri, {
         UTI: ".pdf",
         mimeType: "application/pdf",
-        dialogTitle: `Share ${reportTypeName} Report`,
+        dialogTitle: "Share Farm Report",
       });
       setIsGeneratingPdf(false);
     } catch (error) {
       setIsGeneratingPdf(false);
-      console.error("Error generating PDF:", error);
-      Alert.alert("Error", "Failed to generate PDF report. Please try again.");
+      Alert.alert("Error", "Failed to generate PDF report.");
     }
   };
 
-  // Render table headers based on report type
-  const renderTableHeaders = () => {
-    if (reportType === "animals") {
-      return (
-        <View style={fmisStyles.tableHeader}>
-          <Text style={[fmisStyles.headerCell, { flex: 1.2 }]}>ID</Text>
-          <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Species</Text>
-          <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Status</Text>
-          <Text style={[fmisStyles.headerCell, { flex: 1 }]}>Weight</Text>
-          <Text style={[fmisStyles.headerCell, { flex: 0.7 }]}></Text>
-        </View>
-      );
-    } else if (reportType === "health") {
-      return (
-        <View style={styles.tableHeader}>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1.2, color: colors.text }]}
-          >
-            Date
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Type
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}
-          >
-            Animal
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Cost
-          </Text>
-        </View>
-      );
-    } else {
-      return (
-        <View style={styles.tableHeader}>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1.2, color: colors.text }]}
-          >
-            Date
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Type
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1.5, color: colors.text }]}
-          >
-            Category
-          </Text>
-          <Text
-            style={[styles.tableHeaderCell, { flex: 1, color: colors.text }]}
-          >
-            Amount
-          </Text>
-        </View>
-      );
-    }
-  };
+  const renderMetricCard = (
+    title: string,
+    value: number | string,
+    icon: React.ReactNode,
+    trend?: number,
+    prefix?: string,
+    suffix?: string,
+    gradient?: readonly [string, string, ...string[]]
+  ) => (
+    <View style={[styles.metricCard, { backgroundColor: colors.card }]}>
+      {(() => {
+        const defaultGradient: readonly [string, string, ...string[]] = isDarkMode
+          ? ['#2d3748', '#1a202c']
+          : ['#ffffff', '#f8fafc'];
 
-  // Render table rows based on report type
-  const renderTableRows = () => {
-    const data = getFilteredData();
-
-    if (data.length === 0) {
-      return (
-        <View style={[styles.emptyState, { backgroundColor: colors.card }]}>
-          <FileText size={40} color={colors.muted} />
-          <Text style={[styles.emptyStateText, { color: colors.text }]}>
-            No data available for the selected filters
-          </Text>
-        </View>
-      );
-    }
-
-    if (reportType === "animals") {
-      return (
-        <>
-          {(data as Animal[]).map((animal: Animal, index: number) => (
-            <View key={animal.id} style={[fmisStyles.tableRow, { backgroundColor: index % 2 === 0 ? colors.background : colors.card }]}>
-              <Text style={[fmisStyles.cell, { flex: 1.2 }]}>{animal.identificationNumber}</Text>
-              <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.species}</Text>
-              <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.status}</Text>
-              <Text style={[fmisStyles.cell, { flex: 1 }]}>{animal.weight} {animal.weightUnit}</Text>
-              <View style={[fmisStyles.actionsCell, { flex: 0.7, alignItems: 'flex-end' }]}>
-                <TouchableOpacity onPress={() => { setSelectedAnimal(animal); setShowAnimalModal(true); }} style={fmisStyles.actionIcon}>
-                  <FileBarChart size={18} color={colors.tint} />
-                </TouchableOpacity>
+        return (
+          <LinearGradient
+            colors={gradient ?? defaultGradient}
+            style={styles.metricGradient}
+          >
+            <View style={styles.metricHeader}>
+              <View style={[styles.metricIconContainer, { backgroundColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)' }]}>
+                {icon}
               </View>
+              {trend !== undefined && (
+                <View style={[styles.trendBadge, { backgroundColor: trend >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
+                  {trend >= 0 ? (
+                    <TrendingUp size={12} color="#10b981" />
+                  ) : (
+                    <TrendingDown size={12} color="#ef4444" />
+                  )}
+                  <Text style={[styles.trendText, { color: trend >= 0 ? '#10b981' : '#ef4444' }]}>
+                    {Math.abs(trend).toFixed(1)}%
+                  </Text>
+                </View>
+              )}
             </View>
-          ))}
-          {/* Animal Details Modal */}
-          <Modal
-            visible={showAnimalModal && !!selectedAnimal}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setShowAnimalModal(false)}
-          >
-            <View style={fmisStyles.modalOverlay}>
-              <View style={fmisStyles.modalContent}>
-                <Text style={fmisStyles.modalTitle}>Animal Details</Text>
-                {selectedAnimal && (
-                  <>
-                    <Text style={fmisStyles.modalLabel}>ID: <Text style={fmisStyles.modalValue}>{selectedAnimal.identificationNumber}</Text></Text>
-                    <Text style={fmisStyles.modalLabel}>Species: <Text style={fmisStyles.modalValue}>{selectedAnimal.species}</Text></Text>
-                    <Text style={fmisStyles.modalLabel}>Status: <Text style={fmisStyles.modalValue}>{selectedAnimal.status}</Text></Text>
-                    <Text style={fmisStyles.modalLabel}>Weight: <Text style={fmisStyles.modalValue}>{selectedAnimal.weight} {selectedAnimal.weightUnit}</Text></Text>
-                    <Text style={fmisStyles.modalLabel}>Price: <Text style={fmisStyles.modalValue}>{selectedAnimal.status === 'Sold' && selectedAnimal.price ? formatCurrency(selectedAnimal.price) : '-'}</Text></Text>
-                    <Text style={fmisStyles.modalLabel}>Bought Price: <Text style={fmisStyles.modalValue}>{selectedAnimal.acquisitionPrice ? formatCurrency(selectedAnimal.acquisitionPrice) : '-'}</Text></Text>
-                    <Text style={fmisStyles.modalLabel}>Notes: <Text style={fmisStyles.modalValue}>{selectedAnimal.notes || '-'}</Text></Text>
-                  </>
-                )}
-                <Button title="Close" onPress={() => setShowAnimalModal(false)} style={{ marginTop: 16 }} />
-              </View>
+            <Text style={[styles.metricTitle, { color: colors.muted }]}>{title}</Text>
+            <Text style={[styles.metricValue, { color: colors.text }]}>
+              {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
+            </Text>
+          </LinearGradient>
+        );
+      })()}
+    </View>
+  );
+
+  const renderOverviewTab = () => (
+    <View style={styles.tabContent}>
+      {/* Hero Summary Card */}
+      <LinearGradient
+        colors={[colors.secondary, colors.tint] as const}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
+        <View style={styles.heroContent}>
+          <Text style={styles.heroLabel}>Net Profit</Text>
+          <Text style={styles.heroValue}>{formatCurrency(stats.financial.netProfit)}</Text>
+          <View style={styles.heroStats}>
+            <View style={styles.heroStatItem}>
+              <TrendingUp size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.heroStatText}>{formatCurrency(stats.financial.totalIncome)} Income</Text>
             </View>
-          </Modal>
-        </>
-      );
-    } else if (reportType === "health") {
-      return (data as HealthRecord[]).map((record, index) => (
-        <View
-          key={record.id}
-          style={[
-            styles.tableRow,
-            {
-              backgroundColor:
-                index % 2 === 0 ? colors.card : colors.background,
-            },
-          ]}
-        >
-          <Text style={[styles.tableCell, { flex: 1.2, color: colors.text }]}>
-            {formatDate(record.date)}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
-            {record.type}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1.5, color: colors.text }]}>
-            {record.animalId}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
-            {formatCurrency(record.cost)}
-          </Text>
-        </View>
-      ));
-    } else {
-      return (data as Transaction[]).map((transaction, index) => (
-        <View
-          key={transaction.id}
-          style={[
-            styles.tableRow,
-            {
-              backgroundColor:
-                index % 2 === 0 ? colors.card : colors.background,
-            },
-          ]}
-        >
-          <Text style={[styles.tableCell, { flex: 1.2, color: colors.text }]}>
-            {formatDate(transaction.date)}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
-            {transaction.type}
-          </Text>
-          <Text style={[styles.tableCell, { flex: 1.5, color: colors.text }]}>
-            {transaction.category}
-          </Text>
-          <Text
-            style={[
-              styles.tableCell,
-              {
-                flex: 1,
-                color:
-                  transaction.type === "Income"
-                    ? colors.success
-                    : colors.danger,
-              },
-            ]}
-          >
-            {formatCurrency(transaction.amount)}
-          </Text>
-        </View>
-      ));
-    }
-  };
-
-  // Render summary based on report type
-  const renderSummary = () => {
-    const data = getFilteredData();
-
-    if (data.length === 0) {
-      return null;
-    }
-
-    if (reportType === "animals") {
-      const totalAnimals = (data as Animal[]).length;
-      const speciesCount = (data as Animal[]).reduce(
-        (acc, animal) => {
-          acc[animal.species] = (acc[animal.species] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-
-      return (
-        <Card
-          style={{
-            backgroundColor: colors.card,
-            borderRadius: 8,
-            padding: 16,
-            marginBottom: 16,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <Text style={[styles.summaryTitle, { color: colors.text }]}>
-            Summary
-          </Text>
-          <Text style={[styles.summaryText, { color: colors.text }]}>
-            Total Animals: {totalAnimals}
-          </Text>
-          <Text style={[styles.summarySubtitle, { color: colors.text }]}>
-            Species Breakdown:
-          </Text>
-          {Object.entries(speciesCount).map(([species, count]) => (
-            <View key={species} style={styles.summaryItem}>
-              <Text style={[styles.summaryItemText, { color: colors.text }]}>
-                {species}: {count} ({((count / totalAnimals) * 100).toFixed(1)}
-                %)
-              </Text>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${(count / totalAnimals) * 100}%`,
-                      backgroundColor: colors.tint,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
-        </Card>
-      );
-    } else if (reportType === "health") {
-      const totalRecords = (data as HealthRecord[]).length;
-      const totalCost = (data as HealthRecord[]).reduce(
-        (sum, record) => sum + record.cost,
-        0
-      );
-      const typeCount = (data as HealthRecord[]).reduce(
-        (acc, record) => {
-          acc[record.type] = (acc[record.type] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-      return (
-        <Card
-          style={{
-            backgroundColor: colors.card,
-            borderRadius: 8,
-            padding: 16,
-            marginBottom: 16,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <Text style={[styles.summaryTitle, { color: colors.text }]}>
-            Summary
-          </Text>
-          <Text style={[styles.summaryText, { color: colors.text }]}>
-            Total Health Records: {totalRecords}
-          </Text>
-          <Text style={[styles.summaryText, { color: colors.text }]}>
-            Total Cost: {formatCurrency(totalCost)}
-          </Text>
-          <Text style={[styles.summarySubtitle, { color: colors.text }]}>
-            Record Types:
-          </Text>
-          {Object.entries(typeCount).map(([type, count]) => (
-            <View key={type} style={styles.summaryItem}>
-              <Text style={[styles.summaryItemText, { color: colors.text }]}>
-                {type}: {count} ({((count / totalRecords) * 100).toFixed(1)}%)
-              </Text>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${(count / totalRecords) * 100}%`,
-                      backgroundColor: colors.secondary,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
-        </Card>
-      );
-    } else {
-      const totalIncome = (data as Transaction[])
-        .filter((t) => t.type === "Income")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const totalExpense = (data as Transaction[])
-        .filter((t) => t.type === "Expense")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const netProfit = totalIncome - totalExpense;
-
-      const categoryBreakdown = (data as Transaction[]).reduce(
-        (acc, t) => {
-          acc[t.category] = (acc[t.category] || 0) + t.amount;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-
-      const maxAmount = Math.max(...Object.values(categoryBreakdown));
-
-      return (
-        <Card
-          style={{
-            backgroundColor: colors.card,
-            borderRadius: 8,
-            padding: 16,
-            marginBottom: 16,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <Text style={[styles.summaryTitle, { color: colors.text }]}>
-            Financial Summary
-          </Text>
-          <View style={styles.financialSummary}>
-            <View style={styles.financialSummaryItem}>
-              <Text
-                style={[styles.financialSummaryLabel, { color: colors.text }]}
-              >
-                Income
-              </Text>
-              <Text
-                style={[
-                  styles.financialSummaryValue,
-                  { color: colors.success },
-                ]}
-              >
-                {formatCurrency(totalIncome)}
-              </Text>
-            </View>
-            <View style={styles.financialSummaryItem}>
-              <Text
-                style={[styles.financialSummaryLabel, { color: colors.text }]}
-              >
-                Expenses
-              </Text>
-              <Text
-                style={[styles.financialSummaryValue, { color: colors.danger }]}
-              >
-                {formatCurrency(totalExpense)}
-              </Text>
-            </View>
-            <View style={styles.financialSummaryItem}>
-              <Text
-                style={[styles.financialSummaryLabel, { color: colors.text }]}
-              >
-                Net Profit
-              </Text>
-              <Text
-                style={[
-                  styles.financialSummaryValue,
-                  { color: netProfit >= 0 ? colors.success : colors.danger },
-                ]}
-              >
-                {formatCurrency(netProfit)}
-              </Text>
+            <View style={styles.heroStatItem}>
+              <TrendingDown size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.heroStatText}>{formatCurrency(stats.financial.totalExpenses)} Expenses</Text>
             </View>
           </View>
+        </View>
+        <View style={styles.heroDecoration}>
+          <PieChart size={80} color="rgba(255,255,255,0.1)" />
+        </View>
+      </LinearGradient>
 
-          <Text style={[styles.summarySubtitle, { color: colors.text }]}>
-            Category Breakdown:
-          </Text>
-          {Object.entries(categoryBreakdown).map(([category, amount]) => (
-            <View key={category} style={styles.summaryItem}>
-              <View style={styles.summaryItemHeader}>
-                <Text style={[styles.summaryItemText, { color: colors.text }]}>
-                  {category}
-                </Text>
-                <Text
-                  style={[styles.summaryItemAmount, { color: colors.text }]}
-                >
-                  {formatCurrency(amount)}
-                </Text>
+      {/* Quick Metrics Grid */}
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Metrics</Text>
+      <View style={styles.metricsGrid}>
+        {renderMetricCard(
+          "Total Animals",
+          stats.animals.total,
+          <Users size={20} color={colors.tint} />,
+          undefined,
+          "",
+          ""
+        )}
+        {renderMetricCard(
+          "Asset Value",
+          formatCurrency(stats.financial.totalAssetValue),
+          <Wallet size={20} color={colors.tint} />
+        )}
+        {renderMetricCard(
+          "Health Rate",
+          stats.animals.healthRate.toFixed(1),
+          <Heart size={20} color="#10b981" />,
+          undefined,
+          "",
+          "%"
+        )}
+        {renderMetricCard(
+          "Profit Margin",
+          stats.financial.profitMargin.toFixed(1),
+          <Target size={20} color={stats.financial.profitMargin >= 0 ? "#10b981" : "#ef4444"} />,
+          undefined,
+          "",
+          "%"
+        )}
+      </View>
+
+      {/* Expandable Sections */}
+      <TouchableOpacity
+        style={[styles.expandableHeader, { backgroundColor: colors.card }]}
+        onPress={() => setExpandedSection(expandedSection === 'species' ? null : 'species')}
+      >
+        <View style={styles.expandableTitle}>
+          <Layers size={20} color={colors.tint} />
+          <Text style={[styles.expandableTitleText, { color: colors.text }]}>Species Breakdown</Text>
+        </View>
+        <ChevronDown
+          size={20}
+          color={colors.muted}
+          style={{ transform: [{ rotate: expandedSection === 'species' ? '180deg' : '0deg' }] }}
+        />
+      </TouchableOpacity>
+      {expandedSection === 'species' && (
+        <View style={[styles.expandableContent, { backgroundColor: colors.card }]}>
+          {Object.entries(stats.animals.speciesData).map(([species, count]) => (
+            <View key={species} style={styles.breakdownItem}>
+              <View style={styles.breakdownLabel}>
+                <View style={[styles.breakdownDot, { backgroundColor: colors.tint }]} />
+                <Text style={[styles.breakdownText, { color: colors.text }]}>{species}</Text>
               </View>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${(amount / maxAmount) * 100}%`,
-                      backgroundColor: colors.tint,
-                    },
-                  ]}
-                />
+              <View style={styles.breakdownValues}>
+                <Text style={[styles.breakdownCount, { color: colors.text }]}>{count}</Text>
+                <View style={styles.breakdownBar}>
+                  <View
+                    style={[
+                      styles.breakdownBarFill,
+                      { width: `${(count / stats.animals.total) * 100}%`, backgroundColor: colors.tint }
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.breakdownPercent, { color: colors.muted }]}>
+                  {((count / stats.animals.total) * 100).toFixed(0)}%
+                </Text>
               </View>
             </View>
           ))}
-        </Card>
-      );
+        </View>
+      )}
+
+      {/* Financial Categories */}
+      <TouchableOpacity
+        style={[styles.expandableHeader, { backgroundColor: colors.card }]}
+        onPress={() => setExpandedSection(expandedSection === 'categories' ? null : 'categories')}
+      >
+        <View style={styles.expandableTitle}>
+          <BarChart3 size={20} color={colors.tint} />
+          <Text style={[styles.expandableTitleText, { color: colors.text }]}>Financial Categories</Text>
+        </View>
+        <ChevronDown
+          size={20}
+          color={colors.muted}
+          style={{ transform: [{ rotate: expandedSection === 'categories' ? '180deg' : '0deg' }] }}
+        />
+      </TouchableOpacity>
+      {expandedSection === 'categories' && (
+        <View style={[styles.expandableContent, { backgroundColor: colors.card }]}>
+          {Object.entries(stats.financial.categoryData).map(([category, data]) => (
+            <View key={category} style={styles.categoryItem}>
+              <Text style={[styles.categoryName, { color: colors.text }]}>{category}</Text>
+              <View style={styles.categoryValues}>
+                {data.income > 0 && (
+                  <View style={styles.categoryValue}>
+                    <Text style={styles.incomeText}>+{formatCurrency(data.income)}</Text>
+                  </View>
+                )}
+                {data.expense > 0 && (
+                  <View style={styles.categoryValue}>
+                    <Text style={styles.expenseText}>-{formatCurrency(data.expense)}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderAnimalsTab = () => (
+    <View style={styles.tabContent}>
+      {/* Animal Summary Cards */}
+      <View style={styles.animalSummaryRow}>
+        <LinearGradient colors={['#10b981', '#059669']} style={styles.animalSummaryCard}>
+          <CheckCircle size={24} color="white" />
+          <Text style={styles.animalSummaryValue}>{stats.animals.healthy}</Text>
+          <Text style={styles.animalSummaryLabel}>Healthy</Text>
+        </LinearGradient>
+        <LinearGradient colors={['#f59e0b', '#d97706']} style={styles.animalSummaryCard}>
+          <Activity size={24} color="white" />
+          <Text style={styles.animalSummaryValue}>{stats.animals.sick}</Text>
+          <Text style={styles.animalSummaryLabel}>Sick</Text>
+        </LinearGradient>
+        <LinearGradient colors={['#6366f1', '#4f46e5']} style={styles.animalSummaryCard}>
+          <DollarSign size={24} color="white" />
+          <Text style={styles.animalSummaryValue}>{stats.animals.sold}</Text>
+          <Text style={styles.animalSummaryLabel}>Sold</Text>
+        </LinearGradient>
+      </View>
+
+      {/* Animals Table */}
+      <View style={[styles.tableContainer, { backgroundColor: colors.card }]}>
+        <View style={[styles.tableHeader, { backgroundColor: colors.tint }]}>
+          <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>ID</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Species</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Status</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Value</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}></Text>
+        </View>
+        <ScrollView style={styles.tableBody} nestedScrollEnabled>
+          {stats.filteredAnimals
+            .sort((a, b) => sortDirection === 'desc'
+              ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
+            .map((animal, index) => (
+              <TouchableOpacity
+                key={animal.id}
+                style={[
+                  styles.tableRow,
+                  { backgroundColor: index % 2 === 0 ? colors.background : colors.card }
+                ]}
+                onPress={() => { setSelectedAnimal(animal); setShowAnimalModal(true); }}
+              >
+                <Text style={[styles.tableCell, { flex: 1.2, color: colors.text }]} numberOfLines={1}>
+                  {animal.identificationNumber}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
+                  {animal.species}
+                </Text>
+                <View style={[styles.statusBadge, {
+                  backgroundColor: animal.status === 'Healthy' ? 'rgba(16, 185, 129, 0.1)' :
+                    animal.status === 'Sick' ? 'rgba(239, 68, 68, 0.1)' :
+                      animal.status === 'Sold' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                  flex: 1
+                }]}>
+                  <Text style={[styles.statusText, {
+                    color: animal.status === 'Healthy' ? '#10b981' :
+                      animal.status === 'Sick' ? '#ef4444' :
+                        animal.status === 'Sold' ? '#6366f1' : colors.muted
+                  }]}>
+                    {animal.status}
+                  </Text>
+                </View>
+                <Text style={[styles.tableCell, { flex: 1, color: colors.text, fontWeight: '600' }]}>
+                  {formatCurrency(animal.price || 0)}
+                </Text>
+                <View style={{ flex: 0.5, alignItems: 'flex-end' }}>
+                  <ChevronRight size={16} color={colors.muted} />
+                </View>
+              </TouchableOpacity>
+            ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  const renderHealthTab = () => (
+    <View style={styles.tabContent}>
+      {/* Health Summary */}
+      <View style={styles.healthSummaryGrid}>
+        <View style={[styles.healthSummaryCard, { backgroundColor: colors.card }]}>
+          <Heart size={32} color="#ef4444" />
+          <Text style={[styles.healthSummaryValue, { color: colors.text }]}>{stats.health.totalRecords}</Text>
+          <Text style={[styles.healthSummaryLabel, { color: colors.muted }]}>Total Records</Text>
+        </View>
+        <View style={[styles.healthSummaryCard, { backgroundColor: colors.card }]}>
+          <DollarSign size={32} color="#f59e0b" />
+          <Text style={[styles.healthSummaryValue, { color: colors.text }]}>{formatCurrency(stats.health.totalCosts)}</Text>
+          <Text style={[styles.healthSummaryLabel, { color: colors.muted }]}>Total Health Costs</Text>
+        </View>
+      </View>
+
+      {/* Health Types Breakdown */}
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Record Types</Text>
+      <View style={[styles.healthTypesContainer, { backgroundColor: colors.card }]}>
+        {Object.entries(stats.health.typeData).map(([type, count]) => (
+          <View key={type} style={styles.healthTypeItem}>
+            <View style={styles.healthTypeInfo}>
+              <View style={[styles.healthTypeDot, {
+                backgroundColor: type === 'Vaccination' ? '#10b981' :
+                  type === 'Treatment' ? '#f59e0b' :
+                    type === 'Checkup' ? '#3b82f6' :
+                      type === 'Surgery' ? '#ef4444' : '#6366f1'
+              }]} />
+              <Text style={[styles.healthTypeText, { color: colors.text }]}>{type}</Text>
+            </View>
+            <Text style={[styles.healthTypeCount, { color: colors.text }]}>{count}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Health Records Table */}
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Records</Text>
+      <View style={[styles.tableContainer, { backgroundColor: colors.card }]}>
+        <View style={[styles.tableHeader, { backgroundColor: colors.tint }]}>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Date</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Type</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1.5 }]}>Treatment</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Cost</Text>
+        </View>
+        <ScrollView style={styles.tableBody} nestedScrollEnabled>
+          {stats.filteredHealth
+            .sort((a, b) => sortDirection === 'desc'
+              ? new Date(b.date).getTime() - new Date(a.date).getTime()
+              : new Date(a.date).getTime() - new Date(b.date).getTime()
+            )
+            .slice(0, 10)
+            .map((record, index) => (
+              <View
+                key={record.id}
+                style={[
+                  styles.tableRow,
+                  { backgroundColor: index % 2 === 0 ? colors.background : colors.card }
+                ]}
+              >
+                <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
+                  {formatDate(record.date)}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
+                  {record.type}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1.5, color: colors.text }]} numberOfLines={1}>
+                  {record.treatment || record.diagnosis || '-'}
+                </Text>
+                <Text style={[styles.tableCell, { flex: 1, color: '#ef4444', fontWeight: '600' }]}>
+                  {formatCurrency(record.cost)}
+                </Text>
+              </View>
+            ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  const renderFinancialTab = () => (
+    <View style={styles.tabContent}>
+      {/* Financial Overview Cards */}
+      <View style={styles.financialOverviewRow}>
+        <LinearGradient colors={['#10b981', '#059669']} style={styles.financialOverviewCard}>
+          <TrendingUp size={24} color="white" />
+          <Text style={styles.financialOverviewLabel}>Total Income</Text>
+          <Text style={styles.financialOverviewValue}>{formatCurrency(stats.financial.totalIncome)}</Text>
+        </LinearGradient>
+        <LinearGradient colors={['#ef4444', '#dc2626']} style={styles.financialOverviewCard}>
+          <TrendingDown size={24} color="white" />
+          <Text style={styles.financialOverviewLabel}>Total Expenses</Text>
+          <Text style={styles.financialOverviewValue}>{formatCurrency(stats.financial.totalExpenses)}</Text>
+        </LinearGradient>
+      </View>
+
+      {/* Asset Performance */}
+      <View style={[styles.assetPerformanceCard, { backgroundColor: colors.card }]}>
+        <Text style={[styles.assetPerformanceTitle, { color: colors.text }]}>Asset Performance</Text>
+        <View style={styles.assetPerformanceGrid}>
+          <View style={styles.assetPerformanceItem}>
+            <Text style={[styles.assetLabel, { color: colors.muted }]}>Current Value</Text>
+            <Text style={[styles.assetValue, { color: colors.text }]}>{formatCurrency(stats.financial.totalAssetValue)}</Text>
+          </View>
+          <View style={styles.assetPerformanceItem}>
+            <Text style={[styles.assetLabel, { color: colors.muted }]}>Acquisition Cost</Text>
+            <Text style={[styles.assetValue, { color: colors.text }]}>{formatCurrency(stats.financial.totalAcquisitionCost)}</Text>
+          </View>
+          <View style={styles.assetPerformanceItem}>
+            <Text style={[styles.assetLabel, { color: colors.muted }]}>Appreciation</Text>
+            <Text style={[styles.assetValue, { color: stats.financial.assetAppreciation >= 0 ? '#10b981' : '#ef4444' }]}>
+              {stats.financial.assetAppreciation >= 0 ? '+' : ''}{formatCurrency(stats.financial.assetAppreciation)}
+            </Text>
+          </View>
+          <View style={styles.assetPerformanceItem}>
+            <Text style={[styles.assetLabel, { color: colors.muted }]}>ROI</Text>
+            <Text style={[styles.assetValue, { color: stats.financial.appreciationPercent >= 0 ? '#10b981' : '#ef4444' }]}>
+              {stats.financial.appreciationPercent >= 0 ? '+' : ''}{stats.financial.appreciationPercent.toFixed(1)}%
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Transactions Table */}
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
+      <View style={[styles.tableContainer, { backgroundColor: colors.card }]}>
+        <View style={[styles.tableHeader, { backgroundColor: colors.tint }]}>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Date</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 0.8 }]}>Type</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>Category</Text>
+          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Amount</Text>
+        </View>
+        <ScrollView style={styles.tableBody} nestedScrollEnabled>
+          {stats.filteredTransactions
+            .sort((a, b) => sortDirection === 'desc'
+              ? new Date(b.date).getTime() - new Date(a.date).getTime()
+              : new Date(a.date).getTime() - new Date(b.date).getTime()
+            )
+            .slice(0, 15)
+            .map((transaction, index) => (
+              <View
+                key={transaction.id}
+                style={[
+                  styles.tableRow,
+                  { backgroundColor: index % 2 === 0 ? colors.background : colors.card }
+                ]}
+              >
+                <Text style={[styles.tableCell, { flex: 1, color: colors.text }]}>
+                  {formatDate(transaction.date)}
+                </Text>
+                <View style={[styles.typeBadge, {
+                  backgroundColor: transaction.type === 'Income' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  flex: 0.8
+                }]}>
+                  <Text style={[styles.typeText, {
+                    color: transaction.type === 'Income' ? '#10b981' : '#ef4444'
+                  }]}>
+                    {transaction.type}
+                  </Text>
+                </View>
+                <Text style={[styles.tableCell, { flex: 1.2, color: colors.text }]}>
+                  {transaction.category}
+                </Text>
+                <Text style={[styles.tableCell, {
+                  flex: 1,
+                  fontWeight: '600',
+                  color: transaction.type === 'Income' ? '#10b981' : '#ef4444'
+                }]}>
+                  {transaction.type === 'Income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                </Text>
+              </View>
+            ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  const renderTabContent = () => {
+    switch (reportType) {
+      case 'overview':
+        return renderOverviewTab();
+      case 'animals':
+        return renderAnimalsTab();
+      case 'health':
+        return renderHealthTab();
+      case 'financial':
+        return renderFinancialTab();
+      default:
+        return renderOverviewTab();
     }
   };
 
@@ -920,714 +851,754 @@ const [reportType, setReportType] = useState<ReportType>(initialReportType);
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        showsVerticalScrollIndicator={false}
       >
         {isLoading && !refreshing ? (
           <LoadingIndicator message="Loading report data..." />
         ) : (
           <>
+            {/* Header */}
             <View style={styles.header}>
-              <LinearGradient
-                colors={
-                  isDarkMode ? ["#1a2a3a", "#0d1520"] : ["#3498db", "#2980b9"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.headerGradient}
-              >
-                <View style={styles.headerContent}>
-                  <Text style={styles.headerTitle}>Reports</Text>
-                  <Text style={styles.headerSubtitle}>
-                    Generate and export detailed reports
-                  </Text>
-                </View>
-              </LinearGradient>
-            </View>
-
-            <View style={styles.reportTypeContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.reportTypeButton,
-                  reportType === "animals" && [
-                    styles.activeReportType,
-                    { borderColor: colors.tint },
-                  ],
-                ]}
-                onPress={() => setReportType("animals")}
-              >
-                <Text
-                  style={[
-                    styles.reportTypeText,
-                    {
-                      color:
-                        reportType === "animals" ? colors.tint : colors.text,
-                    },
-                  ]}
-                >
-                  Animals
+              <View style={styles.headerLeft}>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Reports</Text>
+                <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
+                  Analytics & insights for {currentFarm?.name || 'your farm'}
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.reportTypeButton,
-                  reportType === "health" && [
-                    styles.activeReportType,
-                    { borderColor: colors.secondary },
-                  ],
-                ]}
-                onPress={() => setReportType("health")}
-              >
-                <Text
-                  style={[
-                    styles.reportTypeText,
-                    {
-                      color:
-                        reportType === "health"
-                          ? colors.secondary
-                          : colors.text,
-                    },
-                  ]}
-                >
-                  Health
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.reportTypeButton,
-                  reportType === "financial" && [
-                    styles.activeReportType,
-                    { borderColor: colors.success },
-                  ],
-                ]}
-                onPress={() => setReportType("financial")}
-              >
-                <Text
-                  style={[
-                    styles.reportTypeText,
-                    {
-                      color:
-                        reportType === "financial"
-                          ? colors.success
-                          : colors.text,
-                    },
-                  ]}
-                >
-                  Financial
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.filterContainer}>
-              <View style={styles.filterSection}>
-                <TouchableOpacity
-                  style={[
-                    styles.filterButton,
-                    { backgroundColor: colors.card },
-                  ]}
-                  onPress={() => {
-                    setShowFilterMenu(!showFilterMenu);
-                    setShowSortMenu(false);
-                  }}
-                >
-                  <Calendar
-                    size={16}
-                    color={colors.text}
-                    style={styles.filterIcon}
-                  />
-                  <Text
-                    style={[styles.filterButtonText, { color: colors.text }]}
-                  >
-                    {filterPeriod === "all"
-                      ? "All Time"
-                      : filterPeriod.charAt(0).toUpperCase() +
-                      filterPeriod.slice(1)}
-                  </Text>
-                  <ChevronDown size={16} color={colors.text} />
-                </TouchableOpacity>
-
-                {showFilterMenu && (
-                  <View
-                    style={[
-                      styles.filterMenu,
-                      { backgroundColor: colors.card },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={styles.filterMenuItem}
-                      onPress={() => {
-                        setFilterPeriod("all");
-                        setShowFilterMenu(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        All Time
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.filterMenuItem}
-                      onPress={() => {
-                        setFilterPeriod("week");
-                        setShowFilterMenu(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        Last Week
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.filterMenuItem}
-                      onPress={() => {
-                        setFilterPeriod("month");
-                        setShowFilterMenu(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        Last Month
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.filterMenuItem}
-                      onPress={() => {
-                        setFilterPeriod("quarter");
-                        setShowFilterMenu(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        Last Quarter
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.filterMenuItem}
-                      onPress={() => {
-                        setFilterPeriod("year");
-                        setShowFilterMenu(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        Last Year
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
-
-              <View style={styles.filterSection}>
-                <TouchableOpacity
-                  style={[
-                    styles.filterButton,
-                    { backgroundColor: colors.card },
-                  ]}
-                  onPress={() => {
-                    setShowSortMenu(!showSortMenu);
-                    setShowFilterMenu(false);
-                  }}
-                >
-                  <ArrowUpDown
-                    size={16}
-                    color={colors.text}
-                    style={styles.filterIcon}
-                  />
-                  <Text
-                    style={[styles.filterButtonText, { color: colors.text }]}
-                  >
-                    {sortDirection === "desc" ? "Newest First" : "Oldest First"}
-                  </Text>
-                  <ChevronDown size={16} color={colors.text} />
-                </TouchableOpacity>
-
-                {showSortMenu && (
-                  <View
-                    style={[
-                      styles.filterMenu,
-                      { backgroundColor: colors.card },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={styles.filterMenuItem}
-                      onPress={() => {
-                        setSortDirection("desc");
-                        setShowSortMenu(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        Newest First
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.filterMenuItem}
-                      onPress={() => {
-                        setSortDirection("asc");
-                        setShowSortMenu(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterMenuItemText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        Oldest First
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
               <TouchableOpacity
-                style={[
-                  styles.exportButton,
-                  { backgroundColor: colors.tint },
-                  isGeneratingPdf && { opacity: 0.7 },
-                ]}
+                style={[styles.exportButton, isGeneratingPdf && { opacity: 0.6 }]}
                 onPress={generatePdf}
                 disabled={isGeneratingPdf}
               >
-                <Download size={16} color="#fff" style={styles.exportIcon} />
-                <Text style={styles.exportButtonText}>
-                  {isGeneratingPdf ? "Generating..." : "Export PDF"}
+                <LinearGradient
+                  colors={[colors.secondary, colors.tint] as const}
+                  style={styles.exportButtonGradient}
+                >
+                  <Download size={18} color="white" />
+                  <Text style={styles.exportButtonText} numberOfLines={1}>
+                    {isGeneratingPdf ? 'Generating...' : 'Export'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            {/* Tab Navigation */}
+            <View style={styles.tabNav}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {(['overview', 'animals', 'health', 'financial'] as ReportType[]).map((tab) => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[
+                      styles.tabButton,
+                      reportType === tab && styles.tabButtonActive,
+                      { backgroundColor: reportType === tab ? colors.tint : colors.card }
+                    ]}
+                    onPress={() => setReportType(tab)}
+                  >
+                    {tab === 'overview' && <PieChart size={16} color={reportType === tab ? 'white' : colors.text} />}
+                    {tab === 'animals' && <Users size={16} color={reportType === tab ? 'white' : colors.text} />}
+                    {tab === 'health' && <Heart size={16} color={reportType === tab ? 'white' : colors.text} />}
+                    {tab === 'financial' && <DollarSign size={16} color={reportType === tab ? 'white' : colors.text} />}
+                    <Text style={[
+                      styles.tabButtonText,
+                      { color: reportType === tab ? 'white' : colors.text }
+                    ]}>
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Filter Controls */}
+            <View style={styles.filterRow}>
+              <TouchableOpacity
+                style={[styles.filterButton, { backgroundColor: colors.card }]}
+                onPress={() => setShowFilterMenu(!showFilterMenu)}
+              >
+                <Calendar size={16} color={colors.text} />
+                <Text style={[styles.filterButtonText, { color: colors.text }]}>
+                  {filterPeriod === 'all' ? 'All Time' : filterPeriod.charAt(0).toUpperCase() + filterPeriod.slice(1)}
+                </Text>
+                <ChevronDown size={16} color={colors.muted} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, { backgroundColor: colors.card }]}
+                onPress={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
+              >
+                <ArrowUpDown size={16} color={colors.text} />
+                <Text style={[styles.filterButtonText, { color: colors.text }]}>
+                  {sortDirection === 'desc' ? 'Newest' : 'Oldest'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <Card
-              style={{
-                backgroundColor: colors.card,
-                borderRadius: 8,
-                padding: 16,
-                marginBottom: 16,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-              }}
-            >
-              <Text style={[styles.tableTitle, { color: colors.text }]}>
-                {reportType.charAt(0).toUpperCase() + reportType.slice(1)}{" "}
-                Report
-              </Text>
-
-              <View style={styles.tableContainer}>
-                {renderTableHeaders()}
-                {renderTableRows()}
+            {/* Filter Menu */}
+            {showFilterMenu && (
+              <View style={[styles.filterMenu, { backgroundColor: colors.card }]}>
+                {(['all', 'week', 'month', 'quarter', 'year'] as FilterPeriod[]).map((period) => (
+                  <TouchableOpacity
+                    key={period}
+                    style={[
+                      styles.filterMenuItem,
+                      filterPeriod === period && { backgroundColor: 'rgba(99, 102, 241, 0.1)' }
+                    ]}
+                    onPress={() => { setFilterPeriod(period); setShowFilterMenu(false); }}
+                  >
+                    <Text style={[
+                      styles.filterMenuItemText,
+                      { color: filterPeriod === period ? '#6366f1' : colors.text }
+                    ]}>
+                      {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
+                    </Text>
+                    {filterPeriod === period && <CheckCircle size={16} color="#6366f1" />}
+                  </TouchableOpacity>
+                ))}
               </View>
-            </Card>
+            )}
 
-            {renderSummary()}
+            {/* Tab Content */}
+            {renderTabContent()}
           </>
         )}
       </ScrollView>
+
+      {/* Animal Details Modal */}
+      <Modal
+        visible={showAnimalModal && !!selectedAnimal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAnimalModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <LinearGradient
+              colors={['#6366f1', '#8b5cf6']}
+              style={styles.modalHeader}
+            >
+              <Text style={styles.modalTitle}>Animal Details</Text>
+              <TouchableOpacity onPress={() => setShowAnimalModal(false)}>
+                <XCircle size={24} color="white" />
+              </TouchableOpacity>
+            </LinearGradient>
+            {selectedAnimal && (
+              <ScrollView style={styles.modalBody}>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>ID</Text>
+                  <Text style={[styles.modalValue, { color: colors.text }]}>{selectedAnimal.identificationNumber}</Text>
+                </View>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>Species</Text>
+                  <Text style={[styles.modalValue, { color: colors.text }]}>{selectedAnimal.species}</Text>
+                </View>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>Breed</Text>
+                  <Text style={[styles.modalValue, { color: colors.text }]}>{selectedAnimal.breed}</Text>
+                </View>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>Status</Text>
+                  <View style={[styles.statusBadge, {
+                    backgroundColor: selectedAnimal.status === 'Healthy' ? 'rgba(16, 185, 129, 0.1)' :
+                      selectedAnimal.status === 'Sick' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)'
+                  }]}>
+                    <Text style={[styles.statusText, {
+                      color: selectedAnimal.status === 'Healthy' ? '#10b981' :
+                        selectedAnimal.status === 'Sick' ? '#ef4444' : '#6366f1'
+                    }]}>
+                      {selectedAnimal.status}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>Weight</Text>
+                  <Text style={[styles.modalValue, { color: colors.text }]}>{selectedAnimal.weight} {selectedAnimal.weightUnit}</Text>
+                </View>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>Current Value</Text>
+                  <Text style={[styles.modalValue, { color: '#10b981', fontWeight: '700' }]}>
+                    {formatCurrency(selectedAnimal.price || 0)}
+                  </Text>
+                </View>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>Acquisition Price</Text>
+                  <Text style={[styles.modalValue, { color: colors.text }]}>
+                    {formatCurrency(selectedAnimal.acquisitionPrice || 0)}
+                  </Text>
+                </View>
+                <View style={styles.modalRow}>
+                  <Text style={[styles.modalLabel, { color: colors.muted }]}>Appreciation</Text>
+                  <Text style={[styles.modalValue, {
+                    color: (selectedAnimal.price || 0) - (selectedAnimal.acquisitionPrice || 0) >= 0 ? '#10b981' : '#ef4444',
+                    fontWeight: '600'
+                  }]}>
+                    {(selectedAnimal.price || 0) - (selectedAnimal.acquisitionPrice || 0) >= 0 ? '+' : ''}
+                    {formatCurrency((selectedAnimal.price || 0) - (selectedAnimal.acquisitionPrice || 0))}
+                  </Text>
+                </View>
+                {selectedAnimal.notes && (
+                  <View style={styles.modalRow}>
+                    <Text style={[styles.modalLabel, { color: colors.muted }]}>Notes</Text>
+                    <Text style={[styles.modalValue, { color: colors.text }]}>{selectedAnimal.notes}</Text>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowAnimalModal(false)}
+            >
+              <LinearGradient colors={['#6366f1', '#8b5cf6']} style={styles.modalCloseButtonGradient}>
+                <Text style={styles.modalCloseButtonText}>Close</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const { width } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: 14,
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 20,
-    borderRadius: 16,
-    overflow: "hidden",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    rowGap: 10,
+    columnGap: 12,
+    marginBottom: 24,
   },
-  headerGradient: {
-    borderRadius: 16,
-  },
-  headerContent: {
-    padding: 24,
+  headerLeft: {
+    flex: 1,
+    minWidth: 220,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 8,
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 14,
+    marginTop: 4,
   },
-  reportTypeContainer: {
-    flexDirection: "row",
-    marginBottom: 20,
+  exportButton: {
     borderRadius: 12,
-    overflow: "hidden",
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
-  reportTypeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+  exportButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
   },
-  activeReportType: {
-    borderBottomWidth: 2,
+  exportButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
-  reportTypeText: {
-    fontSize: 16,
-    fontWeight: "600",
+  tabNav: {
+    marginBottom: 16,
   },
-  filterContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-    flexWrap: "wrap",
-    gap: 10,
+  tabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginRight: 8,
+    gap: 8,
   },
-  filterSection: {
-    position: "relative",
+  tabButtonActive: {
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  tabButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
   },
   filterButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  filterIcon: {
-    marginRight: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 8,
   },
   filterButtonText: {
     fontSize: 14,
-    marginRight: 6,
+    fontWeight: '500',
   },
   filterMenu: {
-    position: "absolute",
-    top: 40,
-    left: 0,
-    width: 150,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 5,
-    zIndex: 10,
   },
   filterMenuItem: {
-    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   filterMenuItemText: {
     fontSize: 14,
+    fontWeight: '500',
   },
-  exportButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+  tabContent: {
+    flex: 1,
   },
-  exportIcon: {
-    marginRight: 8,
+  heroCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  exportButtonText: {
-    color: "#fff",
+  heroContent: {
+    flex: 1,
+  },
+  heroLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+    marginBottom: 4,
   },
-  tableCard: {
-    borderRadius: 16,
-    padding: 16,
+  heroValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: 'white',
+    letterSpacing: -1,
+  },
+  heroStats: {
+    flexDirection: 'row',
+    marginTop: 16,
+    gap: 16,
+  },
+  heroStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroStatText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
+  heroDecoration: {
+    position: 'absolute',
+    right: -20,
+    bottom: -20,
+    opacity: 0.5,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  tableTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+  metricCard: {
+    width: CARD_WIDTH,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  metricGradient: {
+    padding: 14,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  metricIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  trendText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  metricTitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  expandableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 2,
+  },
+  expandableTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  expandableTitleText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  expandableContent: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  breakdownItem: {
     marginBottom: 16,
   },
+  breakdownLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  breakdownDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  breakdownText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  breakdownValues: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  breakdownCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    width: 30,
+  },
+  breakdownBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  breakdownBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  breakdownPercent: {
+    fontSize: 12,
+    width: 40,
+    textAlign: 'right',
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  categoryName: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  categoryValues: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  categoryValue: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  incomeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10b981',
+  },
+  expenseText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  animalSummaryRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  animalSummaryCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  animalSummaryValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: 'white',
+  },
+  animalSummaryLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
   tableContainer: {
-    borderRadius: 8,
-    overflow: "hidden",
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
   },
   tableHeader: {
-    flexDirection: "row",
-    paddingVertical: 12,
+    flexDirection: 'row',
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: "rgba(52, 152, 219, 0.1)",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.05)",
   },
   tableHeaderCell: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'white',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tableBody: {
+    maxHeight: 400,
   },
   tableRow: {
-    flexDirection: "row",
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   tableCell: {
     fontSize: 14,
   },
-  emptyState: {
-    padding: 40,
-    alignItems: "center",
-    justifyContent: "center",
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
-  emptyStateText: {
-    marginTop: 16,
-    fontSize: 16,
-    textAlign: "center",
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
-  summaryCard: {
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  typeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  healthSummaryGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  healthSummaryCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  healthSummaryValue: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  healthSummaryLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  healthTypesContainer: {
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
-  summaryText: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  summarySubtitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  summaryItem: {
-    marginBottom: 12,
-  },
-  summaryItemHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  summaryItemText: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  summaryItemAmount: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 4,
-  },
-  financialSummary: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    marginBottom: 8,
-  },
-  financialSummaryItem: {
-    minWidth: width / 3.5,
-    marginBottom: 12,
-  },
-  financialSummaryLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  financialSummaryValue: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-});
-
-const fmisStyles = StyleSheet.create({
-  summaryRow: {
+  healthTypeItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  healthTypeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  healthTypeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  healthTypeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  healthTypeCount: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  financialOverviewRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  financialOverviewCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 20,
     gap: 8,
   },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: '#f5f8fa',
-    borderRadius: 10,
-    padding: 16,
-    alignItems: 'center',
-    marginHorizontal: 4,
-    elevation: 1,
+  financialOverviewLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
   },
-  summaryLabel: {
-    fontSize: 13,
-    color: '#888',
+  financialOverviewValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: 'white',
+  },
+  assetPerformanceCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  assetPerformanceTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  assetPerformanceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  assetPerformanceItem: {
+    width: '45%',
+    marginBottom: 8,
+  },
+  assetLabel: {
+    fontSize: 12,
     marginBottom: 4,
   },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#222',
-  },
-  filterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  filterDropdownContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  filterLabel: {
-    fontSize: 13,
-    color: '#555',
-    marginRight: 4,
-  },
-  filterPill: {
-    backgroundColor: '#e0e7ef',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 6,
-  },
-  filterPillActive: {
-    backgroundColor: '#3498db',
-  },
-  filterPillText: {
-    color: '#555',
-    fontSize: 13,
-  },
-  filterPillTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  searchContainer: {
-    flex: 1,
-    minWidth: 120,
-  },
-  searchInput: {
-    backgroundColor: '#f5f8fa',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    fontSize: 14,
-    color: '#222',
-    borderWidth: 1,
-    borderColor: '#e0e7ef',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#3498db',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  headerCell: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 13,
-    textAlign: 'left',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e7ef',
-  },
-  cell: {
-    fontSize: 15,
-    color: '#222',
-    paddingRight: 4,
-  },
-  actionsCell: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  actionIcon: {
-    padding: 8,
-    borderRadius: 16,
-    backgroundColor: '#f5f8fa',
-    marginLeft: 4,
+  assetValue: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    width: '85%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#222',
+    fontWeight: '700',
+    color: 'white',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   modalLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginTop: 8,
-    color: '#444',
+    fontSize: 14,
+    fontWeight: '500',
   },
   modalValue: {
-    fontWeight: '400',
-    color: '#222',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    margin: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalCloseButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
