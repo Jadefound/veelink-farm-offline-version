@@ -4,30 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { generateId } from "@/utils/helpers";
 import { Farm } from "@/types";
 import { farmSchema, validateData } from "@/utils/validation";
-
-// Mock farm data
-const mockFarms: Farm[] = [
-  {
-    id: 'farm-1',
-    name: 'Green Valley Farm',
-    location: 'California, USA',
-    size: 150,
-    sizeUnit: 'acres',
-    type: 'Mixed Livestock',
-    createdAt: '2023-01-01T00:00:00Z',
-    updatedAt: '2023-12-01T10:00:00Z',
-  },
-  {
-    id: 'farm-2',
-    name: 'Sunrise Ranch',
-    location: 'Texas, USA',
-    size: 200,
-    sizeUnit: 'acres',
-    type: 'Cattle Ranch',
-    createdAt: '2023-02-01T00:00:00Z',
-    updatedAt: '2023-12-01T10:00:00Z',
-  }
-];
+import { getMockData } from "@/utils/mockData";
 
 interface FarmState {
   farms: Farm[];
@@ -59,18 +36,31 @@ export const useFarmStore = create<FarmState>()(
       fetchFarms: async () => {
         set({ isLoading: true, error: null });
         try {
-          // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          set({ 
-            farms: mockFarms, 
-            currentFarm: mockFarms[0], // Set first farm as current
-            isLoading: false 
+          // Load farms from AsyncStorage
+          const farmsData = await AsyncStorage.getItem("farms");
+          let farms: Farm[] = farmsData ? JSON.parse(farmsData) : [];
+
+          // If no farms in storage, fall back to mock data (first‑run experience)
+          if (!farms.length) {
+            const mockFarms = getMockData("farms") as Farm[];
+            farms = mockFarms;
+            if (mockFarms.length) {
+              await AsyncStorage.setItem("farms", JSON.stringify(mockFarms));
+            }
+          }
+
+          // Sort farms alphabetically for consistency
+          farms.sort((a, b) => a.name.localeCompare(b.name));
+
+          set({
+            farms,
+            currentFarm: farms[0] ?? null,
+            isLoading: false,
           });
         } catch (error) {
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to fetch farms',
-            isLoading: false 
+            isLoading: false
           });
         }
       },

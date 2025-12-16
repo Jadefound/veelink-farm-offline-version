@@ -24,6 +24,10 @@ import {
 } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useFarmStore } from "@/store/farmStore";
+import { useAnimalStore } from "@/store/animalStore";
+import { useFinancialStore } from "@/store/financialStore";
+import { useHealthStore } from "@/store/healthStore";
 import Colors from "@/constants/colors";
 import Card from "@/components/Card";
 import { loadMockData, clearAllData, getMockData } from "@/utils/mockData";
@@ -32,6 +36,10 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
+  const { fetchFarms } = useFarmStore();
+  const { fetchAnimals } = useAnimalStore();
+  const { fetchTransactions } = useFinancialStore();
+  const { fetchHealthRecords } = useHealthStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
@@ -67,6 +75,14 @@ export default function SettingsScreen() {
             try {
               const success = await loadMockData();
               if (success) {
+                // Refresh in‑memory stores so data appears immediately
+                await Promise.allSettled([
+                  fetchFarms(),
+                  fetchAnimals(),
+                  fetchTransactions(),
+                  fetchHealthRecords(),
+                ]);
+
                 Alert.alert(
                   "Success",
                   "Mock data loaded successfully! You can now explore the app with sample data."

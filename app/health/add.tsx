@@ -56,7 +56,9 @@ export default function AddHealthRecordScreen() {
   useEffect(() => {
     if (selectedAnimalId && animals.length > 0) {
       const animal = animals.find(a => a.id === selectedAnimalId);
-      setSelectedAnimal(animal);
+      if (animal) {
+        setSelectedAnimal(animal);
+      }
     }
   }, [selectedAnimalId, animals]);
 
