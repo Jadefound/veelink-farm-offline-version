@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
 import { Farm } from "@/types";
 import { farmSchema, validateData } from "@/utils/validation";
@@ -11,6 +11,7 @@ interface FarmState {
   currentFarm: Farm | null;
   isLoading: boolean;
   error: string | null;
+  _initialized: boolean;
 
   // Actions
   fetchFarms: () => Promise<void>;
@@ -32,21 +33,18 @@ export const useFarmStore = create<FarmState>()(
       currentFarm: null,
       isLoading: false,
       error: null,
+      _initialized: false,
 
       fetchFarms: async () => {
         set({ isLoading: true, error: null });
         try {
-          // Load farms from AsyncStorage
-          const farmsData = await AsyncStorage.getItem("farms");
-          let farms: Farm[] = farmsData ? JSON.parse(farmsData) : [];
+          const state = get();
+          let farms = [...state.farms];
 
-          // If no farms in storage, fall back to mock data (first‑run experience)
-          if (!farms.length) {
+          // Initialize with mock data if first run OR data is empty (e.g., after clear)
+          if (!state._initialized || farms.length === 0) {
             const mockFarms = getMockData("farms") as Farm[];
             farms = mockFarms;
-            if (mockFarms.length) {
-              await AsyncStorage.setItem("farms", JSON.stringify(mockFarms));
-            }
           }
 
           // Sort farms alphabetically for consistency
@@ -54,13 +52,15 @@ export const useFarmStore = create<FarmState>()(
 
           set({
             farms,
-            currentFarm: farms[0] ?? null,
+            currentFarm: state.currentFarm || farms[0] || null,
             isLoading: false,
+            _initialized: true,
           });
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Failed to fetch farms',
-            isLoading: false
+            isLoading: false,
+            _initialized: true,
           });
         }
       },
@@ -88,10 +88,7 @@ export const useFarmStore = create<FarmState>()(
           // Get current farms and add new one
           const farms = [...get().farms, newFarm].sort((a, b) => a.name.localeCompare(b.name));
 
-          // Save to storage
-          await AsyncStorage.setItem("farms", JSON.stringify(farms));
-
-          // Update state
+          // Update state - Zustand persist handles storage automatically
           set({
             farms,
             currentFarm: newFarm,
@@ -122,7 +119,6 @@ export const useFarmStore = create<FarmState>()(
           const completeData = { ...existingFarm, ...farmData };
 
           // Validate the farm data
-          // We only validate fields that are being updated
           const fieldsToValidate = Object.keys(farmData) as (keyof typeof farmSchema.shape)[];
 
           const partialSchema = farmSchema.pick(
@@ -149,22 +145,18 @@ export const useFarmStore = create<FarmState>()(
               : farm
           ).sort((a, b) => a.name.localeCompare(b.name));
 
-          // Save to storage
-          await AsyncStorage.setItem("farms", JSON.stringify(farms));
-
           // Get updated farm
           const updatedFarm = farms.find(f => f.id === id);
           if (!updatedFarm) {
             throw new Error("Farm not found");
           }
 
-          // Update current farm if it's the one being updated
-          if (get().currentFarm?.id === id) {
-            set({ currentFarm: updatedFarm });
-          }
-
-          // Update state
-          set({ farms, isLoading: false });
+          // Update state - Zustand persist handles storage automatically
+          set({
+            farms,
+            currentFarm: get().currentFarm?.id === id ? updatedFarm : get().currentFarm,
+            isLoading: false
+          });
 
           return updatedFarm;
         } catch (error: any) {
@@ -180,19 +172,21 @@ export const useFarmStore = create<FarmState>()(
         set({ isLoading: true, error: null });
 
         try {
+          const state = get();
           // Filter out the farm to delete
-          const farms = get().farms.filter(farm => farm.id !== id);
-
-          // Save to storage
-          await AsyncStorage.setItem("farms", JSON.stringify(farms));
+          const farms = state.farms.filter(farm => farm.id !== id);
 
           // Update current farm if it's the one being deleted
-          if (get().currentFarm?.id === id) {
-            set({ currentFarm: farms.length > 0 ? farms[0] : null });
-          }
+          const newCurrentFarm = state.currentFarm?.id === id
+            ? (farms.length > 0 ? farms[0] : null)
+            : state.currentFarm;
 
-          // Update state
-          set({ farms, isLoading: false });
+          // Update state - Zustand persist handles storage automatically
+          set({
+            farms,
+            currentFarm: newCurrentFarm,
+            isLoading: false
+          });
         } catch (error: any) {
           set({
             error: error.message || "Failed to delete farm",
@@ -207,8 +201,6 @@ export const useFarmStore = create<FarmState>()(
       },
 
       getFarmStats: (farmId) => {
-        // This would typically get animal data, but we'll keep it simple for now
-        // In a real implementation, this would integrate with the animal store
         const farm = get().farms.find(f => f.id === farmId);
         if (!farm) {
           return {
@@ -221,15 +213,20 @@ export const useFarmStore = create<FarmState>()(
         const totalArea = farm.size || 0;
 
         return {
-          totalAnimals: 0, // Would be calculated from animal store
+          totalAnimals: 0,
           totalArea,
-          animalDensity: 0 // Would be totalAnimals / totalArea
+          animalDensity: 0
         };
       },
     }),
     {
       name: "farm-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        farms: state.farms,
+        currentFarm: state.currentFarm,
+        _initialized: state._initialized,
+      }),
     }
   )
 );

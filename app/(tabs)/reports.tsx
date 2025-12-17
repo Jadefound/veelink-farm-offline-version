@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,19 +7,15 @@ import {
   TouchableOpacity,
   Dimensions,
   RefreshControl,
-  Platform,
   Alert,
   Modal,
-  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
-  FileText,
   Download,
   ChevronDown,
   Calendar,
   ArrowUpDown,
-  FileBarChart,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -44,13 +40,37 @@ import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
-import Button from "@/components/Button";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { formatCurrency, formatDate } from "@/utils/helpers";
 import { Animal, HealthRecord, Transaction } from "@/types";
 import TopNavigation from "@/components/TopNavigation";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from "expo-router";
+
+// Helper function to calculate date range
+const getStartTimestamp = (filterPeriod: FilterPeriod): number => {
+  if (filterPeriod === "all") return 0;
+
+  const now = new Date();
+  const startDate = new Date(now);
+
+  switch (filterPeriod) {
+    case "week":
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case "month":
+      startDate.setMonth(now.getMonth() - 1);
+      break;
+    case "quarter":
+      startDate.setMonth(now.getMonth() - 3);
+      break;
+    case "year":
+      startDate.setFullYear(now.getFullYear() - 1);
+      break;
+  }
+
+  return startDate.getTime();
+};
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -93,80 +113,154 @@ export default function ReportsScreen() {
   const isLoading = false;
   const insets = useSafeAreaInsets();
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 500);
-  };
+  }, []);
 
-  // Calculate comprehensive statistics
-  const stats = useMemo(() => {
-    const now = new Date();
-    let startDate = new Date(0);
+  // Split heavy calculations into smaller, focused memoized chunks for better performance
 
-    if (filterPeriod === "week") {
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - 7);
-    } else if (filterPeriod === "month") {
-      startDate = new Date(now);
-      startDate.setMonth(now.getMonth() - 1);
-    } else if (filterPeriod === "quarter") {
-      startDate = new Date(now);
-      startDate.setMonth(now.getMonth() - 3);
-    } else if (filterPeriod === "year") {
-      startDate = new Date(now);
-      startDate.setFullYear(now.getFullYear() - 1);
-    }
+  // Scope all report inputs to the current farm (critical once stores keep full datasets)
+  const farmId = currentFarm?.id;
+  const farmAnimals = useMemo(
+    () => (farmId ? animals.filter(a => a.farmId === farmId) : animals),
+    [animals, farmId]
+  );
+  const farmHealthRecords = useMemo(
+    () => (farmId ? healthRecords.filter(r => r.farmId === farmId) : healthRecords),
+    [healthRecords, farmId]
+  );
+  const farmTransactions = useMemo(
+    () => (farmId ? transactions.filter(t => t.farmId === farmId) : transactions),
+    [transactions, farmId]
+  );
 
-    const startTimestamp = startDate.getTime();
+  // Get start timestamp once
+  const startTimestamp = useMemo(() => getStartTimestamp(filterPeriod), [filterPeriod]);
 
-    // Filter data by period
-    const filteredAnimals = animals.filter(a =>
-      filterPeriod === "all" || new Date(a.createdAt).getTime() >= startTimestamp
-    );
-    const filteredHealth = healthRecords.filter(r =>
-      filterPeriod === "all" || new Date(r.date).getTime() >= startTimestamp
-    );
-    const filteredTransactions = transactions.filter(t =>
-      filterPeriod === "all" || new Date(t.date).getTime() >= startTimestamp
-    );
+  // Filter data by period - only recalculate when source data or filter changes
+  const filteredAnimals = useMemo(() =>
+    filterPeriod === "all"
+      ? farmAnimals
+      : farmAnimals.filter(a => new Date(a.createdAt).getTime() >= startTimestamp),
+    [farmAnimals, filterPeriod, startTimestamp]
+  );
 
-    // Animal stats
-    const totalAnimals = animals.length;
-    const activeAnimals = animals.filter(a => a.status !== 'Sold' && a.status !== 'Dead');
-    const soldAnimals = animals.filter(a => a.status === 'Sold');
-    const healthyAnimals = animals.filter(a => a.healthStatus === 'healthy' || a.status === 'Healthy');
-    const sickAnimals = animals.filter(a => a.healthStatus === 'sick' || a.status === 'Sick');
+  const filteredHealth = useMemo(() =>
+    filterPeriod === "all"
+      ? farmHealthRecords
+      : farmHealthRecords.filter(r => new Date(r.date).getTime() >= startTimestamp),
+    [farmHealthRecords, filterPeriod, startTimestamp]
+  );
 
-    // Health costs (Health module)
-    const totalHealthCosts = filteredHealth.reduce((sum, r) => sum + r.cost, 0);
+  const filteredTransactions = useMemo(() =>
+    filterPeriod === "all"
+      ? farmTransactions
+      : farmTransactions.filter(t => new Date(t.date).getTime() >= startTimestamp),
+    [farmTransactions, filterPeriod, startTimestamp]
+  );
 
-    // Financial stats
-    // IMPORTANT: include Health costs in expenses so net profit matches the Health module.
-    const totalIncome = filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
-    const baseExpenses = filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
-    const totalExpenses = baseExpenses + totalHealthCosts;
-    const netProfit = totalIncome - totalExpenses;
-    const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
-    const avgHealthCostPerAnimal = totalAnimals > 0 ? totalHealthCosts / totalAnimals : 0;
+  // Animal stats - only depends on animals array
+  const animalStats = useMemo(() => {
+    const totalAnimals = farmAnimals.length;
+    const activeAnimals = farmAnimals.filter(a => a.status !== 'Sold' && a.status !== 'Dead');
+    const soldAnimals = farmAnimals.filter(a => a.status === 'Sold');
+    const healthyAnimals = farmAnimals.filter(a => a.healthStatus === 'healthy' || a.status === 'Healthy');
+    const sickAnimals = farmAnimals.filter(a => a.healthStatus === 'sick' || a.status === 'Sick');
 
-    // Asset value
-    const totalAssetValue = activeAnimals.reduce((sum, a) => sum + (a.estimatedValue || a.price || 0), 0);
-    const totalAcquisitionCost = activeAnimals.reduce((sum, a) => sum + (a.acquisitionPrice || 0), 0);
-    const assetAppreciation = totalAssetValue - totalAcquisitionCost;
-    const appreciationPercent = totalAcquisitionCost > 0 ? (assetAppreciation / totalAcquisitionCost) * 100 : 0;
-
-    // Sales performance
-    const salesRevenue = soldAnimals.reduce((sum, a) => sum + (a.price || 0), 0);
-    const salesCost = soldAnimals.reduce((sum, a) => sum + (a.acquisitionPrice || 0), 0);
-    const salesProfit = salesRevenue - salesCost;
-
-    // Species breakdown
-    const speciesData = animals.reduce((acc, a) => {
+    const speciesData = farmAnimals.reduce((acc, a) => {
       acc[a.species] = (acc[a.species] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    // Transaction categories
+    return {
+      total: totalAnimals,
+      active: activeAnimals.length,
+      sold: soldAnimals.length,
+      healthy: healthyAnimals.length,
+      sick: sickAnimals.length,
+      healthRate: totalAnimals > 0 ? (healthyAnimals.length / totalAnimals) * 100 : 0,
+      speciesData,
+      activeAnimals,
+      soldAnimals,
+    };
+  }, [farmAnimals]);
+
+  // Health stats - only depends on filtered health records
+  const healthStats = useMemo(() => {
+    const totalCosts = filteredHealth.reduce((sum, r) => sum + (r.cost || 0), 0);
+    const avgCostPerAnimal = animalStats.total > 0 ? totalCosts / animalStats.total : 0;
+
+    const typeData = filteredHealth.reduce((acc, r) => {
+      acc[r.type] = (acc[r.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalRecords: filteredHealth.length,
+      totalCosts,
+      avgCostPerAnimal,
+      typeData,
+    };
+  }, [filteredHealth, animalStats.total]);
+
+  // Financial stats - depends on filtered transactions and health records
+  // IMPORTANT: Must de-duplicate health costs to avoid double-counting
+  const financialStats = useMemo(() => {
+    const totalIncome = filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
+    const baseExpenses = filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
+
+    // Identify health expense transactions (Medication/Veterinary categories)
+    const healthExpenseTransactions = filteredTransactions.filter(
+      t => t.type === 'Expense' && (t.category === 'Medication' || t.category === 'Veterinary')
+    );
+
+    // Helper to normalize date to day key for comparison
+    const toDayKey = (isoDate: string) => {
+      try {
+        return new Date(isoDate).toISOString().slice(0, 10);
+      } catch {
+        return isoDate.slice(0, 10);
+      }
+    };
+
+    // Calculate additional health costs from health records that don't have linked transactions
+    // This mirrors the de-duplication logic in financialStore.getFinancialStats()
+    const additionalHealthCosts = filteredHealth.reduce((sum, record) => {
+      const cost = record.cost || 0;
+      if (cost <= 0) return sum;
+
+      // Check if there's a transaction with HEALTH-{id} reference
+      const linkedRef = `HEALTH-${record.id}`;
+      const hasLinkedTransaction = filteredTransactions.some(t => t.reference === linkedRef);
+      if (hasLinkedTransaction) return sum;
+
+      // Check if there's a similar transaction on the same day with the same amount
+      const recordDay = toDayKey(record.date);
+      const hasSimilarTxn = healthExpenseTransactions.some(t =>
+        t.amount === cost && toDayKey(t.date) === recordDay
+      );
+
+      // Only add if no linked or similar transaction exists
+      return hasSimilarTxn ? sum : sum + cost;
+    }, 0);
+
+    const totalExpenses = baseExpenses + additionalHealthCosts;
+    const netProfit = totalIncome - totalExpenses;
+    const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+
+    // Asset value calculations
+    const totalAssetValue = animalStats.activeAnimals.reduce((sum, a) => sum + (a.estimatedValue || a.price || 0), 0);
+    const totalAcquisitionCost = animalStats.activeAnimals.reduce((sum, a) => sum + (a.acquisitionPrice || 0), 0);
+    const assetAppreciation = totalAssetValue - totalAcquisitionCost;
+    const appreciationPercent = totalAcquisitionCost > 0 ? (assetAppreciation / totalAcquisitionCost) * 100 : 0;
+
+    // Sales performance
+    const salesRevenue = animalStats.soldAnimals.reduce((sum, a) => sum + (a.price || 0), 0);
+    const salesCost = animalStats.soldAnimals.reduce((sum, a) => sum + (a.acquisitionPrice || 0), 0);
+    const salesProfit = salesRevenue - salesCost;
+
+    // Category data
     const categoryData = filteredTransactions.reduce((acc, t) => {
       if (!acc[t.category]) {
         acc[t.category] = { income: 0, expense: 0 };
@@ -179,53 +273,49 @@ export default function ReportsScreen() {
       return acc;
     }, {} as Record<string, { income: number; expense: number }>);
 
-    // Health record types
-    const healthTypeData = filteredHealth.reduce((acc, r) => {
-      acc[r.type] = (acc[r.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    // Calculate actual health costs included in expenses (transactions + additional from records)
+    const healthCostsFromTransactions = healthExpenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalHealthCosts = healthCostsFromTransactions + additionalHealthCosts;
 
     return {
-      animals: {
-        total: totalAnimals,
-        active: activeAnimals.length,
-        sold: soldAnimals.length,
-        healthy: healthyAnimals.length,
-        sick: sickAnimals.length,
-        healthRate: totalAnimals > 0 ? (healthyAnimals.length / totalAnimals) * 100 : 0,
-        speciesData,
-      },
-      financial: {
-        totalIncome,
-        totalExpenses,
-        netProfit,
-        profitMargin,
-        healthCosts: totalHealthCosts,
-        totalAssetValue,
-        totalAcquisitionCost,
-        assetAppreciation,
-        appreciationPercent,
-        salesRevenue,
-        salesCost,
-        salesProfit,
-        categoryData,
-      },
-      health: {
-        totalRecords: filteredHealth.length,
-        totalCosts: totalHealthCosts,
-        avgCostPerAnimal: avgHealthCostPerAnimal,
-        typeData: healthTypeData,
-      },
-      filteredAnimals,
-      filteredHealth,
-      filteredTransactions,
+      totalIncome,
+      totalExpenses,
+      netProfit,
+      profitMargin,
+      healthCosts: totalHealthCosts,
+      totalAssetValue,
+      totalAcquisitionCost,
+      assetAppreciation,
+      appreciationPercent,
+      salesRevenue,
+      salesCost,
+      salesProfit,
+      categoryData,
     };
-  }, [animals, healthRecords, transactions, filterPeriod]);
+  }, [filteredTransactions, filteredHealth, animalStats.activeAnimals, animalStats.soldAnimals]);
+
+  // Combined stats object for backwards compatibility with render functions
+  const stats = useMemo(() => ({
+    animals: animalStats,
+    financial: financialStats,
+    health: healthStats,
+    filteredAnimals,
+    filteredHealth,
+    filteredTransactions,
+  }), [animalStats, financialStats, healthStats, filteredAnimals, filteredHealth, filteredTransactions]);
+
+  // Maximum rows to include in PDF to prevent memory crashes on low-end devices
+  const MAX_PDF_ROWS = 100;
 
   // Generate PDF HTML
   const generateReportHtml = () => {
     const farmName = currentFarm?.name || "Farm";
     const reportDate = new Date().toLocaleDateString();
+
+    // Limit data for PDF to prevent memory issues
+    const pdfAnimals = stats.filteredAnimals.slice(0, MAX_PDF_ROWS);
+    const animalsTruncated = stats.filteredAnimals.length > MAX_PDF_ROWS;
+    const totalAnimalsCount = stats.filteredAnimals.length;
 
     return `
       <!DOCTYPE html>
@@ -255,6 +345,7 @@ export default function ReportsScreen() {
             .summary-box { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border-radius: 16px; padding: 24px; margin-bottom: 24px; }
             .summary-title { font-size: 16px; opacity: 0.9; margin-bottom: 8px; }
             .summary-value { font-size: 36px; font-weight: 700; }
+            .truncation-notice { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 13px; color: #92400e; }
           </style>
         </head>
         <body>
@@ -311,6 +402,7 @@ export default function ReportsScreen() {
                 <p class="metric-value positive">${stats.animals.healthRate.toFixed(1)}%</p>
               </div>
             </div>
+            ${animalsTruncated ? `<div class="truncation-notice">⚠️ Showing first ${MAX_PDF_ROWS} of ${totalAnimalsCount} animals. Export filtered data for a complete list.</div>` : ''}
             <table>
               <thead>
                 <tr>
@@ -323,7 +415,7 @@ export default function ReportsScreen() {
                 </tr>
               </thead>
               <tbody>
-                ${stats.filteredAnimals.map(a => `
+                ${pdfAnimals.map(a => `
                   <tr>
                     <td>${a.identificationNumber}</td>
                     <td>${a.species}</td>

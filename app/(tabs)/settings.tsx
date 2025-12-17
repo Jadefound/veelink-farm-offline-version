@@ -30,7 +30,7 @@ import { useFinancialStore } from "@/store/financialStore";
 import { useHealthStore } from "@/store/healthStore";
 import Colors from "@/constants/colors";
 import Card from "@/components/Card";
-import { loadMockData, clearAllData, getMockData } from "@/utils/mockData";
+import { clearAllData } from "@/utils/mockData";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -73,26 +73,21 @@ export default function SettingsScreen() {
           text: "Load Data",
           onPress: async () => {
             try {
-              const success = await loadMockData();
-              if (success) {
-                // Refresh in‑memory stores so data appears immediately
-                await Promise.allSettled([
-                  fetchFarms(),
-                  fetchAnimals(),
-                  fetchTransactions(),
-                  fetchHealthRecords(),
-                ]);
+              // Since stores auto-seed mock data when empty, we can simply clear then refetch.
+              const success = await clearAllData();
+              if (!success) throw new Error("Failed to clear existing data");
 
-                Alert.alert(
-                  "Success",
-                  "Mock data loaded successfully! You can now explore the app with sample data."
-                );
-              } else {
-                Alert.alert(
-                  "Error",
-                  "Failed to load mock data. Please check the console for more details."
-                );
-              }
+              await Promise.allSettled([
+                fetchFarms(),
+                fetchAnimals(),
+                fetchTransactions(),
+                fetchHealthRecords(),
+              ]);
+
+              Alert.alert(
+                "Success",
+                "Demo data reloaded successfully!"
+              );
             } catch (error) {
               Alert.alert(
                 "Error",
@@ -202,16 +197,21 @@ export default function SettingsScreen() {
     {
       title: "Developer Tools",
       items: [
-        {
-          icon: <Database size={20} color={colors.text} />,
-          title: "Load Mock Data",
-          onPress: handleLoadMockData,
-        },
-        {
-          icon: <Trash2 size={20} color={colors.text} />,
-          title: "Clear All Data",
-          onPress: handleClearAllData,
-        },
+        // Hide dev tools in production builds
+        ...(typeof __DEV__ !== "undefined" && __DEV__
+          ? ([
+            {
+              icon: <Database size={20} color={colors.text} />,
+              title: "Reload Demo Data",
+              onPress: handleLoadMockData,
+            },
+            {
+              icon: <Trash2 size={20} color={colors.text} />,
+              title: "Clear All Data",
+              onPress: handleClearAllData,
+            },
+          ] as any)
+          : []),
       ],
     },
     {

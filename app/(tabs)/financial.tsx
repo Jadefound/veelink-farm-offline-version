@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,29 +6,26 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  ScrollView,
-  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Plus,
   TrendingUp,
   TrendingDown,
-  DollarSign,
 } from "lucide-react-native";
 import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
-import { Transaction, Farm } from "@/types";
+import { Transaction } from "@/types";
 import { formatCurrency } from "@/utils/helpers";
 import Colors from "@/constants/colors";
 import TransactionCard from "@/components/TransactionCard";
 import EmptyState from "@/components/EmptyState";
-import LoadingIndicator from "@/components/LoadingIndicator";
 import TopNavigation from "@/components/TopNavigation";
-import StatCard from "@/components/StatCard";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+
+const ITEM_HEIGHT = 80; // Approximate height for transaction cards
 
 export default function FinancialScreen() {
   const router = useRouter();
@@ -45,48 +42,168 @@ export default function FinancialScreen() {
     byCategory: [] as { category: string; amount: number; type: "Income" | "Expense" }[],
   });
 
-  // Use the store instead:
   const transactions = useFinancialStore(state => state.transactions);
+  const fetchTransactions = useFinancialStore(state => state.fetchTransactions);
+  const getFinancialStats = useFinancialStore(state => state.getFinancialStats);
   const { farms, currentFarm } = useFarmStore();
-  const isLoading = false;
-
+  const farmTransactions = useMemo(() => {
+    if (!currentFarm?.id) return [];
+    return transactions.filter(t => t.farmId === currentFarm.id);
+  }, [transactions, currentFarm?.id]);
   const { isDarkMode } = useThemeStore();
-
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
+  // Load data on mount and when farm changes
   useEffect(() => {
     if (currentFarm) {
       loadFinancialData();
     }
-  }, [currentFarm]);
+  }, [currentFarm?.id]);
 
-  const loadFinancialData = async () => {
+  const loadFinancialData = useCallback(async () => {
     if (currentFarm) {
-      const stats = await useFinancialStore.getState().getFinancialStats(currentFarm.id);
+      await fetchTransactions(currentFarm.id);
+      const stats = await getFinancialStats(currentFarm.id);
       setFinancialStats(stats);
     }
-  };
+  }, [currentFarm?.id, fetchTransactions, getFinancialStats]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Simulate refresh delay
-    setTimeout(() => setRefreshing(false), 500);
-  };
+    await loadFinancialData();
+    setRefreshing(false);
+  }, [loadFinancialData]);
 
-  const handleTransactionPress = (transaction: Transaction) => {
+  const handleTransactionPress = useCallback((transaction: Transaction) => {
     router.push({
       pathname: "/financial/[id]",
       params: { id: transaction.id },
     });
-  };
+  }, [router]);
 
-  const handleAddTransaction = () => {
+  const handleAddTransaction = useCallback(() => {
     router.push("/financial/add");
-  };
+  }, [router]);
 
-  const handleAddFarm = () => {
+  const handleAddFarm = useCallback(() => {
     router.push("/farm/add");
-  };
+  }, [router]);
+
+  const handleViewAll = useCallback(() => {
+    router.push({ pathname: "/reports", params: { reportType: "financial" } });
+  }, [router]);
+
+  // Memoize renderItem
+  const renderItem = useCallback(({ item }: { item: Transaction }) => (
+    <TransactionCard
+      transaction={item}
+      onPress={handleTransactionPress}
+    />
+  ), [handleTransactionPress]);
+
+  const keyExtractor = useCallback((item: Transaction) => item.id, []);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  // Memoize the header component
+  const ListHeader = useMemo(() => (
+    <View style={styles.headerContainer}>
+      {/* Net Profit Highlight */}
+      <Card variant="elevated" style={styles.netProfitCard}>
+        <View style={styles.netProfitContent}>
+          <Text style={[styles.netProfitLabel, { color: colors.muted }]}>
+            Net Profit
+          </Text>
+          <Text
+            style={[
+              styles.netProfitValue,
+              {
+                color:
+                  financialStats.netProfit >= 0
+                    ? colors.success
+                    : colors.danger,
+              },
+            ]}
+          >
+            {formatCurrency(financialStats.netProfit)}
+          </Text>
+        </View>
+      </Card>
+
+      {/* Financial Overview */}
+      <View style={styles.overviewGrid}>
+        <Card variant="success" style={styles.overviewCard}>
+          <TrendingUp size={20} color={colors.success} />
+          <Text style={[styles.overviewLabel, { color: colors.muted }]}>
+            Income
+          </Text>
+          <Text style={[styles.overviewValue, { color: colors.text }]}>
+            {formatCurrency(financialStats.totalIncome)}
+          </Text>
+        </Card>
+
+        <Card variant="warning" style={styles.overviewCard}>
+          <TrendingDown size={20} color={colors.danger} />
+          <Text style={[styles.overviewLabel, { color: colors.muted }]}>
+            Expenses
+          </Text>
+          <Text style={[styles.overviewValue, { color: colors.text }]}>
+            {formatCurrency(financialStats.totalExpenses)}
+          </Text>
+        </Card>
+      </View>
+
+      {/* Asset Summary */}
+      <Card variant="info" style={styles.assetCard}>
+        <View style={styles.assetHeader}>
+          <Text style={[styles.assetTitle, { color: colors.text }]}>
+            Assets
+          </Text>
+          <Text style={[styles.assetValue, { color: colors.tint }]}>
+            {formatCurrency(financialStats.totalAssetValue)}
+          </Text>
+        </View>
+        <View style={styles.assetBreakdown}>
+          <Text style={[styles.assetDetail, { color: colors.muted }]}>
+            Animal Sales: {formatCurrency(financialStats.animalSales)}
+          </Text>
+          <Text style={[styles.assetDetail, { color: colors.muted }]}>
+            Health Costs: {formatCurrency(financialStats.healthCosts)}
+          </Text>
+        </View>
+      </Card>
+
+      {/* Recent Transactions Header */}
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Recent
+        </Text>
+        <TouchableOpacity onPress={handleViewAll}>
+          <Text style={[styles.viewAllText, { color: colors.tint }]}>
+            View All
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  ), [financialStats, colors, handleViewAll]);
+
+  const ListEmpty = useMemo(() => (
+    <Card variant="outlined" style={styles.emptyCard}>
+      <Text style={[styles.emptyText, { color: colors.muted }]}>
+        No transactions yet
+      </Text>
+      <Button
+        title="Add First Transaction"
+        onPress={handleAddTransaction}
+        variant="outline"
+        size="small"
+      />
+    </Card>
+  ), [colors.muted, handleAddTransaction]);
 
   if (farms.length === 0) {
     return (
@@ -101,18 +218,24 @@ export default function FinancialScreen() {
     );
   }
 
-
-
-  const screenWidth = Dimensions.get("window").width;
-  const isTablet = screenWidth > 768;
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
 
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
+      <FlatList
+        data={farmTransactions.slice(0, 10)} // Show recent transactions for current farm
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmpty}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        // Performance optimizations
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={true}
+        getItemLayout={getItemLayout}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -120,118 +243,13 @@ export default function FinancialScreen() {
             tintColor={colors.tint}
           />
         }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Net Profit Highlight */}
-        <Card variant="elevated" style={styles.netProfitCard}>
-          <View style={styles.netProfitContent}>
-            <Text style={[styles.netProfitLabel, { color: colors.muted }]}>
-              Net Profit
-            </Text>
-            <Text
-              style={[
-                styles.netProfitValue,
-                {
-                  color:
-                    financialStats.netProfit >= 0
-                      ? colors.success
-                      : colors.danger,
-                },
-              ]}
-            >
-              {formatCurrency(financialStats.netProfit)}
-            </Text>
-          </View>
-        </Card>
-
-        {/* Financial Overview */}
-        <View style={styles.overviewGrid}>
-          <Card variant="success" style={styles.overviewCard}>
-            <TrendingUp size={20} color={colors.success} />
-            <Text style={[styles.overviewLabel, { color: colors.muted }]}>
-              Income
-            </Text>
-            <Text style={[styles.overviewValue, { color: colors.text }]}>
-              {formatCurrency(financialStats.totalIncome)}
-            </Text>
-          </Card>
-
-          <Card variant="warning" style={styles.overviewCard}>
-            <TrendingDown size={20} color={colors.danger} />
-            <Text style={[styles.overviewLabel, { color: colors.muted }]}>
-              Expenses
-            </Text>
-            <Text style={[styles.overviewValue, { color: colors.text }]}>
-              {formatCurrency(financialStats.totalExpenses)}
-            </Text>
-          </Card>
-        </View>
-
-        {/* Asset Summary */}
-        <Card variant="info" style={styles.assetCard}>
-          <View style={styles.assetHeader}>
-            <Text style={[styles.assetTitle, { color: colors.text }]}>
-              Assets
-            </Text>
-            <Text style={[styles.assetValue, { color: colors.tint }]}>
-              {formatCurrency(financialStats.totalAssetValue)}
-            </Text>
-          </View>
-          <View style={styles.assetBreakdown}>
-            <Text style={[styles.assetDetail, { color: colors.muted }]}>
-              Animal Sales: {formatCurrency(financialStats.animalSales)}
-            </Text>
-            <Text style={[styles.assetDetail, { color: colors.muted }]}>
-              Health Costs: {formatCurrency(financialStats.healthCosts)}
-            </Text>
-          </View>
-        </Card>
-
-        {/* Recent Transactions */}
-        <View style={styles.transactionsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Recent
-            </Text>
-            <TouchableOpacity onPress={() => router.push({ pathname: "/reports", params: { reportType: "financial" } })}>
-              <Text style={[styles.viewAllText, { color: colors.tint }]}>
-                View All
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {isLoading && !refreshing ? (
-            <LoadingIndicator message="Loading..." />
-          ) : transactions.length === 0 ? (
-            <Card variant="outlined" style={styles.emptyCard}>
-              <Text style={[styles.emptyText, { color: colors.muted }]}>
-                No transactions yet
-              </Text>
-              <Button
-                title="Add First Transaction"
-                onPress={handleAddTransaction}
-                variant="outline"
-                size="small"
-              />
-            </Card>
-          ) : (
-            <View style={styles.transactionsList}>
-              {transactions.slice(0, 5).map((transaction) => (
-                <TransactionCard
-                  key={transaction.id}
-                  transaction={transaction}
-                  onPress={handleTransactionPress}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-      </ScrollView>
+      />
 
       {/* FAB */}
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.tint }]}
         onPress={handleAddTransaction}
+        activeOpacity={0.8}
       >
         <Plus size={24} color="white" />
       </TouchableOpacity>
@@ -243,10 +261,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContainer: {
-    flex: 1,
+  headerContainer: {
+    marginBottom: 8,
   },
-  scrollContent: {
+  listContent: {
     padding: 20,
     paddingBottom: 100,
   },
@@ -310,9 +328,6 @@ const styles = StyleSheet.create({
   assetDetail: {
     fontSize: 14,
   },
-  transactionsSection: {
-    marginBottom: 20,
-  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -334,9 +349,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     marginBottom: 16,
-  },
-  transactionsList: {
-    gap: 12,
   },
   fab: {
     position: "absolute",

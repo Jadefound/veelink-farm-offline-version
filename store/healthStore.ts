@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
 import { HealthRecord, HealthRecordType } from "@/types";
 import { useFarmStore } from "./farmStore";
@@ -10,10 +10,11 @@ interface HealthState {
   healthRecords: HealthRecord[];
   isLoading: boolean;
   error: string | null;
+  _initialized: boolean;
 
   // Actions
   fetchHealthRecords: (farmId?: string, animalId?: string) => Promise<HealthRecord[]>;
-  getHealthRecord: (id: string) => Promise<HealthRecord | undefined>;
+  getHealthRecord: (id: string) => HealthRecord | undefined;
   createHealthRecord: (recordData: Omit<HealthRecord, "id" | "createdAt" | "updatedAt">) => Promise<HealthRecord>;
   updateHealthRecord: (id: string, recordData: Partial<HealthRecord>) => Promise<HealthRecord>;
   deleteHealthRecord: (id: string) => Promise<void>;
@@ -33,66 +34,58 @@ export const useHealthStore = create<HealthState>()(
       healthRecords: [],
       isLoading: false,
       error: null,
+      _initialized: false,
 
       fetchHealthRecords: async (farmId, animalId) => {
         set({ isLoading: true, error: null });
 
         try {
-          // Get health records from storage
-          const recordsData = await AsyncStorage.getItem("healthRecords");
-          let records: HealthRecord[] = recordsData ? JSON.parse(recordsData) : [];
+          const state = get();
+          let allRecords = [...state.healthRecords];
 
-          // If no health records in storage, fall back to mock data (first-run experience)
-          if (!records.length) {
+          // Initialize with mock data if first run OR data is empty (e.g., after clear)
+          if (!state._initialized || allRecords.length === 0) {
             const mockHealthRecords = getMockData("healthRecords") as HealthRecord[];
-            records = mockHealthRecords;
-            if (mockHealthRecords.length) {
-              await AsyncStorage.setItem("healthRecords", JSON.stringify(mockHealthRecords));
-            }
+            allRecords = mockHealthRecords;
           }
 
           // Filter by farm if farmId is provided
-          if (farmId) {
-            records = records.filter(record => record.farmId === farmId);
-          } else {
-            // Use current farm from farmStore if no farmId is provided
-            const currentFarm = useFarmStore.getState().currentFarm;
-            if (currentFarm) {
-              records = records.filter(record => record.farmId === currentFarm.id);
-            }
-          }
+          const targetFarmId = farmId || useFarmStore.getState().currentFarm?.id;
+          let filteredRecords = targetFarmId
+            ? allRecords.filter(record => record.farmId === targetFarmId)
+            : allRecords;
 
           // Filter by animal if animalId is provided
           if (animalId) {
-            records = records.filter(record => record.animalId === animalId);
+            filteredRecords = filteredRecords.filter(record => record.animalId === animalId);
           }
 
           // Sort by date (most recent first)
-          records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          filteredRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          const allRecordsSorted = [...allRecords].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
 
-          set({ healthRecords: records, isLoading: false });
-          return records;
+          set({
+            // IMPORTANT: store must keep the FULL dataset; screens/selectors filter by farm/animal.
+            healthRecords: allRecordsSorted,
+            isLoading: false,
+            _initialized: true,
+          });
+
+          return filteredRecords;
         } catch (error: any) {
           set({
             error: error.message || "Failed to fetch health records",
-            isLoading: false
+            isLoading: false,
+            _initialized: true,
           });
           return [];
         }
       },
 
-      getHealthRecord: async (id) => {
-        try {
-          // Get health records from storage
-          const recordsData = await AsyncStorage.getItem("healthRecords");
-          const records: HealthRecord[] = recordsData ? JSON.parse(recordsData) : [];
-
-          // Find record by id
-          return records.find(record => record.id === id);
-        } catch (error) {
-          console.error("Failed to get health record:", error);
-          return undefined;
-        }
+      getHealthRecord: (id) => {
+        return get().healthRecords.find(record => record.id === id);
       },
 
       createHealthRecord: async (recordData) => {
@@ -106,29 +99,16 @@ export const useHealthStore = create<HealthState>()(
             updatedAt: new Date().toISOString(),
           };
 
-          // Get all health records
-          const recordsData = await AsyncStorage.getItem("healthRecords");
-          const allRecords: HealthRecord[] = recordsData ? JSON.parse(recordsData) : [];
+          const state = get();
+          const updatedRecords = [...state.healthRecords, newRecord];
 
-          // Add new record
-          const updatedRecords = [...allRecords, newRecord];
-
-          // Save to storage
-          await AsyncStorage.setItem("healthRecords", JSON.stringify(updatedRecords));
-
-          // Update state with records for current farm
-          const currentFarm = useFarmStore.getState().currentFarm;
-          const farmRecords = updatedRecords
-            .filter(record => record.farmId === (currentFarm?.id || recordData.farmId))
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+          // Update state - Zustand persist handles storage automatically
           set({
-            healthRecords: farmRecords,
+            healthRecords: updatedRecords,
             isLoading: false
           });
 
-          // Link Health costs into Financials (create an Expense transaction tied to this record).
-          // Dynamic import avoids circular dependency.
+          // Link Health costs into Financials (create an Expense transaction tied to this record)
           if ((newRecord.cost || 0) > 0) {
             try {
               const { useFinancialStore } = await import("./financialStore");
@@ -145,7 +125,6 @@ export const useHealthStore = create<HealthState>()(
                 animalId: newRecord.animalId,
               });
             } catch (e) {
-              // Non-fatal: Health record should still save even if financial linkage fails
               console.warn("Failed to create linked financial transaction for health record:", e);
             }
           }
@@ -164,46 +143,34 @@ export const useHealthStore = create<HealthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          // Get all health records
-          const recordsData = await AsyncStorage.getItem("healthRecords");
-          const allRecords: HealthRecord[] = recordsData ? JSON.parse(recordsData) : [];
+          const state = get();
 
           // Find and update record
-          const updatedAllRecords = allRecords.map(record =>
-            record.id === id
-              ? {
-                ...record,
-                ...recordData,
-                updatedAt: new Date().toISOString()
-              }
-              : record
-          );
+          const index = state.healthRecords.findIndex(r => r.id === id);
+          if (index === -1) throw new Error("Health record not found");
 
-          // Save to storage
-          await AsyncStorage.setItem("healthRecords", JSON.stringify(updatedAllRecords));
+          const updatedRecord = {
+            ...state.healthRecords[index],
+            ...recordData,
+            updatedAt: new Date().toISOString()
+          };
 
-          // Get updated record
-          const updatedRecord = updatedAllRecords.find(r => r.id === id);
-          if (!updatedRecord) {
-            throw new Error("Health record not found");
-          }
+          const updatedRecords = [
+            ...state.healthRecords.slice(0, index),
+            updatedRecord,
+            ...state.healthRecords.slice(index + 1)
+          ];
 
-          // Update state with records for current farm
-          const currentFarm = useFarmStore.getState().currentFarm;
-          const farmRecords = updatedAllRecords
-            .filter(record => record.farmId === currentFarm?.id)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+          // Update state - Zustand persist handles storage automatically
           set({
-            healthRecords: farmRecords,
+            healthRecords: updatedRecords,
             isLoading: false
           });
 
-          // Keep the linked financial transaction in sync (or create/delete if needed)
+          // Keep the linked financial transaction in sync
           try {
             const { useFinancialStore } = await import("./financialStore");
             const financialStore = useFinancialStore.getState();
-            await financialStore.fetchTransactions(updatedRecord.farmId);
 
             const reference = `HEALTH-${updatedRecord.id}`;
             const linkedTxn = financialStore.transactions.find(
@@ -257,26 +224,13 @@ export const useHealthStore = create<HealthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          // Get all health records
-          const recordsData = await AsyncStorage.getItem("healthRecords");
-          const allRecords: HealthRecord[] = recordsData ? JSON.parse(recordsData) : [];
+          const state = get();
+          const recordToDelete = state.healthRecords.find(record => record.id === id);
+          const updatedRecords = state.healthRecords.filter(record => record.id !== id);
 
-          const recordToDelete = allRecords.find(record => record.id === id);
-
-          // Filter out the record to delete
-          const updatedAllRecords = allRecords.filter(record => record.id !== id);
-
-          // Save to storage
-          await AsyncStorage.setItem("healthRecords", JSON.stringify(updatedAllRecords));
-
-          // Update state with records for current farm
-          const currentFarm = useFarmStore.getState().currentFarm;
-          const farmRecords = updatedAllRecords
-            .filter(record => record.farmId === currentFarm?.id)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+          // Update state - Zustand persist handles storage automatically
           set({
-            healthRecords: farmRecords,
+            healthRecords: updatedRecords,
             isLoading: false
           });
 
@@ -285,7 +239,6 @@ export const useHealthStore = create<HealthState>()(
             try {
               const { useFinancialStore } = await import("./financialStore");
               const financialStore = useFinancialStore.getState();
-              await financialStore.fetchTransactions(recordToDelete.farmId);
 
               const reference = `HEALTH-${recordToDelete.id}`;
               const linkedTxn = financialStore.transactions.find(
@@ -353,6 +306,10 @@ export const useHealthStore = create<HealthState>()(
     {
       name: "health-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        healthRecords: state.healthRecords,
+        _initialized: state._initialized,
+      }),
     }
   )
 );

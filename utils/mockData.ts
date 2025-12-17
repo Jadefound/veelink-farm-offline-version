@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Animal, Farm, Transaction, HealthRecord } from '../types';
 
+/**
+ * Demo mode is enabled in development or when EXPO_PUBLIC_DEMO_MODE=1
+ * In production builds without demo mode, mock data returns empty arrays
+ */
+const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === '1' || __DEV__;
+
 // Mock Farms Data
 const mockFarms: Farm[] = [
   {
@@ -26,7 +32,7 @@ const mockFarms: Farm[] = [
 ];
 
 // Mock Animals Data
-export const mockAnimals: Animal[] = [
+const mockAnimals: Animal[] = [
   {
     id: 'animal-1',
     farmId: 'farm-1',
@@ -468,19 +474,34 @@ const mockHealthRecords: HealthRecord[] = [
   },
 ];
 
-// Mock User Data
-const mockUsers = [
+// Mock User Data - Only available in demo mode
+const mockUsers = DEMO_MODE ? [
   {
     id: 'user-1',
     email: 'demo@veelink.com',
-    password: 'demo123',
+    password: 'demo123', // Only exposed in demo mode
     name: 'Demo User',
     createdAt: new Date('2023-01-01').toISOString(),
     updatedAt: new Date('2024-01-15').toISOString(),
   },
-];
+] : [];
 
+/**
+ * Check if demo mode is enabled
+ */
+export const isDemoMode = () => DEMO_MODE;
+
+/**
+ * Get mock data for initial app population.
+ * In production builds (without EXPO_PUBLIC_DEMO_MODE=1), returns empty arrays.
+ * This is called by Zustand stores on first initialization only.
+ */
 export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords' | 'users') => {
+  // In production without demo mode, return empty arrays
+  if (!DEMO_MODE) {
+    return [];
+  }
+
   switch (type) {
     case 'farms':
       return mockFarms;
@@ -497,35 +518,21 @@ export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'health
   }
 };
 
-export const loadMockData = async () => {
-  try {
-    // console.log('Loading mock data...');
-    // Load farms
-    await AsyncStorage.setItem('farms', JSON.stringify(mockFarms));
-    // console.log('Mock farms loaded');
-    // Load animals
-    await AsyncStorage.setItem('animals', JSON.stringify(mockAnimals));
-    // console.log('Mock animals loaded');
-    // Load transactions
-    await AsyncStorage.setItem('transactions', JSON.stringify(mockTransactions));
-    // console.log('Mock transactions loaded');
-    // Load health records
-    await AsyncStorage.setItem('healthRecords', JSON.stringify(mockHealthRecords));
-    // console.log('Mock health records loaded');
-    // Load users
-    await AsyncStorage.setItem('users', JSON.stringify(mockUsers));
-    // console.log('Mock users loaded');
-    // console.log('All mock data loaded successfully!');
-    return true;
-  } catch (error) {
-    console.error('Failed to load mock data:', error);
-    return false;
-  }
-};
-
+/**
+ * Clear all app data from AsyncStorage.
+ * This removes Zustand persisted stores and resets the app state.
+ */
 export const clearAllData = async () => {
   try {
     await AsyncStorage.multiRemove([
+      // Zustand persisted stores
+      'farm-storage',
+      'animal-storage',
+      'financial-storage',
+      'health-storage',
+      'theme-storage',
+      'auth-storage',
+      // Legacy keys (for backwards compatibility)
       'farms',
       'animals',
       'transactions',

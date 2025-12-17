@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -10,51 +10,89 @@ import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { useHealthStore } from "@/store/healthStore";
 import { useFarmStore } from "@/store/farmStore";
+import { useThemeStore } from "@/store/themeStore";
 import { HealthRecord, Farm } from "@/types";
 import Colors from "@/constants/colors";
 import HealthRecordCard from "@/components/HealthRecordCard";
 import EmptyState from "@/components/EmptyState";
-import LoadingIndicator from "@/components/LoadingIndicator";
 import FarmSelector from "@/components/FarmSelector";
+
+const ITEM_HEIGHT = 120; // Approximate height for health record cards
 
 export default function HealthScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use the store instead:
   const healthRecords = useHealthStore(state => state.healthRecords);
-  const { farms, currentFarm } = useFarmStore();
-  const isLoading = false;
+  const fetchHealthRecords = useHealthStore(state => state.fetchHealthRecords);
+  const { farms, currentFarm, setCurrentFarm } = useFarmStore();
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
 
-  const loadHealthRecords = async () => {
-    // Mock function - no longer needed
-  };
+  // Load health records on mount
+  useEffect(() => {
+    if (currentFarm) {
+      fetchHealthRecords(currentFarm.id);
+    }
+  }, [currentFarm?.id]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Simulate refresh delay
-    setTimeout(() => setRefreshing(false), 500);
-  };
+    if (currentFarm) {
+      await fetchHealthRecords(currentFarm.id);
+    }
+    setRefreshing(false);
+  }, [currentFarm?.id, fetchHealthRecords]);
 
-  const handleHealthRecordPress = (record: HealthRecord) => {
+  const handleHealthRecordPress = useCallback((record: HealthRecord) => {
     router.push(`/health/${record.id}`);
-  };
+  }, [router]);
 
-  const handleAddHealthRecord = () => {
+  const handleAddHealthRecord = useCallback(() => {
     router.push("/health/add");
-  };
+  }, [router]);
 
-  const handleAddFarm = () => {
+  const handleAddFarm = useCallback(() => {
     router.push("/farm/add");
-  };
+  }, [router]);
 
-  const setCurrentFarm = (farm: Farm) => {
-    // Mock function for FarmSelector
-  };
+  const handleSelectFarm = useCallback((farm: Farm) => {
+    setCurrentFarm(farm);
+  }, [setCurrentFarm]);
+
+  const farmHealthRecords = useMemo(() => {
+    if (!currentFarm?.id) return [];
+    return healthRecords.filter(r => r.farmId === currentFarm.id);
+  }, [healthRecords, currentFarm?.id]);
+
+  // Memoize renderItem for better performance
+  const renderItem = useCallback(({ item }: { item: HealthRecord }) => (
+    <HealthRecordCard
+      record={item}
+      onPress={handleHealthRecordPress}
+    />
+  ), [handleHealthRecordPress]);
+
+  const keyExtractor = useCallback((item: HealthRecord) => item.id, []);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  const ListEmpty = useMemo(() => (
+    <EmptyState
+      title="No Health Records"
+      message="Add your first health record to start tracking"
+      buttonTitle="Add Health Record"
+      onButtonPress={handleAddHealthRecord}
+    />
+  ), [handleAddHealthRecord]);
 
   if (farms.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <EmptyState
           title="No Farms Available"
           message="Add a farm before managing health records"
@@ -66,51 +104,46 @@ export default function HealthScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FarmSelector
         farms={farms}
         selectedFarm={currentFarm}
-        onSelectFarm={setCurrentFarm}
+        onSelectFarm={handleSelectFarm}
         onAddFarm={handleAddFarm}
       />
 
-      {isLoading && !refreshing ? (
-        <LoadingIndicator message="Loading health records..." />
-      ) : (
-        <>
-          {healthRecords.length === 0 ? (
-            <EmptyState
-              title="No Health Records"
-              message="Add your first health record to start tracking"
-              buttonTitle="Add Health Record"
-              onButtonPress={handleAddHealthRecord}
-            />
-          ) : (
-            <FlatList
-              data={healthRecords}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <HealthRecordCard
-                  record={item}
-                  onPress={handleHealthRecordPress}
-                />
-              )}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-            />
-          )}
+      <FlatList
+        data={farmHealthRecords}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListEmptyComponent={ListEmpty}
+        contentContainerStyle={[
+          styles.listContent,
+          farmHealthRecords.length === 0 && styles.emptyListContent
+        ]}
+        showsVerticalScrollIndicator={false}
+        // Performance optimizations
+        initialNumToRender={8}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={true}
+        getItemLayout={getItemLayout}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.tint}
+          />
+        }
+      />
 
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={handleAddHealthRecord}
-            activeOpacity={0.8}
-          >
-            <Plus size={24} color="white" />
-          </TouchableOpacity>
-        </>
-      )}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.secondary }]}
+        onPress={handleAddHealthRecord}
+        activeOpacity={0.8}
+      >
+        <Plus size={24} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -118,11 +151,14 @@ export default function HealthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
     padding: 16,
   },
   listContent: {
     paddingBottom: 80,
+  },
+  emptyListContent: {
+    flex: 1,
+    justifyContent: 'center',
   },
   fab: {
     position: "absolute",
@@ -131,7 +167,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.light.secondary,
     alignItems: "center",
     justifyContent: "center",
     elevation: 4,

@@ -1,133 +1,30 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
 import { Animal, AnimalSpecies, AnimalStatus } from "@/types";
 import { useFarmStore } from "./farmStore";
 import { getMockData } from "@/utils/mockData";
 
-// Mock data for animals
-const mockAnimals: Animal[] = [
-  {
-    id: '1',
-    farmId: 'farm-1',
-    identificationNumber: 'C001',
-    species: 'Cattle',
-    breed: 'Holstein',
-    gender: 'Female',
-    birthDate: '2022-03-15',
-    acquisitionDate: '2022-03-20',
-    status: 'Healthy',
-    weight: 450,
-    weightUnit: 'kg',
-    price: 1200,
-    acquisitionPrice: 1000,
-    notes: 'High milk producer, good health record',
-    createdAt: '2023-01-15T10:00:00Z',
-    updatedAt: '2023-12-01T10:00:00Z',
-    age: 2,
-    healthStatus: 'healthy',
-    estimatedValue: 1200,
-    type: 'Cattle',
-  },
-  {
-    id: '2',
-    farmId: 'farm-1',
-    identificationNumber: 'G001',
-    species: 'Goat',
-    breed: 'Nubian',
-    gender: 'Male',
-    birthDate: '2023-01-10',
-    acquisitionDate: '2023-01-15',
-    status: 'Healthy',
-    weight: 75,
-    weightUnit: 'kg',
-    price: 300,
-    acquisitionPrice: 250,
-    notes: 'Strong breeding male',
-    createdAt: '2023-02-01T10:00:00Z',
-    updatedAt: '2023-12-01T10:00:00Z',
-    age: 1,
-    healthStatus: 'healthy',
-    estimatedValue: 300,
-    type: 'Goat',
-  },
-  {
-    id: '3',
-    farmId: 'farm-1',
-    identificationNumber: 'P001',
-    species: 'Pig',
-    breed: 'Yorkshire',
-    gender: 'Female',
-    birthDate: '2023-06-01',
-    acquisitionDate: '2023-06-05',
-    status: 'Sick',
-    weight: 120,
-    weightUnit: 'kg',
-    price: 400,
-    acquisitionPrice: 350,
-    notes: 'Currently under treatment for minor infection',
-    createdAt: '2023-06-05T10:00:00Z',
-    updatedAt: '2023-12-01T10:00:00Z',
-    age: 1,
-    healthStatus: 'sick',
-    estimatedValue: 400,
-    type: 'Pig',
-  },
-  {
-    id: '4',
-    farmId: 'farm-1',
-    identificationNumber: 'CH001',
-    species: 'Chicken',
-    breed: 'Rhode Island Red',
-    gender: 'Female',
-    birthDate: '2023-08-15',
-    acquisitionDate: '2023-08-20',
-    status: 'Healthy',
-    weight: 2.5,
-    weightUnit: 'kg',
-    price: 25,
-    acquisitionPrice: 20,
-    notes: 'Good egg layer',
-    createdAt: '2023-08-20T10:00:00Z',
-    updatedAt: '2023-12-01T10:00:00Z',
-    age: 0,
-    healthStatus: 'healthy',
-    estimatedValue: 25,
-    type: 'Chicken',
-  },
-  {
-    id: '5',
-    farmId: 'farm-1',
-    identificationNumber: 'S001',
-    species: 'Sheep',
-    breed: 'Merino',
-    gender: 'Female',
-    birthDate: '2022-09-10',
-    acquisitionDate: '2022-09-15',
-    status: 'Recovering',
-    weight: 65,
-    weightUnit: 'kg',
-    price: 200,
-    acquisitionPrice: 180,
-    notes: 'Recovering from minor injury',
-    createdAt: '2022-09-15T10:00:00Z',
-    updatedAt: '2023-12-01T10:00:00Z',
-    age: 1,
-    healthStatus: 'recovering',
-    estimatedValue: 200,
-    type: 'Sheep',
-  }
-];
+// Pagination constants
+const PAGE_SIZE = 15;
 
 interface AnimalState {
   animals: Animal[];
   isLoading: boolean;
   error: string | null;
+  _initialized: boolean;
+  
+  // Pagination state
+  currentPage: number;
+  hasMore: boolean;
 
   // Actions
   fetchAnimals: (farmId?: string) => Promise<Animal[]>;
-  getAnimal: (id: string) => Promise<Animal | undefined>;
+  fetchAnimalsPage: (farmId: string, page: number) => Animal[];
+  loadMoreAnimals: (farmId: string) => void;
+  resetPagination: () => void;
+  getAnimal: (id: string) => Animal | undefined;
   createAnimal: (animalData: Omit<Animal, "id" | "createdAt" | "updatedAt">) => Promise<Animal>;
   updateAnimal: (id: string, animalData: Partial<Animal>) => Promise<Animal>;
   deleteAnimal: (id: string) => Promise<void>;
@@ -150,72 +47,94 @@ export const useAnimalStore = create<AnimalState>()(
       animals: [],
       isLoading: false,
       error: null,
+      _initialized: false,
+      currentPage: 1,
+      hasMore: true,
 
       fetchAnimals: async (farmId) => {
         set({ isLoading: true, error: null });
 
         try {
-          // Get animals from storage
-          const animalsData = await AsyncStorage.getItem("animals");
-          let animals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
+          const state = get();
+          let allAnimals = [...state.animals];
 
-          // If no animals in storage, fall back to mock data (first-run experience)
-          if (!animals.length) {
+          // Initialize with mock data if first run OR data is empty (e.g., after clear)
+          if (!state._initialized || allAnimals.length === 0) {
             const mockAnimals = getMockData("animals") as Animal[];
-            animals = mockAnimals;
-            if (mockAnimals.length) {
-              await AsyncStorage.setItem("animals", JSON.stringify(mockAnimals));
-            }
+            allAnimals = mockAnimals;
           }
 
           // Filter by farm if farmId is provided
-          if (farmId) {
-            animals = animals.filter(animal => animal.farmId === farmId);
-          } else {
-            // Use current farm from farmStore if no farmId is provided
-            const currentFarm = useFarmStore.getState().currentFarm;
-            if (currentFarm) {
-              animals = animals.filter(animal => animal.farmId === currentFarm.id);
-            }
-          }
+          const targetFarmId = farmId || useFarmStore.getState().currentFarm?.id;
+          let filteredAnimals = targetFarmId
+            ? allAnimals.filter(animal => animal.farmId === targetFarmId)
+            : allAnimals;
 
           // Sort by identification number for consistent ordering
-          animals.sort((a, b) => a.identificationNumber.localeCompare(b.identificationNumber));
+          filteredAnimals.sort((a, b) => a.identificationNumber.localeCompare(b.identificationNumber));
 
-          set({ animals, isLoading: false });
-          return animals;
+          set({
+            // IMPORTANT: store must keep the FULL dataset; screens/selectors filter by farm.
+            animals: allAnimals,
+            isLoading: false,
+            _initialized: true,
+            currentPage: 1,
+            hasMore: true,
+          });
+
+          return filteredAnimals;
         } catch (error: any) {
           set({
             error: error.message || "Failed to fetch animals",
-            isLoading: false
+            isLoading: false,
+            _initialized: true,
           });
           return [];
         }
       },
 
-      getAnimal: async (id) => {
-        try {
-          // Get animals from storage
-          const animalsData = await AsyncStorage.getItem("animals");
-          const animals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
+      // Get a specific page of animals (for pagination)
+      fetchAnimalsPage: (farmId, page) => {
+        const state = get();
+        const allAnimals = state.animals.filter(animal => animal.farmId === farmId);
+        const startIndex = (page - 1) * PAGE_SIZE;
+        const endIndex = startIndex + PAGE_SIZE;
+        return allAnimals.slice(startIndex, endIndex);
+      },
 
-          // Find animal by id
-          return animals.find(animal => animal.id === id);
-        } catch (error) {
-          console.error("Failed to get animal:", error);
-          return undefined;
-        }
+      // Load more animals for infinite scroll
+      loadMoreAnimals: (farmId) => {
+        const state = get();
+        const allAnimals = state.animals.filter(animal => animal.farmId === farmId);
+        const nextPage = state.currentPage + 1;
+        const hasMore = nextPage * PAGE_SIZE < allAnimals.length;
+        
+        set({
+          currentPage: nextPage,
+          hasMore,
+        });
+      },
+
+      // Reset pagination state
+      resetPagination: () => {
+        set({
+          currentPage: 1,
+          hasMore: true,
+        });
+      },
+
+      getAnimal: (id) => {
+        return get().animals.find(animal => animal.id === id);
       },
 
       createAnimal: async (animalData) => {
         set({ isLoading: true, error: null });
 
         try {
-          // Check if identification number already exists
-          const animalsData = await AsyncStorage.getItem("animals");
-          const allAnimals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
+          const state = get();
 
-          const existingAnimal = allAnimals.find(
+          // Check if identification number already exists
+          const existingAnimal = state.animals.find(
             animal => animal.identificationNumber === animalData.identificationNumber &&
               animal.farmId === animalData.farmId
           );
@@ -231,20 +150,12 @@ export const useAnimalStore = create<AnimalState>()(
             updatedAt: new Date().toISOString(),
           };
 
-          // Add new animal
-          const updatedAnimals = [...allAnimals, newAnimal];
+          // Add new animal to the list
+          const updatedAnimals = [...state.animals, newAnimal];
 
-          // Save to storage
-          await AsyncStorage.setItem("animals", JSON.stringify(updatedAnimals));
-
-          // Update state with animals for current farm
-          const currentFarm = useFarmStore.getState().currentFarm;
-          const farmAnimals = updatedAnimals
-            .filter(animal => animal.farmId === (currentFarm?.id || animalData.farmId))
-            .sort((a, b) => a.identificationNumber.localeCompare(b.identificationNumber));
-
+          // Update state - Zustand persist handles storage automatically
           set({
-            animals: farmAnimals,
+            animals: updatedAnimals,
             isLoading: false
           });
 
@@ -262,16 +173,14 @@ export const useAnimalStore = create<AnimalState>()(
         set({ isLoading: true, error: null });
 
         try {
-          // Get all animals
-          const animalsData = await AsyncStorage.getItem("animals");
-          const allAnimals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
+          const state = get();
 
           // If updating identification number, check for duplicates
           if (animalData.identificationNumber) {
-            const existingAnimal = allAnimals.find(
+            const existingAnimal = state.animals.find(
               animal => animal.identificationNumber === animalData.identificationNumber &&
                 animal.id !== id &&
-                animal.farmId === allAnimals.find(a => a.id === id)?.farmId
+                animal.farmId === state.animals.find(a => a.id === id)?.farmId
             );
 
             if (existingAnimal) {
@@ -280,17 +189,17 @@ export const useAnimalStore = create<AnimalState>()(
           }
 
           // Find and update animal
-          const index = allAnimals.findIndex(a => a.id === id);
+          const index = state.animals.findIndex(a => a.id === id);
           if (index === -1) throw new Error("Animal not found");
 
           const updatedAnimal = {
-            ...allAnimals[index],
+            ...state.animals[index],
             ...animalData,
             updatedAt: new Date().toISOString()
           };
-          // Handle financial impacts
+
+          // Handle financial impacts for sold animals
           if (animalData.status === 'Sold') {
-            // Use dynamic import to avoid circular dependency
             const { useFinancialStore } = await import("./financialStore");
             const financialStore = useFinancialStore.getState();
             await financialStore.createTransaction({
@@ -301,32 +210,25 @@ export const useAnimalStore = create<AnimalState>()(
               description: `Sold animal ${updatedAnimal.identificationNumber}`,
               farmId: updatedAnimal.farmId,
               paymentMethod: 'Cash',
-              reference: `ANIMAL-${updatedAnimal.identificationNumber}`,
+              // Use a stable ID that can be used to link back to the animal reliably
+              reference: `ANIMAL-${updatedAnimal.id}`,
+              animalId: updatedAnimal.id,
             });
           }
 
-          // Save to storage
-          const updatedAllAnimals = [...allAnimals.slice(0, index), updatedAnimal, ...allAnimals.slice(index + 1)];
-          await AsyncStorage.setItem("animals", JSON.stringify(updatedAllAnimals));
+          const updatedAnimals = [
+            ...state.animals.slice(0, index),
+            updatedAnimal,
+            ...state.animals.slice(index + 1)
+          ];
 
-          // Get updated animal
-          const updatedAnimalResult = updatedAllAnimals.find(a => a.id === id);
-          if (!updatedAnimalResult) {
-            throw new Error("Animal not found");
-          }
-
-          // Update state with animals for current farm
-          const currentFarm = useFarmStore.getState().currentFarm;
-          const farmAnimals = updatedAllAnimals
-            .filter(animal => animal.farmId === currentFarm?.id)
-            .sort((a, b) => a.identificationNumber.localeCompare(b.identificationNumber));
-
+          // Update state - Zustand persist handles storage automatically
           set({
-            animals: farmAnimals,
+            animals: updatedAnimals,
             isLoading: false
           });
 
-          return updatedAnimalResult;
+          return updatedAnimal;
         } catch (error: any) {
           set({
             error: error.message || "Failed to update animal",
@@ -340,24 +242,12 @@ export const useAnimalStore = create<AnimalState>()(
         set({ isLoading: true, error: null });
 
         try {
-          // Get all animals
-          const animalsData = await AsyncStorage.getItem("animals");
-          const allAnimals: Animal[] = animalsData ? JSON.parse(animalsData) : [];
+          const state = get();
+          const updatedAnimals = state.animals.filter(animal => animal.id !== id);
 
-          // Filter out the animal to delete
-          const updatedAllAnimals = allAnimals.filter(animal => animal.id !== id);
-
-          // Save to storage
-          await AsyncStorage.setItem("animals", JSON.stringify(updatedAllAnimals));
-
-          // Update state with animals for current farm
-          const currentFarm = useFarmStore.getState().currentFarm;
-          const farmAnimals = updatedAllAnimals
-            .filter(animal => animal.farmId === currentFarm?.id)
-            .sort((a, b) => a.identificationNumber.localeCompare(b.identificationNumber));
-
+          // Update state - Zustand persist handles storage automatically
           set({
-            animals: farmAnimals,
+            animals: updatedAnimals,
             isLoading: false
           });
         } catch (error: any) {
@@ -450,6 +340,11 @@ export const useAnimalStore = create<AnimalState>()(
     {
       name: "animal-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        animals: state.animals,
+        _initialized: state._initialized,
+        // Don't persist pagination state - reset on app start
+      }),
     }
   )
 );

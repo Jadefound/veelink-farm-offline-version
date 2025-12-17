@@ -6,10 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
+  Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Edit, Trash2, Plus } from "lucide-react-native";
+import { Edit, Trash2, Plus, Tag } from "lucide-react-native";
 import { useAnimalStore } from "@/store/animalStore";
 import { useHealthStore } from "@/store/healthStore";
 import { useThemeStore } from "@/store/themeStore";
@@ -41,6 +46,9 @@ export default function AnimalDetailScreen() {
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const [animal, setAnimal] = useState<Animal | null>(null);
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [salePrice, setSalePrice] = useState("");
+  const [deleteHealthAfterSale, setDeleteHealthAfterSale] = useState(true);
 
   const isLoading = animalLoading || healthLoading;
 
@@ -85,6 +93,43 @@ export default function AnimalDetailScreen() {
 
   const handleEditAnimal = () => {
     router.push(`/animal/edit/${id}`);
+  };
+
+  const openSellModal = () => {
+    if (!animal) return;
+    const defaultPrice = (animal.estimatedValue ?? animal.price ?? 0) || 0;
+    setSalePrice(defaultPrice ? String(defaultPrice) : "");
+    setDeleteHealthAfterSale(true);
+    setShowSellModal(true);
+  };
+
+  const handleConfirmSold = async () => {
+    if (!animal) return;
+
+    const parsedPrice = Number(String(salePrice).replace(/,/g, "").trim());
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert("Invalid price", "Please enter a valid sale price greater than 0.");
+      return;
+    }
+
+    try {
+      // Mark as sold (animalStore will ensure a Sales transaction exists)
+      await useAnimalStore.getState().updateAnimal(animal.id, {
+        status: "Sold",
+        price: parsedPrice,
+      });
+
+      // Optional cleanup to save storage
+      if (deleteHealthAfterSale) {
+        await useHealthStore.getState().deleteHealthRecordsForAnimal(animal.id, animal.farmId);
+      }
+
+      setShowSellModal(false);
+      await loadAnimalData();
+      Alert.alert("Success", "Animal marked as sold.");
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to mark animal as sold.");
+    }
   };
 
   const handleAddHealthRecord = () => {
@@ -325,6 +370,16 @@ export default function AnimalDetailScreen() {
         </View>
 
         <View style={styles.actionsContainer}>
+          {animal.status !== "Sold" && animal.status !== "Dead" && (
+            <Button
+              title="Mark Sold"
+              onPress={openSellModal}
+              variant="secondary"
+              icon={<Tag size={16} color="white" />}
+              style={styles.actionButton}
+            />
+          )}
+
           <Button
             title="Edit"
             onPress={handleEditAnimal}
@@ -342,6 +397,45 @@ export default function AnimalDetailScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Mark Sold Modal */}
+      <Modal visible={showSellModal} transparent animationType="fade" onRequestClose={() => setShowSellModal(false)}>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalInner}>
+            <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Mark as Sold</Text>
+              <Text style={[styles.modalSubtitle, { color: colors.muted }]}>
+                This will record a Sales transaction and mark the animal as Sold.
+              </Text>
+
+              <Text style={[styles.modalLabel, { color: colors.text }]}>Sale price</Text>
+              <TextInput
+                value={salePrice}
+                onChangeText={setSalePrice}
+                keyboardType="numeric"
+                placeholder="Enter sale price"
+                placeholderTextColor={colors.muted}
+                style={[styles.modalInput, { borderColor: colors.border, color: colors.text }]}
+              />
+
+              <View style={styles.modalToggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalLabel, { color: colors.text }]}>Delete health records</Text>
+                  <Text style={[styles.modalHelp, { color: colors.muted }]}>
+                    Saves storage, but you won’t be able to view this animal’s past health history later.
+                  </Text>
+                </View>
+                <Switch value={deleteHealthAfterSale} onValueChange={setDeleteHealthAfterSale} />
+              </View>
+
+              <View style={styles.modalActions}>
+                <Button title="Cancel" onPress={() => setShowSellModal(false)} variant="outline" />
+                <Button title="Confirm" onPress={handleConfirmSold} variant="primary" />
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -463,6 +557,56 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalInner: {
+    width: "100%",
+  },
+  modalCard: {
+    borderRadius: 16,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    marginBottom: 14,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+    fontSize: 14,
+  },
+  modalToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  modalHelp: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "flex-end",
   },
   errorContainer: {
     flex: 1,

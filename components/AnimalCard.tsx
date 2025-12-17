@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, GestureResponderEvent } from "react-native";
 import { Image } from "expo-image";
 import { Edit } from "lucide-react-native";
@@ -8,6 +8,7 @@ import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
 import Card from "./Card";
 import { useRouter } from "expo-router";
+import { getAnimalImage, getSpeciesColor } from "@/utils/animalImages";
 
 interface AnimalCardProps {
   animal: Animal;
@@ -16,7 +17,27 @@ interface AnimalCardProps {
   compact?: boolean;
 }
 
-export default function AnimalCard({
+// Get status color
+const getStatusColor = (status: string, colors: any) => {
+  switch (status) {
+    case "Healthy":
+      return colors.success;
+    case "Sick":
+      return colors.danger;
+    case "Pregnant":
+      return colors.info;
+    case "ForSale":
+      return colors.warning;
+    case "Sold":
+      return colors.muted;
+    case "Deceased":
+      return "#000000";
+    default:
+      return colors.muted;
+  }
+};
+
+function AnimalCard({
   animal,
   onPress,
   onEdit,
@@ -27,6 +48,7 @@ export default function AnimalCard({
   const router = useRouter();
 
   const handleEdit = (event: GestureResponderEvent) => {
+    event.stopPropagation();
     if (onEdit) {
       onEdit(animal);
     } else {
@@ -34,56 +56,19 @@ export default function AnimalCard({
     }
   };
 
-  // Get species-specific image
-  const getAnimalImage = (species: string) => {
-    switch (species.toLowerCase()) {
-      case "cattle":
-        return "https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?q=80&w=1740&auto=format&fit=crop";
-      case "sheep":
-        return "https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=1740&auto=format&fit=crop";
-      case "goat":
-        return "https://images.unsplash.com/photo-1524024973431-2ad916746881?q=80&w=1740&auto=format&fit=crop";
-      case "pig":
-        return "https://images.unsplash.com/photo-1593179357196-705d7578c5a3?q=80&w=1740&auto=format&fit=crop";
-      case "chicken":
-        return "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1740&auto=format&fit=crop";
-      case "duck":
-        return "https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=1740&auto=format&fit=crop";
-      case "horse":
-        return "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=1742&auto=format&fit=crop";
-      default:
-        return "https://images.unsplash.com/photo-1500595046743-cd271d694e30?q=80&w=1740&auto=format&fit=crop";
-    }
-  };
-
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Healthy":
-        return colors.success;
-      case "Sick":
-        return colors.danger;
-      case "Pregnant":
-        return colors.info;
-      case "ForSale":
-        return colors.warning;
-      case "Sold":
-        return colors.muted;
-      case "Deceased":
-        return "#000000";
-      default:
-        return colors.muted;
-    }
-  };
+  const statusColor = getStatusColor(animal.status, colors);
+  const imageSource = getAnimalImage(animal.species);
+  const placeholderColor = getSpeciesColor(animal.species);
 
   if (compact) {
     return (
       <TouchableOpacity onPress={() => onPress(animal)} activeOpacity={0.7}>
         <View style={[styles.compactCard, { backgroundColor: colors.card }]}>
           <Image
-            source={{ uri: getAnimalImage(animal.species) }}
-            style={styles.compactImage}
+            source={imageSource}
+            style={[styles.compactImage, { backgroundColor: placeholderColor }]}
             contentFit="cover"
+            cachePolicy="memory-disk"
             transition={200}
           />
           <View style={styles.compactContent}>
@@ -107,7 +92,7 @@ export default function AnimalCard({
           <View
             style={[
               styles.compactStatusBadge,
-              { backgroundColor: getStatusColor(animal.status) },
+              { backgroundColor: statusColor },
             ]}
           >
             <Text style={styles.compactStatusText}>{animal.status}</Text>
@@ -122,9 +107,10 @@ export default function AnimalCard({
       <Card style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.header}>
           <Image
-            source={{ uri: getAnimalImage(animal.species) }}
-            style={styles.image}
+            source={imageSource}
+            style={[styles.image, { backgroundColor: placeholderColor }]}
             contentFit="cover"
+            cachePolicy="memory-disk"
             transition={200}
           />
           <View style={styles.headerContent}>
@@ -191,7 +177,7 @@ export default function AnimalCard({
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: getStatusColor(animal.status) },
+              { backgroundColor: statusColor },
             ]}
           >
             <Text style={styles.statusText}>{animal.status}</Text>
@@ -204,6 +190,9 @@ export default function AnimalCard({
     </TouchableOpacity>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export default memo(AnimalCard);
 
 const styles = StyleSheet.create({
   card: {
