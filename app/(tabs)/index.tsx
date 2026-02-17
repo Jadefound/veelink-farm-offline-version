@@ -113,9 +113,9 @@ export default function DashboardScreen() {
       >
         {!currentFarm ? (
           <EmptyState
-            title="Welcome to Veelink Manager"
-            message="Start by adding your first farm to manage your livestock, health records, and financial activities."
-            buttonTitle="Add Your First Farm"
+            title="No Farm Selected"
+            message="Please select a farm from the top navigation or add a new one to get started."
+            buttonTitle="Add New Farm"
             onButtonPress={handleAddFarm}
             icon={
               <Image

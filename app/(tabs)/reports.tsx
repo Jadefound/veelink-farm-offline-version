@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
   Modal,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -118,20 +119,31 @@ export default function ReportsScreen() {
     setTimeout(() => setRefreshing(false), 500);
   }, []);
 
+  // #region agent log
+  useEffect(() => {
+    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "reports.tsx:mount", message: "Reports screen mounted", data: { animals: (animals || []).length, health: (healthRecords || []).length, transactions: (transactions || []).length }, timestamp: Date.now() }) }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (showAnimalModal && selectedAnimal) {
+      fetch('http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'reports.tsx:AnimalModal', message: 'Animal modal opened', data: { cardColor: colors.card, isDarkMode }, timestamp: Date.now(), hypothesisId: 'E' }) }).catch(() => {});
+    }
+  }, [showAnimalModal, selectedAnimal, colors.card, isDarkMode]);
+  // #endregion
+
   // Split heavy calculations into smaller, focused memoized chunks for better performance
 
   // Scope all report inputs to the current farm (critical once stores keep full datasets)
   const farmId = currentFarm?.id;
   const farmAnimals = useMemo(
-    () => (farmId ? animals.filter(a => a.farmId === farmId) : animals),
+    () => (farmId ? (animals || []).filter((a): a is Animal => !!a?.id && a.farmId === farmId) : (animals || [])),
     [animals, farmId]
   );
   const farmHealthRecords = useMemo(
-    () => (farmId ? healthRecords.filter(r => r.farmId === farmId) : healthRecords),
+    () => (farmId ? (healthRecords || []).filter((r): r is HealthRecord => !!r?.id && r.farmId === farmId) : (healthRecords || [])),
     [healthRecords, farmId]
   );
   const farmTransactions = useMemo(
-    () => (farmId ? transactions.filter(t => t.farmId === farmId) : transactions),
+    () => (farmId ? (transactions || []).filter((t): t is Transaction => !!t?.id && t.farmId === farmId) : (transactions || [])),
     [transactions, farmId]
   );
 
@@ -1059,10 +1071,12 @@ export default function ReportsScreen() {
       <Modal
         visible={showAnimalModal && !!selectedAnimal}
         animationType="slide"
-        transparent={true}
+        transparent
+        statusBarTranslucent={Platform.OS === "android"}
         onRequestClose={() => setShowAnimalModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : styles.modalOverlay}>
+          <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <LinearGradient
               colors={['#6366f1', '#8b5cf6']}
@@ -1144,6 +1158,7 @@ export default function ReportsScreen() {
               </LinearGradient>
             </TouchableOpacity>
           </View>
+        </View>
         </View>
       </Modal>
     </SafeAreaView>

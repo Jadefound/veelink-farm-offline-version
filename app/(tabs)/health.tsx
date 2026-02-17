@@ -24,6 +24,11 @@ export default function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const healthRecords = useHealthStore(state => state.healthRecords);
+  // #region agent log
+  useEffect(() => {
+    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "health.tsx:mount", message: "Health tab mounted", data: { healthRecordsCount: Array.isArray(healthRecords) ? healthRecords.length : 0 }, timestamp: Date.now() }) }).catch(() => {});
+  }, []);
+  // #endregion
   const fetchHealthRecords = useHealthStore(state => state.fetchHealthRecords);
   const { farms, currentFarm, setCurrentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
@@ -62,7 +67,7 @@ export default function HealthScreen() {
 
   const farmHealthRecords = useMemo(() => {
     if (!currentFarm?.id) return [];
-    return healthRecords.filter(r => r.farmId === currentFarm.id);
+    return (healthRecords || []).filter((r): r is HealthRecord => !!r && !!r.id && r.farmId === currentFarm.id);
   }, [healthRecords, currentFarm?.id]);
 
   // Memoize renderItem for better performance
@@ -75,11 +80,10 @@ export default function HealthScreen() {
 
   const keyExtractor = useCallback((item: HealthRecord) => item.id, []);
 
-  const getItemLayout = useCallback((_: any, index: number) => ({
-    length: ITEM_HEIGHT,
-    offset: ITEM_HEIGHT * index,
-    index,
-  }), []);
+  const getItemLayout = useCallback((_: any, index: number) => {
+    const length = Number(ITEM_HEIGHT) || 120;
+    return { length, offset: length * index, index };
+  }, []);
 
   const ListEmpty = useMemo(() => (
     <EmptyState

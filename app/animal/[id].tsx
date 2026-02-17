@@ -399,8 +399,9 @@ export default function AnimalDetailScreen() {
       </ScrollView>
 
       {/* Mark Sold Modal */}
-      <Modal visible={showSellModal} transparent animationType="fade" onRequestClose={() => setShowSellModal(false)}>
-        <View style={styles.modalOverlay}>
+      <Modal visible={showSellModal} transparent animationType="fade" statusBarTranslucent={Platform.OS === "android"} onRequestClose={() => setShowSellModal(false)}>
+        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : styles.modalOverlay}>
+          <View style={styles.modalOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalInner}>
             <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Mark as Sold</Text>
@@ -434,6 +435,7 @@ export default function AnimalDetailScreen() {
               </View>
             </View>
           </KeyboardAvoidingView>
+        </View>
         </View>
       </Modal>
     </View>

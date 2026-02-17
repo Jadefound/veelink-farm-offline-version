@@ -84,7 +84,9 @@ const AnimalCard = React.memo(({
 }: { 
   item: Animal; 
   onPress: (id: string) => void;
-}) => (
+}) => {
+  if (!item?.id) return null;
+  return (
   <TouchableOpacity
     style={styles.horizontalCard}
     onPress={() => onPress(item.id)}
@@ -127,7 +129,8 @@ const AnimalCard = React.memo(({
       </View>
     </View>
   </TouchableOpacity>
-));
+  );
+});
 
 export default function AnimalsScreen() {
   const router = useRouter();
@@ -175,13 +178,13 @@ export default function AnimalsScreen() {
 
   const farmAnimals = useMemo(() => {
     if (!currentFarm?.id) return [];
-    return animals.filter(a => a.farmId === currentFarm.id);
+    return (animals || []).filter((a): a is Animal => !!a && !!a.id && a.farmId === currentFarm.id);
   }, [animals, currentFarm?.id]);
 
-  // Memoize computed values (scoped to current farm)
+  // Memoize computed values (scoped to current farm); filter out undefined to avoid crashes
   const { allSpecies, allStatuses } = useMemo(() => ({
-    allSpecies: Array.from(new Set(farmAnimals.map(a => a.species))),
-    allStatuses: Array.from(new Set(farmAnimals.map(a => a.status))),
+    allSpecies: Array.from(new Set(farmAnimals.map(a => a.species).filter(Boolean))),
+    allStatuses: Array.from(new Set(farmAnimals.map(a => a.status).filter(Boolean))),
   }), [farmAnimals]);
 
   // Memoize filtered animals
@@ -213,6 +216,15 @@ export default function AnimalsScreen() {
   // Check if there are more items to load
   const hasMore = displayedCount < filteredAnimals.length;
 
+  // #region agent log
+  useEffect(() => {
+    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:mount", message: "Animals tab mounted", data: { animalsCount: Array.isArray(animals) ? animals.length : 0 }, timestamp: Date.now() }) }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (paginatedAnimals.length > 0) fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:list", message: "Animals list with data", data: { count: paginatedAnimals.length }, timestamp: Date.now() }) }).catch(() => {});
+  }, [paginatedAnimals.length]);
+  // #endregion
+
   // Load more handler for infinite scroll
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {
@@ -239,11 +251,10 @@ export default function AnimalsScreen() {
   const keyExtractor = useCallback((item: Animal) => item.id, []);
 
   // getItemLayout for fixed-height items (improves scroll performance)
-  const getItemLayout = useCallback((_: any, index: number) => ({
-    length: CARD_HEIGHT,
-    offset: CARD_HEIGHT * index,
-    index,
-  }), []);
+  const getItemLayout = useCallback((_: any, index: number) => {
+    const length = Number(CARD_HEIGHT) || 100;
+    return { length, offset: length * index, index };
+  }, []);
 
   if (farms.length === 0) {
     return (

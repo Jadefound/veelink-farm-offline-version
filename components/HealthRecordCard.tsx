@@ -15,6 +15,8 @@ export default function HealthRecordCard({ record, onPress }: HealthRecordCardPr
   const { isDarkMode } = useThemeStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
+  if (!record?.id) return null;
+
   // Get type color
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -37,11 +39,11 @@ export default function HealthRecordCard({ record, onPress }: HealthRecordCardPr
     <TouchableOpacity onPress={() => onPress(record)} activeOpacity={0.7}>
       <Card style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border + "30" }]}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View style={[styles.typeBadge, { backgroundColor: getTypeColor(record.type) }]}>
-            <Text style={styles.typeText}>{record.type}</Text>
+          <View style={[styles.typeBadge, { backgroundColor: getTypeColor(record.type ?? "Other") }]}>
+            <Text style={styles.typeText}>{record.type ?? "Other"}</Text>
           </View>
           <Text style={[styles.date, { color: colors.muted }]}>
-            {formatDate(record.date)}
+            {record.date ? formatDate(record.date) : "—"}
           </Text>
         </View>
 
@@ -76,7 +78,7 @@ export default function HealthRecordCard({ record, onPress }: HealthRecordCardPr
           <Text style={[styles.veterinarian, { color: colors.muted }]}>
             {record.veterinarian ? `Dr. ${record.veterinarian}` : "No veterinarian"}
           </Text>
-          <Text style={[styles.cost, { color: colors.text }]}>{formatCurrency(record.cost)}</Text>
+          <Text style={[styles.cost, { color: colors.text }]}>{formatCurrency(record.cost ?? 0)}</Text>
         </View>
       </Card>
     </TouchableOpacity>

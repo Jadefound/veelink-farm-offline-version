@@ -7,6 +7,7 @@ import {
   Modal,
   FlatList,
   Pressable,
+  Platform,
 } from "react-native";
 import { ChevronDown } from "lucide-react-native";
 import { Farm } from "@/types";
@@ -51,11 +52,13 @@ export default function FarmSelector({
 
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={modalVisible}
+        statusBarTranslucent={Platform.OS === "android"}
         onRequestClose={toggleModal}
       >
-        <Pressable style={styles.modalOverlay} onPress={toggleModal}>
+        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : styles.modalOverlay}>
+          <Pressable style={styles.modalOverlay} onPress={toggleModal}>
           <View style={styles.modalContainer}>
             <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
               <View style={styles.modalHeader}>
@@ -101,6 +104,7 @@ export default function FarmSelector({
             </Pressable>
           </View>
         </Pressable>
+        </View>
       </Modal>
     </View>
   );

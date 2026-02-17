@@ -244,11 +244,13 @@ export default function AddHealthRecordScreen() {
 
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={showAnimalPicker}
+        statusBarTranslucent={Platform.OS === "android"}
         onRequestClose={() => setShowAnimalPicker(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : styles.modalOverlay}>
+          <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Animal</Text>
@@ -283,6 +285,7 @@ export default function AddHealthRecordScreen() {
               </View>
             )}
           </View>
+        </View>
         </View>
       </Modal>
     </View>

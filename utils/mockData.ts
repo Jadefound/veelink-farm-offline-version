@@ -1,11 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { Animal, Farm, Transaction, HealthRecord } from '../types';
 
 /**
- * Demo mode is enabled in development or when EXPO_PUBLIC_DEMO_MODE=1
- * In production builds without demo mode, mock data returns empty arrays
+ * Demo mode: enabled in dev, or when EXPO_PUBLIC_DEMO_MODE=1, or when app.json extra.demoMode is true.
+ * Mock data is always bundled; when demo mode is on, getMockData returns it for initial population.
  */
-const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === '1' || __DEV__;
+const DEMO_MODE =
+  __DEV__ ||
+  process.env.EXPO_PUBLIC_DEMO_MODE === '1' ||
+  (Constants.expoConfig?.extra as { demoMode?: boolean } | undefined)?.demoMode === true;
 
 // Mock Farms Data
 const mockFarms: Farm[] = [

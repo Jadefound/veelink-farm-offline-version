@@ -12,7 +12,15 @@ import * as NavigationBar from "expo-navigation-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import SplashScreen from "../components/SplashScreen";
 
+const LOG_ENDPOINT = 'http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145';
+const log = (location: string, message: string, data: Record<string, unknown>, hypothesisId: string) => {
+  fetch(LOG_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location, message, data, timestamp: Date.now(), hypothesisId }) }).catch(() => {});
+};
+
 export default function RootLayout() {
+  // #region agent log
+  log('_layout.tsx:RootLayout', 'RootLayout mounted', {}, 'A');
+  // #endregion
   // Add state for custom splash screen
   const [showCustomSplash, setShowCustomSplash] = useState(true);
 
@@ -45,10 +53,13 @@ export default function RootLayout() {
 
           // Load farms if authenticated
           if (isAuthenticated && !isFirstTimeUser && typeof fetchFarms === 'function') {
-            fetchFarms();
+            await fetchFarms();
           }
         }
       } catch (error) {
+        // #region agent log
+        log('_layout.tsx:init', 'App init error', { error: String(error), message: error instanceof Error ? error.message : '' }, 'B');
+        // #endregion
         console.error('App initialization error:', error);
         // Always hide splash screen even if there's an error
         await ExpoSplashScreen.hideAsync().catch(console.error); // Change SplashScreen to ExpoSplashScreen
@@ -60,14 +71,24 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Configure navigation bar for Android
-    if (Platform.OS === 'android' && NavigationBar) {
-      NavigationBar.setBackgroundColorAsync(isDarkMode ? '#0f172a' : '#f8fafc')
-        .catch(console.error);
-      NavigationBar.setButtonStyleAsync(isDarkMode ? 'light' : 'dark')
-        .catch(console.error);
-    }
+    const configureNavBar = async () => {
+      try {
+        if (Platform.OS === 'android' && NavigationBar) {
+          await NavigationBar.setBackgroundColorAsync(isDarkMode ? '#0f172a' : '#f8fafc');
+          await NavigationBar.setButtonStyleAsync(isDarkMode ? 'light' : 'dark');
+        }
+      } catch {
+        // Silent fail - navigation bar styling is not critical
+      }
+    };
+    configureNavBar();
   }, [isDarkMode]);
 
+  // #region agent log
+  if (fontsLoaded || fontError) {
+    log('_layout.tsx:fonts', 'Font load result', { fontsLoaded: !!fontsLoaded, fontError: fontError?.message ?? null }, 'A');
+  }
+  // #endregion
   // Show loading state or error while fonts are loading
   if (!fontsLoaded && !fontError) {
     return null;
@@ -87,6 +108,9 @@ export default function RootLayout() {
     return <SplashScreen onFinish={() => setShowCustomSplash(false)} />;
   }
 
+  // #region agent log
+  log('_layout.tsx:main', 'Rendering main Stack (past splash)', {}, 'A');
+  // #endregion
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
@@ -111,8 +135,9 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-// Prevent splash screen from auto-hiding
-ExpoSplashScreen.preventAutoHideAsync().catch(() => {
-  // If we can't prevent auto-hide, it's not a critical error
-  console.warn("Could not prevent splash screen from auto-hiding");
-});
+// Prevent splash screen from auto-hiding - wrapped in try/catch for production safety
+try {
+  ExpoSplashScreen.preventAutoHideAsync();
+} catch {
+  // Silent fail - not critical
+}

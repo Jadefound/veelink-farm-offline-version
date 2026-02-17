@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -29,37 +29,19 @@
       "bundler": "metro"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://rork.com/"
-        }
-      ],
-      "expo-font",
+      ["expo-router", { "origin": "https://rork.com/" }],
+      ["expo-font", { "fonts": ["./assets/fonts/SpaceMono-Regular.ttf"] }],
       "expo-secure-store",
       "expo-web-browser"
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
+    "experiments": { "typedRoutes": true },
     "sdkVersion": "54.0.0",
-    "platforms": [
-      "ios",
-      "android"
-    ],
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "fonts": [
-      "./assets/fonts/SpaceMono-Regular.ttf"
-    ],
+    "platforms": ["ios", "android"],
+    "assetBundlePatterns": ["**/*"],
     "extra": {
-      "router": {
-        "origin": "https://rork.com/"
-      },
-      "eas": {
-        "projectId": "08378048-5ed1-4eb9-8f0a-a56795788b45"
-      }
+      "router": { "origin": "https://rork.com/" },
+      "eas": { "projectId": "08378048-5ed1-4eb9-8f0a-a56795788b45" },
+      "demoMode": true
     }
   }
 }

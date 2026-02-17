@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Modal, FlatList } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, Text, View, TouchableOpacity, Modal, FlatList, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronDown, User, Plus } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
@@ -17,6 +17,14 @@ export default function TopNavigation() {
   const [showFarmSelector, setShowFarmSelector] = useState(false);
   
   const colors = isDarkMode ? Colors.dark : Colors.light;
+
+  // #region agent log
+  useEffect(() => {
+    if (showFarmSelector) {
+      fetch('http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'TopNavigation.tsx:FarmModal', message: 'Farm selector modal opened', data: { cardColor: colors.card, isDarkMode }, timestamp: Date.now(), hypothesisId: 'F' }) }).catch(() => {});
+    }
+  }, [showFarmSelector, colors.card, isDarkMode]);
+  // #endregion
 
   const handleFarmSelect = (farm: Farm) => {
     setCurrentFarm(farm);
@@ -65,45 +73,42 @@ export default function TopNavigation() {
         visible={showFarmSelector}
         transparent
         animationType="fade"
+        statusBarTranslucent={Platform.OS === "android"}
         onRequestClose={() => setShowFarmSelector(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowFarmSelector(false)}
-        >
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Select Farm</Text>
-            
-            <FlatList
-              data={farms}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.farmOption,
-                    { borderBottomColor: colors.border },
-                    currentFarm?.id === item.id && { backgroundColor: colors.surface }
-                  ]}
-                  onPress={() => handleFarmSelect(item)}
-                >
-                  <Text style={[styles.farmOptionName, { color: colors.text }]}>{item.name}</Text>
-                  <Text style={[styles.farmOptionDetails, { color: colors.muted }]}>
-                    {item.type} • {item.location}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-
-            <TouchableOpacity
-              style={[styles.addFarmButton, { backgroundColor: colors.tint }]}
-              onPress={handleAddFarm}
-            >
-              <Plus size={20} color="white" />
-              <Text style={styles.addFarmText}>Add New Farm</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : { flex: 1 }}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowFarmSelector(false)}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Farm</Text>
+              <FlatList
+                data={farms}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.farmOption,
+                      { borderBottomColor: colors.border },
+                      currentFarm?.id === item.id && { backgroundColor: colors.surface }
+                    ]}
+                    onPress={() => handleFarmSelect(item)}
+                  >
+                    <Text style={[styles.farmOptionName, { color: colors.text }]}>{item.name}</Text>
+                    <Text style={[styles.farmOptionDetails, { color: colors.muted }]}>
+                      {item.type} • {item.location}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <TouchableOpacity
+                style={[styles.addFarmButton, { backgroundColor: colors.tint }]}
+                onPress={handleAddFarm}
+              >
+                <Plus size={20} color="white" />
+                <Text style={styles.addFarmText}>Add New Farm</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </View>
       </Modal>
     </>
   );
