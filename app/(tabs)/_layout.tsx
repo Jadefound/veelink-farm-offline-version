@@ -3,10 +3,39 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
-import { useColorScheme, StatusBar, useWindowDimensions, View, StyleSheet } from "react-native";
+import {
+  useColorScheme,
+  StatusBar,
+  useWindowDimensions,
+  View,
+  StyleSheet,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function TabLayout() {
+const LOG_ENDPOINT = "http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145";
+
+const debugLog = (
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+  hypothesisId: string,
+  runId: string
+) => {
+  fetch(LOG_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+      hypothesisId,
+      runId,
+    }),
+  }).catch(() => {});
+};
+
+const TabLayout = () => {
   // Use fallback for theme store in case it's undefined
   const { isDarkMode = false } = useThemeStore() || {};
   const systemColorScheme = useColorScheme();
@@ -14,6 +43,16 @@ export default function TabLayout() {
   
   // Ensure we have a valid color scheme with fallback
   const colorScheme = systemColorScheme || "light";
+
+  // #region agent log
+  debugLog(
+    "app/(tabs)/_layout.tsx:render",
+    "TabLayout render",
+    { isDarkMode, systemColorScheme },
+    "H4",
+    "post-fix-2"
+  );
+  // #endregion
 
   // Handle potential missing Colors constant
   const defaultColors = {
@@ -94,7 +133,9 @@ export default function TabLayout() {
       </View>
     </SafeAreaView>
   );
-}
+};
+
+export default TabLayout;
 
 const styles = StyleSheet.create({
   container: {

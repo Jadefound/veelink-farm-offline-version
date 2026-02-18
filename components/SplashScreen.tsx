@@ -24,11 +24,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
   
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Image
-        source={require("@/assets/images/splash-icon.png")}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      <Image source={require("../assets/images/splash-icon.png")} style={styles.logo} resizeMode="contain" />
     </View>
   );
 }

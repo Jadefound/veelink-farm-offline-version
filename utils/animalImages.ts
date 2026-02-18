@@ -10,17 +10,17 @@ import { ImageSource } from 'expo-image';
 // Local image assets - these are bundled with the app and work offline
 // Using require() ensures images are bundled at build time
 const LOCAL_IMAGES: Record<string, any> = {
-  cattle: require('@/assets/animals/cattle.png'),
-  sheep: require('@/assets/animals/sheep.png'),
-  goat: require('@/assets/animals/goat.png'),
-  pig: require('@/assets/animals/pig.png'),
-  chicken: require('@/assets/animals/chicken.png'),
-  duck: require('@/assets/animals/duck.png'),
-  turkey: require('@/assets/animals/turkey.png'),
-  horse: require('@/assets/animals/horse.png'),
-  rabbit: require('@/assets/animals/rabbit.png'),
-  default: require('@/assets/animals/default.png'),
-  other: require('@/assets/animals/default.png'),
+  cattle: require('../assets/animals/cattle.png'),
+  sheep: require('../assets/animals/sheep.png'),
+  goat: require('../assets/animals/goat.png'),
+  pig: require('../assets/animals/pig.png'),
+  chicken: require('../assets/animals/chicken.png'),
+  duck: require('../assets/animals/duck.png'),
+  turkey: require('../assets/animals/turkey.png'),
+  horse: require('../assets/animals/horse.png'),
+  rabbit: require('../assets/animals/rabbit.png'),
+  default: require('../assets/animals/default.png'),
+  other: require('../assets/animals/default.png'),
 };
 
 // Remote images - optional enhancement for higher quality when online

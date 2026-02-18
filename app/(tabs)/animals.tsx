@@ -218,10 +218,10 @@ export default function AnimalsScreen() {
 
   // #region agent log
   useEffect(() => {
-    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:mount", message: "Animals tab mounted", data: { animalsCount: Array.isArray(animals) ? animals.length : 0 }, timestamp: Date.now() }) }).catch(() => {});
+    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:mount", message: "Animals tab mounted", data: { animalsCount: Array.isArray(animals) ? animals.length : 0 }, timestamp: Date.now(), hypothesisId: "G" }) }).catch(() => {});
   }, []);
   useEffect(() => {
-    if (paginatedAnimals.length > 0) fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:list", message: "Animals list with data", data: { count: paginatedAnimals.length }, timestamp: Date.now() }) }).catch(() => {});
+    if (paginatedAnimals.length > 0) fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:list", message: "Animals list with data", data: { count: paginatedAnimals.length }, timestamp: Date.now(), hypothesisId: "G" }) }).catch(() => {});
   }, [paginatedAnimals.length]);
   // #endregion
 

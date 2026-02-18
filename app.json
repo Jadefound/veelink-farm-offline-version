@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -24,6 +23,7 @@
       },
       "package": "app.rork.veelink_farm_offline_version"
     },
+    "newArchEnabled": true,
     "web": {
       "favicon": "./assets/images/favicon.png",
       "bundler": "metro"

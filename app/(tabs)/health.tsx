@@ -26,7 +26,7 @@ export default function HealthScreen() {
   const healthRecords = useHealthStore(state => state.healthRecords);
   // #region agent log
   useEffect(() => {
-    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "health.tsx:mount", message: "Health tab mounted", data: { healthRecordsCount: Array.isArray(healthRecords) ? healthRecords.length : 0 }, timestamp: Date.now() }) }).catch(() => {});
+    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "health.tsx:mount", message: "Health tab mounted", data: { healthRecordsCount: Array.isArray(healthRecords) ? healthRecords.length : 0 }, timestamp: Date.now(), hypothesisId: "G" }) }).catch(() => {});
   }, []);
   // #endregion
   const fetchHealthRecords = useHealthStore(state => state.fetchHealthRecords);
