@@ -24,6 +24,7 @@ import { formatCurrency } from "@/utils/helpers";
 import Colors from "@/constants/colors";
 import TopNavigation from "@/components/TopNavigation";
 import EmptyState from "@/components/EmptyState";
+import { useResponsive } from "@/hooks/useResponsive";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -42,6 +43,8 @@ export default function DashboardScreen() {
   const { isDarkMode } = useThemeStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
+
+  const { maxContentWidth, isTablet, isDesktop } = useResponsive();
 
   useEffect(() => {
     if (currentFarm) {
@@ -110,7 +113,11 @@ export default function DashboardScreen() {
       <TopNavigation />
 
       <ScrollView
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingHorizontal: isTablet ? 32 : 24 },
+          maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: "center", width: "100%" } : {},
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

@@ -22,6 +22,7 @@ import TopNavigation from "@/components/TopNavigation";
 import { Ionicons } from "@expo/vector-icons";
 import { getAnimalImage, getSpeciesColor } from "@/utils/animalImages";
 import { generateAnimalId } from "@/utils/animalId";
+import { useResponsive } from "@/hooks/useResponsive";
 
 const CARD_HEIGHT = 100; // Fixed height for getItemLayout optimization
 const PAGE_SIZE = 15; // Items per page for infinite scroll
@@ -127,6 +128,8 @@ export default function AnimalsScreen() {
   const { farms, currentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
+
+  const { isTablet, maxContentWidth } = useResponsive();
 
   // Load animals on mount
   useEffect(() => {
@@ -326,20 +329,27 @@ export default function AnimalsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
       <FlatList
+        key={isTablet ? 'animals-grid-2' : 'animals-list-1'}
         data={paginatedAnimals}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        numColumns={isTablet ? 2 : 1}
+        columnWrapperStyle={isTablet ? { gap: 12 } : undefined}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}
         ListFooterComponent={ListFooter}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { padding: isTablet ? 24 : 16 },
+          maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : {},
+        ]}
         showsVerticalScrollIndicator={false}
         // Performance optimizations
         initialNumToRender={10}
         maxToRenderPerBatch={5}
         windowSize={5}
         removeClippedSubviews={true}
-        getItemLayout={getItemLayout}
+        getItemLayout={!isTablet ? getItemLayout : undefined}
         // Infinite scroll
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
@@ -443,6 +453,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   horizontalCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 16,

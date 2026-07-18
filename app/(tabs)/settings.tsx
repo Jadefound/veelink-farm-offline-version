@@ -42,6 +42,7 @@ import { useHealthStore } from "@/store/healthStore";
 import Colors from "@/constants/colors";
 import Card from "@/components/Card";
 import { clearAllData } from "@/utils/mockData";
+import { useResponsive } from "@/hooks/useResponsive";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -55,6 +56,8 @@ export default function SettingsScreen() {
     resetApp,
   } = useAuthStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
+
+  const { isTablet, maxContentWidth } = useResponsive();
 
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
   const [editName, setEditName] = useState(user?.name || "");
@@ -350,7 +353,11 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <ScrollView contentContainerStyle={[
+        styles.contentContainer,
+        { padding: isTablet ? 28 : 20 },
+        maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : {},
+      ]}>
         <Card style={{ ...styles.profileCard, backgroundColor: colors.card }}>
           <View style={styles.profileInfo}>
             <TouchableOpacity onPress={openEditProfile} style={styles.avatarWrapper}>

@@ -29,6 +29,7 @@ import EmptyState from "@/components/EmptyState";
 import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import { useResponsive } from "@/hooks/useResponsive";
 
 const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   "Feed", "Medication", "Equipment", "Veterinary", "Labor", "Sales", "Purchase", "Utilities", "Other",
@@ -81,6 +82,8 @@ export default function FinancialScreen() {
   }, [transactions, currentFarm?.id, typeFilter, categoryFilter, searchQuery]);
   const { isDarkMode } = useThemeStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
+
+  const { isTablet, maxContentWidth } = useResponsive();
 
   useEffect(() => {
     if (currentFarm) {
@@ -324,7 +327,11 @@ export default function FinancialScreen() {
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { padding: isTablet ? 24 : 20 },
+          maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : {},
+        ]}
         showsVerticalScrollIndicator={false}
         // Performance optimizations
         initialNumToRender={5}

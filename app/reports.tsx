@@ -48,6 +48,7 @@ import TopNavigation from "@/components/TopNavigation";
 import { BarChart, DonutChart } from "@/components/Charts";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from "expo-router";
+import { useResponsive } from "@/hooks/useResponsive";
 
 // Helper function to calculate date range
 const getStartTimestamp = (filterPeriod: FilterPeriod): number => {
@@ -110,6 +111,15 @@ export default function ReportsScreen() {
   const fetchTransactions = useFinancialStore(state => state.fetchTransactions);
   const { currentFarm } = useFarmStore();
   const insets = useSafeAreaInsets();
+  const { width: responsiveWidth, isTablet, isDesktop, maxContentWidth } = useResponsive();
+
+  // Responsive metric card width: more columns on wider screens.
+  // Effective content width is capped by maxContentWidth on tablet/desktop.
+  const METRIC_COLUMNS = isDesktop ? 4 : isTablet ? 3 : 2;
+  const effectiveContentWidth = maxContentWidth
+    ? Math.min(responsiveWidth, maxContentWidth)
+    : responsiveWidth;
+  const cardWidth = (effectiveContentWidth - 28 - 12 * (METRIC_COLUMNS - 1)) / METRIC_COLUMNS;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -492,7 +502,7 @@ export default function ReportsScreen() {
     suffix?: string,
     gradient?: readonly [string, string, ...string[]]
   ) => (
-    <View style={[styles.metricCard, { backgroundColor: colors.card }]}>
+    <View style={[styles.metricCard, { backgroundColor: colors.card, width: cardWidth }]}>
       {(() => {
         const defaultGradient: readonly [string, string, ...string[]] = isDarkMode
           ? ['#2d3748', '#1a202c']
@@ -978,7 +988,11 @@ export default function ReportsScreen() {
       <TopNavigation />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { padding: isTablet ? 20 : 14 },
+          maxContentWidth ? { maxWidth: maxContentWidth, alignSelf: 'center', width: '100%' } : {},
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
