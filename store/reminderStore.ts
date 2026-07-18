@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
+import { getMockData, getDemoIds } from "@/utils/mockData";
 
 export type ReminderType =
   | "vaccination"
@@ -43,6 +44,7 @@ interface ReminderState {
   getDueReminders: (farmId: string) => Reminder[];
   getUpcomingReminders: (farmId: string, days: number) => Reminder[];
   getOverdueReminders: (farmId: string) => Reminder[];
+  clearDemoData: () => void;
   resetStore: () => void;
 }
 
@@ -189,10 +191,25 @@ export const useReminderStore = create<ReminderState>()(
       resetStore: () => {
         set({ reminders: [], isLoading: false, error: null });
       },
+
+      clearDemoData: () => {
+        const demoIds = getDemoIds("reminders");
+        set(state => ({ reminders: state.reminders.filter(r => !demoIds.has(r.id)) }));
+      },
     }),
     {
       name: "reminder-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => async (state, error) => {
+        if (error || !state) return;
+        try {
+          const demoEnabled = (await AsyncStorage.getItem("demoDataEnabled")) === "1";
+          if (demoEnabled && state.reminders.length === 0) {
+            const demo = getMockData("reminders") as Reminder[];
+            if (demo.length) state.reminders = demo;
+          }
+        } catch { /* noop */ }
+      },
     }
   )
 );

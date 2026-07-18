@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Animal, Farm, Transaction, HealthRecord } from '../types';
+import { InventoryItem } from '@/store/inventoryStore';
+import { Reminder } from '@/store/reminderStore';
+import { BreedingRecord } from '@/types/breeding';
 
 // Mock Farms Data
 const mockFarms: Farm[] = [
@@ -624,6 +627,295 @@ const mockHealthRecords: HealthRecord[] = [
   },
 ];
 
+// Mock Inventory Items
+const mockInventory: InventoryItem[] = [
+  {
+    id: 'inv-1',
+    farmId: 'farm-1',
+    name: 'Cattle Feed (25kg)',
+    category: 'Feed',
+    quantity: 42,
+    unit: 'bags',
+    minimumStock: 10,
+    cost: 8500,
+    supplier: 'AgroFeed Supplies Ltd',
+    createdAt: new Date('2024-01-05').toISOString(),
+    updatedAt: new Date('2024-01-20').toISOString(),
+  },
+  {
+    id: 'inv-2',
+    farmId: 'farm-1',
+    name: 'Poultry Layer Mash',
+    category: 'Feed',
+    quantity: 18,
+    unit: 'bags',
+    minimumStock: 5,
+    cost: 6200,
+    supplier: 'GreenFeed Co.',
+    createdAt: new Date('2024-01-08').toISOString(),
+    updatedAt: new Date('2024-01-18').toISOString(),
+  },
+  {
+    id: 'inv-3',
+    farmId: 'farm-1',
+    name: 'Ivermectin Injection',
+    category: 'Medicine',
+    quantity: 24,
+    unit: 'vials',
+    minimumStock: 5,
+    expiryDate: '2025-06-15',
+    cost: 3200,
+    supplier: 'VetPharm Nigeria',
+    createdAt: new Date('2024-01-10').toISOString(),
+    updatedAt: new Date('2024-01-22').toISOString(),
+  },
+  {
+    id: 'inv-4',
+    farmId: 'farm-1',
+    name: 'Oxytetracycline LA',
+    category: 'Medicine',
+    quantity: 8,
+    unit: 'bottles',
+    minimumStock: 3,
+    expiryDate: '2025-03-01',
+    cost: 4500,
+    supplier: 'VetPharm Nigeria',
+    createdAt: new Date('2024-01-12').toISOString(),
+    updatedAt: new Date('2024-02-01').toISOString(),
+  },
+  {
+    id: 'inv-5',
+    farmId: 'farm-1',
+    name: 'Mineral Salt Lick Block',
+    category: 'Supplement',
+    quantity: 15,
+    unit: 'blocks',
+    minimumStock: 8,
+    cost: 1800,
+    supplier: 'FarmCare Essentials',
+    createdAt: new Date('2024-01-06').toISOString(),
+    updatedAt: new Date('2024-01-28').toISOString(),
+  },
+  {
+    id: 'inv-6',
+    farmId: 'farm-1',
+    name: 'Milking Machine Rubber Liners',
+    category: 'Equipment',
+    quantity: 6,
+    unit: 'pairs',
+    minimumStock: 2,
+    cost: 7500,
+    supplier: 'DairyTech Solutions',
+    createdAt: new Date('2024-01-15').toISOString(),
+    updatedAt: new Date('2024-02-05').toISOString(),
+  },
+  {
+    id: 'inv-7',
+    farmId: 'farm-1',
+    name: 'Disinfectant Concentrate',
+    category: 'Medicine',
+    quantity: 3,
+    unit: 'litres',
+    minimumStock: 5,
+    expiryDate: '2025-09-20',
+    cost: 2100,
+    supplier: 'VetPharm Nigeria',
+    createdAt: new Date('2024-01-20').toISOString(),
+    updatedAt: new Date('2024-02-03').toISOString(),
+  },
+  {
+    id: 'inv-8',
+    farmId: 'farm-1',
+    name: 'Wheat Bran (50kg)',
+    category: 'Feed',
+    quantity: 28,
+    unit: 'bags',
+    minimumStock: 10,
+    cost: 4200,
+    supplier: 'AgroFeed Supplies Ltd',
+    createdAt: new Date('2024-01-18').toISOString(),
+    updatedAt: new Date('2024-02-02').toISOString(),
+  },
+  {
+    id: 'inv-9',
+    farmId: 'farm-2',
+    name: 'Horse Feed Premium Mix',
+    category: 'Feed',
+    quantity: 12,
+    unit: 'bags',
+    minimumStock: 5,
+    cost: 9500,
+    supplier: 'Equine Nutrition Co.',
+    createdAt: new Date('2024-01-22').toISOString(),
+    updatedAt: new Date('2024-02-01').toISOString(),
+  },
+  {
+    id: 'inv-10',
+    farmId: 'farm-2',
+    name: 'Veterinary First Aid Kit',
+    category: 'Equipment',
+    quantity: 2,
+    unit: 'kits',
+    minimumStock: 1,
+    cost: 12500,
+    supplier: 'VetPharm Nigeria',
+    createdAt: new Date('2024-01-25').toISOString(),
+    updatedAt: new Date('2024-02-08').toISOString(),
+  },
+];
+
+// Mock Reminders
+const mockReminders: Reminder[] = [
+  {
+    id: 'rem-1',
+    farmId: 'farm-1',
+    animalId: 'animal-1',
+    title: 'Annual vaccination for Holstein C001',
+    type: 'vaccination',
+    dueDate: '2025-01-15',
+    status: 'active',
+    notes: 'Annual booster - Foot and Mouth Disease',
+    recurring: true,
+    recurringDays: 365,
+    createdAt: new Date('2024-01-15').toISOString(),
+    updatedAt: new Date('2024-01-15').toISOString(),
+  },
+  {
+    id: 'rem-2',
+    farmId: 'farm-1',
+    animalId: 'animal-3',
+    title: 'Quarterly deworming - Goat G001',
+    type: 'health_checkup',
+    dueDate: '2025-02-20',
+    status: 'active',
+    notes: 'Rotate dewormer type this quarter',
+    recurring: true,
+    recurringDays: 90,
+    createdAt: new Date('2024-02-20').toISOString(),
+    updatedAt: new Date('2024-02-20').toISOString(),
+  },
+  {
+    id: 'rem-3',
+    farmId: 'farm-1',
+    title: 'Restock poultry layer mash',
+    type: 'inventory_restock',
+    dueDate: '2025-03-01',
+    status: 'active',
+    notes: 'Order from GreenFeed Co. - 10 bags minimum',
+    createdAt: new Date('2024-02-25').toISOString(),
+    updatedAt: new Date('2024-02-25').toISOString(),
+  },
+  {
+    id: 'rem-4',
+    farmId: 'farm-1',
+    animalId: 'animal-2',
+    title: 'Breeding health check - Angus Bull C002',
+    type: 'breeding',
+    dueDate: '2025-02-10',
+    status: 'active',
+    notes: 'Pre-breeding semen quality check',
+    createdAt: new Date('2024-02-01').toISOString(),
+    updatedAt: new Date('2024-02-01').toISOString(),
+  },
+  {
+    id: 'rem-5',
+    farmId: 'farm-1',
+    animalId: 'animal-16',
+    title: 'Post-calving checkup - Simmental C004',
+    type: 'health_checkup',
+    dueDate: '2025-01-25',
+    status: 'completed',
+    notes: 'All clear - cow and calf healthy',
+    recurring: false,
+    createdAt: new Date('2024-01-20').toISOString(),
+    updatedAt: new Date('2024-02-05').toISOString(),
+    completedAt: new Date('2024-01-28').toISOString(),
+  },
+  {
+    id: 'rem-6',
+    farmId: 'farm-2',
+    animalId: 'animal-19',
+    title: 'Equine dental check - Arabian H002',
+    type: 'health_checkup',
+    dueDate: '2025-03-15',
+    status: 'active',
+    notes: 'Annual floating and oral exam',
+    recurring: true,
+    recurringDays: 365,
+    createdAt: new Date('2024-03-01').toISOString(),
+    updatedAt: new Date('2024-03-01').toISOString(),
+  },
+];
+
+// Mock Breeding Records
+const mockBreeding: BreedingRecord[] = [
+  {
+    id: 'breed-1',
+    farmId: 'farm-1',
+    femaleAnimalId: 'animal-1',
+    maleAnimalId: 'animal-2',
+    breedingDate: '2024-11-20',
+    expectedBirthDate: '2025-08-27',
+    method: 'Natural',
+    status: 'Pregnant',
+    notes: 'Holstein x Angus cross. Confirmed pregnant via vet check.',
+    createdAt: new Date('2024-11-20').toISOString(),
+    updatedAt: new Date('2024-12-15').toISOString(),
+  },
+  {
+    id: 'breed-2',
+    farmId: 'farm-1',
+    femaleAnimalId: 'animal-16',
+    breedingDate: '2024-04-15',
+    expectedBirthDate: '2025-01-15',
+    actualBirthDate: '2025-01-18',
+    method: 'Artificial Insemination',
+    status: 'Successful',
+    litterSize: 1,
+    notes: 'Simmental x AI (sexed semen). Healthy bull calf delivered.',
+    createdAt: new Date('2024-04-15').toISOString(),
+    updatedAt: new Date('2025-01-20').toISOString(),
+  },
+  {
+    id: 'breed-3',
+    farmId: 'farm-1',
+    femaleAnimalId: 'animal-12',
+    maleAnimalId: 'animal-3',
+    breedingDate: '2025-01-10',
+    expectedBirthDate: '2025-06-10',
+    method: 'Natural',
+    status: 'Confirmed',
+    notes: 'Nubian x Boer cross. Pregnancy test in 30 days.',
+    createdAt: new Date('2025-01-10').toISOString(),
+    updatedAt: new Date('2025-01-10').toISOString(),
+  },
+  {
+    id: 'breed-4',
+    farmId: 'farm-1',
+    femaleAnimalId: 'animal-5',
+    breedingDate: '2024-12-01',
+    expectedBirthDate: '2025-05-08',
+    method: 'Natural',
+    status: 'Pregnant',
+    notes: 'Merino ewe confirmed pregnant. Expecting twins.',
+    createdAt: new Date('2024-12-01').toISOString(),
+    updatedAt: new Date('2025-01-05').toISOString(),
+  },
+  {
+    id: 'breed-5',
+    farmId: 'farm-2',
+    femaleAnimalId: 'animal-19',
+    maleAnimalId: 'animal-9',
+    breedingDate: '2024-10-05',
+    expectedBirthDate: '2025-09-07',
+    method: 'Natural',
+    status: 'Pregnant',
+    notes: 'Arabian x Quarter Horse cross. Foal expected September.',
+    createdAt: new Date('2024-10-05').toISOString(),
+    updatedAt: new Date('2024-11-20').toISOString(),
+  },
+];
+
 // Mock User Data — only populated when EXPO_PUBLIC_DEMO_MODE env var is explicitly set
 const mockUsers = process.env.EXPO_PUBLIC_DEMO_MODE === '1' ? [
   {
@@ -641,7 +933,7 @@ const mockUsers = process.env.EXPO_PUBLIC_DEMO_MODE === '1' ? [
  * Used by "Clear Demo Data" to remove only demo-seeded records while
  * keeping any user-created data intact.
  */
-export const getDemoIds = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords'): Set<string> => {
+export const getDemoIds = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords' | 'inventory' | 'reminders' | 'breeding'): Set<string> => {
   switch (type) {
     case 'farms':
       return new Set(mockFarms.map(f => f.id));
@@ -651,6 +943,12 @@ export const getDemoIds = (type: 'farms' | 'animals' | 'transactions' | 'healthR
       return new Set(mockTransactions.map(t => t.id));
     case 'healthRecords':
       return new Set(mockHealthRecords.map(r => r.id));
+    case 'inventory':
+      return new Set(mockInventory.map(i => i.id));
+    case 'reminders':
+      return new Set(mockReminders.map(r => r.id));
+    case 'breeding':
+      return new Set(mockBreeding.map(b => b.id));
     default:
       return new Set();
   }
@@ -659,7 +957,7 @@ export const getDemoIds = (type: 'farms' | 'animals' | 'transactions' | 'healthR
 /** Returns the Set of demo farm IDs so stores can also remove records tied to demo farms. */
 export const getDemoFarmIds = (): Set<string> => new Set(mockFarms.map(f => f.id));
 
-export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords' | 'users') => {
+export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords' | 'inventory' | 'reminders' | 'breeding' | 'users') => {
   switch (type) {
     case 'farms':
       return mockFarms;
@@ -669,6 +967,12 @@ export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'health
       return mockTransactions;
     case 'healthRecords':
       return mockHealthRecords;
+    case 'inventory':
+      return mockInventory;
+    case 'reminders':
+      return mockReminders;
+    case 'breeding':
+      return mockBreeding;
     case 'users':
       return mockUsers;
     default:
@@ -691,6 +995,9 @@ export const clearAllData = async () => {
       'financial-storage',
       'transaction-storage',
       'health-storage',
+      'inventory-storage',
+      'reminder-storage',
+      'breeding-storage',
       'theme-storage',
       'auth-storage',
       // Legacy keys (for backwards compatibility)

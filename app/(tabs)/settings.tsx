@@ -40,6 +40,9 @@ import { useFarmStore } from "@/store/farmStore";
 import { useAnimalStore } from "@/store/animalStore";
 import { useFinancialStore } from "@/store/financialStore";
 import { useHealthStore } from "@/store/healthStore";
+import { useInventoryStore } from "@/store/inventoryStore";
+import { useReminderStore } from "@/store/reminderStore";
+import { useBreedingStore } from "@/store/breedingStore";
 import Colors from "@/constants/colors";
 import Card from "@/components/Card";
 import { clearAllData } from "@/utils/mockData";
@@ -116,6 +119,9 @@ export default function SettingsScreen() {
   const { fetchAnimals, resetStore: resetAnimalStore, clearDemoData: clearDemoAnimals } = useAnimalStore();
   const { fetchTransactions, resetStore: resetFinancialStore, clearDemoData: clearDemoTransactions } = useFinancialStore();
   const { fetchHealthRecords, resetStore: resetHealthStore, clearDemoData: clearDemoHealthRecords } = useHealthStore();
+  const { clearDemoData: clearDemoInventory, resetStore: resetInventoryStore } = useInventoryStore();
+  const { clearDemoData: clearDemoReminders, resetStore: resetReminderStore } = useReminderStore();
+  const { clearDemoData: clearDemoBreeding, resetStore: resetBreedingStore } = useBreedingStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
@@ -150,6 +156,9 @@ export default function SettingsScreen() {
             resetAnimalStore();
             resetFinancialStore();
             resetHealthStore();
+            resetInventoryStore();
+            resetReminderStore();
+            resetBreedingStore();
             router.replace("/auth/register");
           },
         },
@@ -181,7 +190,9 @@ export default function SettingsScreen() {
               resetAnimalStore();
               resetFinancialStore();
               resetHealthStore();
-
+            resetInventoryStore();
+            resetReminderStore();
+            resetBreedingStore();
               await Promise.allSettled([
                 fetchFarms(),
                 fetchAnimals(),
@@ -224,6 +235,9 @@ export default function SettingsScreen() {
               resetAnimalStore();
               resetFinancialStore();
               resetHealthStore();
+            resetInventoryStore();
+            resetReminderStore();
+            resetBreedingStore();
               showAlert("Success", "All data cleared successfully!");
             } else {
               showAlert("Error", "Failed to clear data. Please try again.");
@@ -251,6 +265,9 @@ export default function SettingsScreen() {
               clearDemoAnimals();
               clearDemoTransactions();
               clearDemoHealthRecords();
+              clearDemoInventory();
+              clearDemoReminders();
+              clearDemoBreeding();
               showAlert("Success", "Demo data cleared successfully! Your own data is untouched.");
             } catch (error) {
               showAlert("Error", "Failed to clear demo data. Please try again.");

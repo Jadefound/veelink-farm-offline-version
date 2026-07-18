@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
 import { BreedingRecord } from "@/types";
+import { getMockData, getDemoIds } from "@/utils/mockData";
 
 interface BreedingState {
   breedingRecords: BreedingRecord[];
@@ -20,6 +21,7 @@ interface BreedingState {
   getBreedingRecordsByFarm: (farmId: string) => BreedingRecord[];
   getUpcomingBirths: (farmId: string, days: number) => BreedingRecord[];
   getPregnantAnimals: (farmId: string) => BreedingRecord[];
+  clearDemoData: () => void;
   resetStore: () => void;
 }
 
@@ -123,10 +125,25 @@ export const useBreedingStore = create<BreedingState>()(
       resetStore: () => {
         set({ breedingRecords: [], isLoading: false, error: null });
       },
+
+      clearDemoData: () => {
+        const demoIds = getDemoIds("breeding");
+        set(state => ({ breedingRecords: state.breedingRecords.filter(r => !demoIds.has(r.id)) }));
+      },
     }),
     {
       name: "breeding-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => async (state, error) => {
+        if (error || !state) return;
+        try {
+          const demoEnabled = (await AsyncStorage.getItem("demoDataEnabled")) === "1";
+          if (demoEnabled && state.breedingRecords.length === 0) {
+            const demo = getMockData("breeding") as BreedingRecord[];
+            if (demo.length) state.breedingRecords = demo;
+          }
+        } catch { /* noop */ }
+      },
     }
   )
 );

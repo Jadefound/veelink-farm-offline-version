@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Platform,
   StyleSheet,
@@ -40,6 +40,23 @@ export default function DatePickerField({
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const [showNativePicker, setShowNativePicker] = useState(false);
 
+  const maxStr = maximumDate ? maximumDate.toISOString().split("T")[0] : undefined;
+  const minStr = minimumDate ? minimumDate.toISOString().split("T")[0] : undefined;
+
+  const webInputRef = useCallback(
+    (node: any) => {
+      if (node && Platform.OS === "web") {
+        try {
+          const el = (node as any) as HTMLInputElement;
+          el.setAttribute("type", "date");
+          if (maxStr) el.setAttribute("max", maxStr);
+          if (minStr) el.setAttribute("min", minStr);
+        } catch { /* ignore on native */ }
+      }
+    },
+    [maxStr, minStr]
+  );
+
   if (isWeb) {
     return (
       <View style={[styles.container, containerStyle]}>
@@ -52,15 +69,12 @@ export default function DatePickerField({
         >
           <Calendar size={18} color={colors.muted} style={{ marginRight: 8 }} />
           <TextInput
+            ref={webInputRef}
             style={[styles.fieldText, { color: value ? colors.text : colors.muted, outlineStyle: "none" } as any]}
             value={value}
             onChangeText={onChange}
             placeholder={placeholder}
             placeholderTextColor={colors.muted}
-            // @ts-expect-error react-native-web TextInput supports HTML input attributes
-            type="date"
-            max={maximumDate ? maximumDate.toISOString().split("T")[0] : undefined}
-            min={minimumDate ? minimumDate.toISOString().split("T")[0] : undefined}
             testID={testID}
           />
         </View>

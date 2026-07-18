@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generateId } from '@/utils/helpers';
+import { getMockData, getDemoIds } from '@/utils/mockData';
 
 export interface InventoryItem {
     id: string;
@@ -30,6 +31,7 @@ interface InventoryState {
     deleteItem: (id: string) => Promise<void>;
     getLowStockItems: (farmId?: string) => InventoryItem[];
     getExpiringItems: (days: number, farmId?: string) => InventoryItem[];
+    clearDemoData: () => void;
     resetStore: () => void;
 }
 
@@ -126,10 +128,25 @@ export const useInventoryStore = create<InventoryState>()(
             resetStore: () => {
                 set({ items: [], isLoading: false, error: null });
             },
+
+            clearDemoData: () => {
+                const demoIds = getDemoIds("inventory");
+                set(state => ({ items: state.items.filter(i => !demoIds.has(i.id)) }));
+            },
         }),
         {
             name: 'inventory-storage',
             storage: createJSONStorage(() => AsyncStorage),
+            onRehydrateStorage: () => async (state, error) => {
+                if (error || !state) return;
+                try {
+                    const demoEnabled = (await AsyncStorage.getItem("demoDataEnabled")) === "1";
+                    if (demoEnabled && state.items.length === 0) {
+                        const demo = getMockData("inventory") as InventoryItem[];
+                        if (demo.length) state.items = demo;
+                    }
+                } catch { /* noop */ }
+            },
         }
     )
 ); 
