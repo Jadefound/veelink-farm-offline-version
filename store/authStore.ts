@@ -447,19 +447,24 @@ export const useAuthStore = create<AuthState>()(
             throw new Error("No user logged in");
           }
 
+          // Merge against the STORED user record (which has the password hash),
+          // not the in-memory currentUser (which had password deleted).
+          const parsedUsers = await getStoredUsers();
+          const storedUser = parsedUsers.find(u => u.id === currentUser.id);
+          if (!storedUser) {
+            throw new Error("User not found");
+          }
+
           let updatedUser = {
-            ...currentUser,
+            ...storedUser,
             ...userData,
             updatedAt: new Date().toISOString(),
           };
 
           if (userData.password) {
             const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(userData.password, salt);
-            updatedUser.password = hashedPassword;
+            updatedUser.password = await bcrypt.hash(userData.password, salt);
           }
-
-          const parsedUsers = await getStoredUsers();
 
           const updatedUsers = parsedUsers.map(u =>
             u.id === currentUser.id ? updatedUser : u

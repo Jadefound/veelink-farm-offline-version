@@ -65,10 +65,7 @@ export default function HealthRecordDetailScreen() {
   };
 
   const handleEditRecord = () => {
-    router.push({
-      pathname: '/health/add',
-      params: { editId: id }
-    });
+    router.push(`/health/edit/${id}`);
   };
 
   if (isLoading) {

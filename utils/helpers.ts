@@ -1,6 +1,5 @@
 import { Transaction } from "@/types";
 import { Animal } from "@/types";
-import { Platform } from 'react-native';
 
 /**
  * Generates a unique v4 UUID string that works across all platforms
@@ -13,7 +12,7 @@ export const generateId = (): string => {
   }
 
   // Fallback implementation that works everywhere
-  return 'xxxxxxxx-xxxx-4xxx-yext-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -39,19 +38,25 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-// Calculate age from birth date
+// Calculate age from birth date — returns "Xy Ym" format for young animals
 export const calculateAge = (birthDate: string): string => {
   const birth = new Date(birthDate);
   const now = new Date();
 
-  const yearDiff = now.getFullYear() - birth.getFullYear();
-  const monthDiff = now.getMonth() - birth.getMonth();
+  if (isNaN(birth.getTime())) return "Unknown";
 
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
-    return `${yearDiff - 1} years`;
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
+    years--;
+    months += 12;
   }
 
-  return `${yearDiff} years`;
+  if (years <= 0 && months <= 0) return "Less than a month";
+  if (years === 0) return `${months} month${months !== 1 ? "s" : ""}`;
+  if (months === 0) return `${years} year${years !== 1 ? "s" : ""}`;
+  return `${years}y ${months}m`;
 };
 
 // Check if a task is overdue
@@ -77,7 +82,7 @@ export const groupBy = <T>(array: T[], key: keyof T): Record<string, T[]> => {
 
 // Calculate statistics for animals
 export const calculateAnimalStats = (animals: Animal[]) => {
-  const speciesCount = groupBy(animals, "type");
+  const speciesCount = groupBy(animals, "species");
   const statusCount = groupBy(animals, "status");
 
   return {
@@ -114,7 +119,3 @@ export const calculateFinancialSummary = (transactions: Transaction[]) => {
       }))
   };
 };
-
-if (Platform.OS === 'android') {
-  // call setBackgroundColorAsync or setButtonStyleAsync
-}

@@ -329,13 +329,36 @@ export const useAnimalStore = create<AnimalState>()(
 
         try {
           const state = get();
+          const animal = state.animals.find(a => a.id === id);
           const updatedAnimals = state.animals.filter(animal => animal.id !== id);
 
-          // Update state - Zustand persist handles storage automatically
           set({
             animals: updatedAnimals,
             isLoading: false
           });
+
+          // Cascade: delete linked health records and financial transactions
+          if (animal) {
+            try {
+              const { useHealthStore } = await import("./healthStore");
+              await useHealthStore.getState().deleteHealthRecordsForAnimal(animal.id, animal.farmId);
+            } catch (e) {
+              console.warn("Failed to cascade-delete health records for animal:", e);
+            }
+
+            try {
+              const { useFinancialStore } = await import("./financialStore");
+              const financialStore = useFinancialStore.getState();
+              const linkedTxns = financialStore.transactions.filter(
+                t => t.animalId === animal.id
+              );
+              for (const txn of linkedTxns) {
+                await financialStore.deleteTransaction(txn.id);
+              }
+            } catch (e) {
+              console.warn("Failed to cascade-delete financial transactions for animal:", e);
+            }
+          }
         } catch (error: any) {
           set({
             error: error.message || "Failed to delete animal",

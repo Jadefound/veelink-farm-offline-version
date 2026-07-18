@@ -185,12 +185,46 @@ export const useFarmStore = create<FarmState>()(
             ? (farms.length > 0 ? farms[0] : null)
             : state.currentFarm;
 
-          // Update state - Zustand persist handles storage automatically
           set({
             farms,
             currentFarm: newCurrentFarm,
             isLoading: false
           });
+
+          // Cascade: delete all animals, health records, and financial
+          // transactions belonging to this farm.
+          try {
+            const { useAnimalStore } = await import("./animalStore");
+            const animalStore = useAnimalStore.getState();
+            const farmAnimals = animalStore.animals.filter(a => a.farmId === id);
+            for (const animal of farmAnimals) {
+              await animalStore.deleteAnimal(animal.id);
+            }
+          } catch (e) {
+            console.warn("Failed to cascade-delete animals for farm:", e);
+          }
+
+          try {
+            const { useHealthStore } = await import("./healthStore");
+            const healthStore = useHealthStore.getState();
+            const farmHealthRecords = healthStore.healthRecords.filter(r => r.farmId === id);
+            for (const record of farmHealthRecords) {
+              await healthStore.deleteHealthRecord(record.id);
+            }
+          } catch (e) {
+            console.warn("Failed to cascade-delete health records for farm:", e);
+          }
+
+          try {
+            const { useFinancialStore } = await import("./financialStore");
+            const financialStore = useFinancialStore.getState();
+            const farmTransactions = financialStore.transactions.filter(t => t.farmId === id);
+            for (const txn of farmTransactions) {
+              await financialStore.deleteTransaction(txn.id);
+            }
+          } catch (e) {
+            console.warn("Failed to cascade-delete financial transactions for farm:", e);
+          }
         } catch (error: any) {
           set({
             error: error.message || "Failed to delete farm",

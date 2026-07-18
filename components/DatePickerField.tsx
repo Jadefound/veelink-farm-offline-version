@@ -52,7 +52,7 @@ export default function DatePickerField({
         >
           <Calendar size={18} color={colors.muted} style={{ marginRight: 8 }} />
           <TextInput
-            style={[styles.fieldText, { color: value ? colors.text : colors.muted }]}
+            style={[styles.fieldText, { color: value ? colors.text : colors.muted, outlineStyle: "none" } as any]}
             value={value}
             onChangeText={onChange}
             placeholder={placeholder}
@@ -127,6 +127,5 @@ const styles = StyleSheet.create({
   fieldText: {
     fontSize: 16,
     flex: 1,
-    outlineStyle: "none",
-  },
+  } as any,
 });
