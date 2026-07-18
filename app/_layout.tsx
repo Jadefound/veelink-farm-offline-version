@@ -7,6 +7,8 @@ import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/store/authStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useReminderStore } from "@/store/reminderStore";
+import { useToastStore } from "@/store/toastStore";
 import { Platform, View, Text } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 import ToastContainer from "@/components/Toast";
@@ -38,7 +40,7 @@ const RootLayout = () => {
     authSettings,
     isBiometricSupported,
   } = useAuthStore();
-  const { fetchFarms } = useFarmStore();
+  const { fetchFarms, currentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
 
   const [isReady, setIsReady] = useState(false);
@@ -60,6 +62,19 @@ const RootLayout = () => {
 
     initializeApp();
   }, [fontsLoaded, fontError]);
+
+  // Check for due/overdue reminders on app start
+  useEffect(() => {
+    if (!isReady || !isAuthenticated || !currentFarm) return;
+    const { getOverdueReminders, getDueReminders } = useReminderStore.getState();
+    const overdue = getOverdueReminders(currentFarm.id);
+    const due = getDueReminders(currentFarm.id);
+    if (overdue.length > 0) {
+      useToastStore.getState().show(`${overdue.length} overdue reminder${overdue.length !== 1 ? "s" : ""}`, "error", 5000);
+    } else if (due.length > 0) {
+      useToastStore.getState().show(`${due.length} reminder${due.length !== 1 ? "s" : ""} due today`, "warning", 4000);
+    }
+  }, [isReady, isAuthenticated, currentFarm]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -131,6 +146,10 @@ const RootLayout = () => {
         <Stack.Screen name="financial/add" options={{ title: "Add Transaction" }} />
         <Stack.Screen name="inventory" options={{ headerShown: false }} />
         <Stack.Screen name="inventory/add" options={{ title: "Add Inventory Item" }} />
+        <Stack.Screen name="breeding" options={{ headerShown: false }} />
+        <Stack.Screen name="breeding/add" options={{ title: "Add Breeding Record" }} />
+        <Stack.Screen name="reminders" options={{ headerShown: false }} />
+        <Stack.Screen name="reminders/add" options={{ title: "Add Reminder" }} />
         <Stack.Screen name="reports" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDarkMode ? "light" : "dark"} />

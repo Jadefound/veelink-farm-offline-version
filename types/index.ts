@@ -121,3 +121,5 @@ export type User = {
   createdAt: string;
   updatedAt: string;
 };
+
+export * from "./breeding";
