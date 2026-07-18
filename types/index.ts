@@ -115,7 +115,9 @@ export type User = {
   id: string;
   name: string;
   email: string;
-  password?: string; // Made optional to allow deletion
+  phone?: string;
+  profileImage?: string;
+  password?: string;
   createdAt: string;
   updatedAt: string;
 };

@@ -20,6 +20,8 @@ interface ButtonProps {
   loading?: boolean;
   fullWidth?: boolean;
   icon?: React.ReactNode;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   style?: ViewStyle;
   textStyle?: TextStyle;
   gradientColors?: readonly [string, string, ...string[]];
@@ -36,6 +38,8 @@ export default function Button({
   loading = false,
   fullWidth = false,
   icon,
+  leftIcon,
+  rightIcon,
   style,
   textStyle,
   gradientColors,
@@ -143,12 +147,13 @@ export default function Button({
           end={gradientEnd}
           style={[styles.button, styles[size], styles.gradientButton]}
         >
-          {icon && <Text style={styles.icon}>{icon}</Text>}
+          {!loading && (leftIcon || icon) && <Text style={styles.leftIcon}>{leftIcon || icon}</Text>}
           {loading ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
             <Text style={[getTextStyle(), { color: "white" }]}>{title}</Text>
           )}
+          {!loading && rightIcon && <Text style={styles.rightIcon}>{rightIcon}</Text>}
         </LinearGradient>
       </TouchableOpacity>
     );
@@ -162,7 +167,7 @@ export default function Button({
       disabled={disabled || loading}
       activeOpacity={0.8}
     >
-      {icon && <Text style={styles.icon}>{icon}</Text>}
+      {!loading && (leftIcon || icon) && <Text style={styles.leftIcon}>{leftIcon || icon}</Text>}
       {loading ? (
         <ActivityIndicator
           size="small"
@@ -172,6 +177,7 @@ export default function Button({
       ) : (
         <Text style={getTextStyle()}>{title}</Text>
       )}
+      {!loading && rightIcon && <Text style={styles.rightIcon}>{rightIcon}</Text>}
     </TouchableOpacity>
   );
 }
@@ -243,9 +249,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Icon
-  icon: {
+  leftIcon: {
     marginRight: 10,
+  },
+  rightIcon: {
+    marginLeft: 10,
   },
 
   // Loader

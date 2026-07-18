@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   Text,
@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { Edit, Trash2, Plus, Tag } from "lucide-react-native";
 import { useAnimalStore } from "@/store/animalStore";
@@ -52,11 +52,13 @@ export default function AnimalDetailScreen() {
 
   const isLoading = animalLoading || healthLoading;
 
-  useEffect(() => {
-    if (id) {
-      loadAnimalData();
-    }
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (id) {
+        loadAnimalData();
+      }
+    }, [id])
+  );
 
   const loadAnimalData = async () => {
     if (!id) return;
@@ -186,7 +188,7 @@ export default function AnimalDetailScreen() {
         return colors.warning;
       case "Sold":
         return colors.muted;
-      case "Deceased":
+      case "Dead":
         return "#000000";
       default:
         return colors.muted;
@@ -400,8 +402,7 @@ export default function AnimalDetailScreen() {
 
       {/* Mark Sold Modal */}
       <Modal visible={showSellModal} transparent animationType="fade" statusBarTranslucent={Platform.OS === "android"} onRequestClose={() => setShowSellModal(false)}>
-        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : styles.modalOverlay}>
-          <View style={styles.modalOverlay}>
+        <View style={styles.modalOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalInner}>
             <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Mark as Sold</Text>
@@ -436,7 +437,6 @@ export default function AnimalDetailScreen() {
             </View>
           </KeyboardAvoidingView>
         </View>
-        </View>
       </Modal>
     </View>
   );
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
     padding: 20,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.25)",
     justifyContent: "center",
     padding: 20,
   },

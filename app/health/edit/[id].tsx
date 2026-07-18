@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     StyleSheet,
     Text,
@@ -19,8 +19,8 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import TopNavigation from "@/components/TopNavigation";
 import LoadingIndicator from "@/components/LoadingIndicator";
-import { Picker } from "@react-native-picker/picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import SelectField from "@/components/SelectField";
+import DatePickerField from "@/components/DatePickerField";
 
 export default function EditHealthRecordScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,7 +48,6 @@ export default function EditHealthRecordScreen() {
         notes: "",
     });
     const [formError, setFormError] = useState("");
-    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const healthRecordTypes: HealthRecordType[] = [
         "Vaccination",
@@ -58,6 +57,14 @@ export default function EditHealthRecordScreen() {
         "Medication",
         "Other"
     ];
+
+    const animalOptions = useMemo(
+        () => animals.map((animal) => ({
+            label: `${animal.identificationNumber} - ${animal.species}`,
+            value: animal.id,
+        })),
+        [animals]
+    );
 
     useEffect(() => {
         if (id) {
@@ -87,12 +94,8 @@ export default function EditHealthRecordScreen() {
         }
     };
 
-    const onDateChange = (event: any, selectedDate?: Date) => {
-        setShowDatePicker(false);
-        if (selectedDate) {
-            const formattedDate = selectedDate.toISOString().split("T")[0];
-            setFormData({ ...formData, date: formattedDate });
-        }
+    const onDateChange = (dateString: string) => {
+        setFormData({ ...formData, date: dateString });
     };
 
     const handleUpdateRecord = async () => {
@@ -173,82 +176,28 @@ export default function EditHealthRecordScreen() {
                     )}
 
                     <View style={styles.formContainer}>
-                        <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Animal *</Text>
-                            <View
-                                style={{
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                    borderRadius: 8,
-                                    backgroundColor: colors.card,
-                                }}
-                            >
-                                <Picker
-                                    selectedValue={formData.animalId}
-                                    onValueChange={(value) => setFormData({ ...formData, animalId: value })}
-                                    style={{ color: colors.text }}
-                                    dropdownIconColor={colors.text}
-                                >
-                                    <Picker.Item label="Select an animal" value="" />
-                                    {animals.map((animal) => (
-                                        <Picker.Item
-                                            key={animal.id}
-                                            label={`${animal.identificationNumber} - ${animal.species}`}
-                                            value={animal.id}
-                                        />
-                                    ))}
-                                </Picker>
-                            </View>
-                        </View>
+                        <SelectField
+                            label="Animal *"
+                            value={formData.animalId}
+                            options={animalOptions}
+                            onChange={(value) => setFormData(prev => ({ ...prev, animalId: value }))}
+                            placeholder="Select an animal"
+                        />
 
-                        <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Type *</Text>
-                            <View
-                                style={{
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                    borderRadius: 8,
-                                    backgroundColor: colors.card,
-                                }}
-                            >
-                                <Picker
-                                    selectedValue={formData.type}
-                                    onValueChange={(value) => setFormData({ ...formData, type: value as HealthRecordType })}
-                                    style={{ color: colors.text }}
-                                    dropdownIconColor={colors.text}
-                                >
-                                    {healthRecordTypes.map((type) => (
-                                        <Picker.Item key={type} label={type} value={type} />
-                                    ))}
-                                </Picker>
-                            </View>
-                        </View>
+                        <SelectField
+                            label="Type *"
+                            value={formData.type}
+                            options={healthRecordTypes}
+                            onChange={(value) => setFormData(prev => ({ ...prev, type: value as HealthRecordType }))}
+                        />
 
-                        <View style={styles.inputContainer}>
-                            <Text style={[styles.label, { color: colors.text }]}>Date *</Text>
-                            <TouchableOpacity
-                                style={[
-                                    styles.dateInput,
-                                    {
-                                        borderColor: colors.border,
-                                        backgroundColor: colors.card,
-                                    },
-                                ]}
-                                onPress={() => setShowDatePicker(true)}
-                            >
-                                <Text style={{ color: formData.date ? colors.text : colors.muted }}>
-                                    {formData.date || "YYYY-MM-DD"}
-                                </Text>
-                            </TouchableOpacity>
-                            {showDatePicker && (
-                                <DateTimePicker
-                                    value={formData.date ? new Date(formData.date) : new Date()}
-                                    mode="date"
-                                    display="default"
-                                    onChange={onDateChange}
-                                />
-                            )}
-                        </View>
+                        <DatePickerField
+                            label="Date *"
+                            value={formData.date}
+                            onChange={onDateChange}
+                            placeholder="YYYY-MM-DD"
+                            containerStyle={styles.inputContainer}
+                        />
 
                         <Input
                             label="Description *"

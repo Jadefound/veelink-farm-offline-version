@@ -22,6 +22,32 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       platform
     );
   }
+  // On web, alias bare react-native to react-native-web for component imports
+  // (Platform, View, etc). Do NOT alias react-native/ sub-paths — react-native-web
+  // doesn't mirror the internal directory structure.
+  if (platform === "web" && moduleName === "react-native") {
+    return context.resolveRequest(context, "react-native-web", platform);
+  }
+  // react-native/Libraries/Core/InitializeCore is pulled in by
+  // @expo/metro-runtime's install.native.ts. On web this chain is unwanted.
+  // Redirect to a no-op stub so the native devtools/bootstrap chain is skipped.
+  if (platform === "web" && moduleName === "react-native/Libraries/Core/InitializeCore") {
+    return { filePath: path.join(__dirname, "stubs", "react-native-core.js") };
+  }
+  // On web, Metro's active resolver condition is "browser", which zustand's
+  // package.json exports map doesn't define — so it falls through to the
+  // "import" condition and resolves esm/middleware.mjs. That file contains
+  // raw `import.meta.env` syntax (from the bundled-in, unused `devtools`
+  // middleware), which crashes web bundles since Expo serves them as classic
+  // (non-module) scripts. Force the "react-native" condition instead, which
+  // zustand maps to its plain CJS build (no import.meta) on every platform.
+  if (platform === "web" && (moduleName === "zustand" || moduleName.startsWith("zustand/"))) {
+    return context.resolveRequest(
+      { ...context, unstable_conditionNames: ["react-native"] },
+      moduleName,
+      platform
+    );
+  }
   return context.resolveRequest(context, moduleName, platform);
 };
 

@@ -4,5 +4,5 @@ export interface Animal {
   acquisitionCost?: number;
   salePrice?: number;
   currentValue?: number;
-  status: 'Healthy' | 'Sick' | 'Pregnant' | 'ForSale' | 'Sold' | 'Deceased';
+  status: "Healthy" | "Sick" | "Pregnant" | "ForSale" | "Sold" | "Dead";
 } 

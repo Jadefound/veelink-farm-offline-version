@@ -1,12 +1,34 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { generateId } from "@/utils/helpers";
+import { saveSecurely, getSecurely, deleteSecurely, SECURE_STORE_KEYS } from "@/utils/secureStorage";
 import { User } from "@/types";
 import * as bcrypt from 'bcryptjs';
+
+// User records (contain bcrypt password hashes) live in SecureStore, not
+// AsyncStorage. Falls back to the legacy plaintext AsyncStorage key once, to
+// migrate any pre-existing installs, then removes it.
+const LEGACY_USERS_KEY = 'users';
+
+const getStoredUsers = async (): Promise<User[]> => {
+  const secureUsers = await getSecurely<User[]>(SECURE_STORE_KEYS.USERS);
+  if (secureUsers) return secureUsers;
+
+  const legacy = await AsyncStorage.getItem(LEGACY_USERS_KEY);
+  if (!legacy) return [];
+
+  const migratedUsers: User[] = JSON.parse(legacy);
+  await saveSecurely(SECURE_STORE_KEYS.USERS, migratedUsers);
+  await AsyncStorage.removeItem(LEGACY_USERS_KEY);
+  return migratedUsers;
+};
+
+const setStoredUsers = async (users: User[]): Promise<void> => {
+  await saveSecurely(SECURE_STORE_KEYS.USERS, users);
+};
 
 export interface FarmData {
   id: string;
@@ -21,7 +43,6 @@ export interface FarmData {
 export interface AuthSettings {
   useBiometric: boolean;
   usePin: boolean;
-  pinHash?: string;
   biometricEnabled: boolean;
 }
 
@@ -40,13 +61,17 @@ interface AuthState {
 
   // Actions
   checkBiometricSupport: () => Promise<void>;
+  completeFirstRunOnboarding: (name: string, useBiometric: boolean) => Promise<void>;
+  verifyBiometric: () => Promise<boolean>;
   setupFarm: (farmData: Omit<FarmData, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   setupAuth: (farmName: string, password: string, usePin?: boolean, pin?: string, useBiometric?: boolean) => Promise<void>;
   authenticateWithPassword: (farmName: string, password: string) => Promise<void>;
   authenticateWithPin: (pin: string) => Promise<void>;
   authenticateWithBiometric: () => Promise<void>;
-  logout: () => Promise<void>;
-  updateAuthSettings: (settings: Partial<AuthSettings>) => Promise<void>;
+  unlockApp: () => void;
+  lockApp: () => void;
+  updateAuthSettings: (settings: Partial<AuthSettings>, newPinHash?: string) => Promise<void>;
+  updateProfile: (userData: Partial<User>) => Promise<void>;
   resetApp: () => Promise<void>;
 }
 
@@ -80,6 +105,66 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Error checking biometric support:', error);
         }
+      },
+
+      completeFirstRunOnboarding: async (name, useBiometric) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const newUser: User = {
+            id: generateId(),
+            name,
+            email: `${name.toLowerCase().replace(/\s+/g, '')}@farm.local`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          await setStoredUsers([newUser]);
+
+          const authSettings: AuthSettings = {
+            useBiometric,
+            usePin: false,
+            biometricEnabled: useBiometric && get().isBiometricSupported,
+          };
+
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          set({
+            user: newUser,
+            isAuthenticated: true,
+            isFirstTimeUser: false,
+            authSettings,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          set({
+            error: error.message || 'Onboarding failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      verifyBiometric: async () => {
+        try {
+          const result = await LocalAuthentication.authenticateAsync({
+            promptMessage: 'Verify your fingerprint',
+            cancelLabel: 'Cancel',
+            disableDeviceFallback: true,
+          });
+          return result.success;
+        } catch {
+          return false;
+        }
+      },
+
+      unlockApp: () => {
+        set({ isAuthenticated: true });
+      },
+
+      lockApp: () => {
+        set({ isAuthenticated: false });
       },
 
       setupFarm: async (farmData) => {
@@ -126,7 +211,7 @@ export const useAuthStore = create<AuthState>()(
           };
 
           // Save user data
-          await AsyncStorage.setItem("users", JSON.stringify([newUser]));
+          await setStoredUsers([newUser]);
 
           // Setup authentication settings
           let authSettings: AuthSettings = {
@@ -135,15 +220,12 @@ export const useAuthStore = create<AuthState>()(
             biometricEnabled: useBiometric && get().isBiometricSupported,
           };
 
-          // Setup PIN if enabled
+          // Setup PIN if enabled — uses its own salt, independent from the password's.
           if (usePin && pin) {
-            const pinHash = await bcrypt.hash(pin, salt);
-            authSettings.pinHash = pinHash;
-            await SecureStore.setItemAsync('pinHash', pinHash);
+            const pinSalt = await bcrypt.genSalt(10);
+            const pinHash = await bcrypt.hash(pin, pinSalt);
+            await saveSecurely('pinHash', pinHash);
           }
-
-          // Save auth settings
-          await AsyncStorage.setItem('authSettings', JSON.stringify(authSettings));
 
           // Create user without password for state
           const userWithoutPassword = { ...newUser };
@@ -171,8 +253,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const users = await AsyncStorage.getItem("users");
-          const parsedUsers: User[] = users ? JSON.parse(users) : [];
+          const parsedUsers = await getStoredUsers();
 
           const user = parsedUsers.find(u => u.name === farmName);
 
@@ -210,7 +291,7 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const authSettings = get().authSettings;
-          const storedPinHash = await SecureStore.getItemAsync('pinHash');
+          const storedPinHash = await getSecurely<string>('pinHash');
 
           if (!authSettings.usePin || !storedPinHash) {
             throw new Error("PIN authentication not set up");
@@ -223,8 +304,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // Get user data
-          const users = await AsyncStorage.getItem("users");
-          const parsedUsers: User[] = users ? JSON.parse(users) : [];
+          const parsedUsers = await getStoredUsers();
           const user = parsedUsers[0]; // Single user app
 
           if (!user) {
@@ -270,10 +350,8 @@ export const useAuthStore = create<AuthState>()(
             throw new Error("Biometric authentication failed");
           }
 
-          // Get user data
-          const users = await AsyncStorage.getItem("users");
-          const parsedUsers: User[] = users ? JSON.parse(users) : [];
-          const user = parsedUsers[0]; // Single user app
+          const parsedUsers = await getStoredUsers();
+          const user = parsedUsers[0];
 
           if (!user) {
             throw new Error("No user found");
@@ -295,31 +373,21 @@ export const useAuthStore = create<AuthState>()(
             error: error.message || "Biometric authentication failed",
             isLoading: false
           });
+          throw error;
         }
       },
 
-      logout: async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        set({
-          user: null,
-          isAuthenticated: false,
-          error: null
-        });
-      },
-
-      updateAuthSettings: async (newSettings) => {
+      updateAuthSettings: async (newSettings, newPinHash) => {
         set({ isLoading: true, error: null });
 
         try {
           const currentSettings = get().authSettings;
           const updatedSettings = { ...currentSettings, ...newSettings };
 
-          // Handle PIN update
-          if (newSettings.pinHash) {
-            await SecureStore.setItemAsync('pinHash', newSettings.pinHash);
+          // PIN hash lives only in SecureStore, never in persisted state.
+          if (newPinHash) {
+            await saveSecurely('pinHash', newPinHash);
           }
-
-          await AsyncStorage.setItem('authSettings', JSON.stringify(updatedSettings));
 
           set({
             authSettings: updatedSettings,
@@ -335,8 +403,11 @@ export const useAuthStore = create<AuthState>()(
 
       resetApp: async () => {
         try {
-          await AsyncStorage.multiRemove(['users', 'farmData', 'authSettings']);
-          await SecureStore.deleteItemAsync('pinHash');
+          // 'users'/'authSettings' are only removed here to clean up any
+          // pre-migration leftovers; they are no longer written to.
+          await AsyncStorage.multiRemove(['users', 'farmData', 'authSettings', 'demoDataEnabled']);
+          await deleteSecurely(SECURE_STORE_KEYS.USERS);
+          await deleteSecurely('pinHash');
 
           set({
             user: null,
@@ -388,14 +459,13 @@ export const useAuthStore = create<AuthState>()(
             updatedUser.password = hashedPassword;
           }
 
-          const users = await AsyncStorage.getItem("users");
-          const parsedUsers: User[] = users ? JSON.parse(users) : [];
+          const parsedUsers = await getStoredUsers();
 
           const updatedUsers = parsedUsers.map(u =>
             u.id === currentUser.id ? updatedUser : u
           );
 
-          await AsyncStorage.setItem("users", JSON.stringify(updatedUsers));
+          await setStoredUsers(updatedUsers);
 
           const userWithoutPassword = { ...updatedUser };
           delete userWithoutPassword.password;
@@ -416,6 +486,7 @@ export const useAuthStore = create<AuthState>()(
       name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
+        user: state.user,
         isFirstTimeUser: state.isFirstTimeUser,
         authSettings: state.authSettings,
         farmData: state.farmData,

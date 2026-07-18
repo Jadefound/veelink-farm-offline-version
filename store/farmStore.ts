@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
 import { Farm } from "@/types";
 import { farmSchema, validateData } from "@/utils/validation";
-import { getMockData } from "@/utils/mockData";
+import { getMockData, getDemoIds, getDemoFarmIds } from "@/utils/mockData";
 
 interface FarmState {
   farms: Farm[];
@@ -24,6 +24,8 @@ interface FarmState {
     totalArea: number;
     animalDensity: number;
   };
+  clearDemoData: () => void;
+  resetStore: () => void;
 }
 
 export const useFarmStore = create<FarmState>()(
@@ -41,18 +43,20 @@ export const useFarmStore = create<FarmState>()(
           const state = get();
           let farms = [...state.farms];
 
-          // Initialize with mock data if first run OR data is empty (e.g., after clear)
-          if (!state._initialized || farms.length === 0) {
-            const mockFarms = getMockData("farms") as Farm[];
-            farms = mockFarms;
+          const demoDataEnabled = (await AsyncStorage.getItem("demoDataEnabled")) === "1";
+
+          // Only seed demo data when explicitly enabled
+          if ((!state._initialized || farms.length === 0) && demoDataEnabled) {
+            farms = getMockData("farms") as Farm[];
           }
 
           // Sort farms alphabetically for consistency
           farms.sort((a, b) => a.name.localeCompare(b.name));
 
+          const currentFarmStillExists = state.currentFarm && farms.some(f => f.id === state.currentFarm!.id);
           set({
             farms,
-            currentFarm: state.currentFarm || farms[0] || null,
+            currentFarm: currentFarmStillExists ? state.currentFarm : (farms[0] || null),
             isLoading: false,
             _initialized: true,
           });
@@ -217,6 +221,24 @@ export const useFarmStore = create<FarmState>()(
           totalArea,
           animalDensity: 0
         };
+      },
+      clearDemoData: () => {
+        const demoFarmIds = getDemoFarmIds();
+        const farms = get().farms.filter(f => !demoFarmIds.has(f.id));
+        const currentFarmGone = get().currentFarm && demoFarmIds.has(get().currentFarm!.id);
+        set({
+          farms,
+          currentFarm: currentFarmGone ? (farms[0] || null) : get().currentFarm,
+        });
+      },
+      resetStore: () => {
+        set({
+          farms: [],
+          currentFarm: null,
+          isLoading: false,
+          error: null,
+          _initialized: false,
+        });
       },
     }),
     {

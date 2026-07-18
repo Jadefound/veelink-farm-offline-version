@@ -10,9 +10,7 @@ interface SplashScreenProps {
 export default function SplashScreen({ onFinish }: SplashScreenProps) {
   const { isDarkMode } = useThemeStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
-  // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'SplashScreen.tsx:render', message: 'SplashScreen rendering', data: { isDarkMode }, timestamp: Date.now(), hypothesisId: 'D' }) }).catch(() => {});
-  // #endregion
+
   // Automatically hide after 200ms
   useEffect(() => {
     const timer = setTimeout(() => {

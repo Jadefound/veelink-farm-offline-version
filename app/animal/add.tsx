@@ -17,9 +17,9 @@ import Colors from "@/constants/colors";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import TopNavigation from "@/components/TopNavigation";
-import { Picker } from "@react-native-picker/picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { ChevronDown, Calendar } from "lucide-react-native";
+import SelectField from "@/components/SelectField";
+import DatePickerField from "@/components/DatePickerField";
+import { ChevronDown } from "lucide-react-native";
 
 // Helper to generate animal ID
 const getNextAnimalId = (species: string, animals: any[]) => {
@@ -50,16 +50,6 @@ export default function AddAnimalScreen() {
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const [formError, setFormError] = useState("");
-
-  // Date picker state
-  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
-  const [showAcquisitionDatePicker, setShowAcquisitionDatePicker] =
-    useState(false);
-
-  // Picker modal state
-  const [showSpeciesPicker, setShowSpeciesPicker] = useState(false);
-  const [showStatusPicker, setShowStatusPicker] = useState(false);
-  const [showWeightUnitPicker, setShowWeightUnitPicker] = useState(false);
 
   const speciesOptions: AnimalSpecies[] = [
     "Cattle", "Sheep", "Goat", "Pig", "Chicken", "Duck", "Turkey", "Horse", "Rabbit", "Other"
@@ -104,21 +94,12 @@ export default function AddAnimalScreen() {
     setFormData(prev => ({ ...prev, identificationNumber: nextId }));
   }, [animals]);
 
-  // Date picker handlers
-  const onBirthDateChange = (event: any, selectedDate?: Date) => {
-    setShowBirthDatePicker(false);
-    if (selectedDate) {
-      const formattedDate = selectedDate.toISOString().split("T")[0];
-      setFormData(prev => ({ ...prev, birthDate: formattedDate }));
-    }
+  const onBirthDateChange = (dateString: string) => {
+    setFormData(prev => ({ ...prev, birthDate: dateString }));
   };
 
-  const onAcquisitionDateChange = (event: any, selectedDate?: Date) => {
-    setShowAcquisitionDatePicker(false);
-    if (selectedDate) {
-      const formattedDate = selectedDate.toISOString().split("T")[0];
-      setFormData(prev => ({ ...prev, acquisitionDate: formattedDate }));
-    }
+  const onAcquisitionDateChange = (dateString: string) => {
+    setFormData(prev => ({ ...prev, acquisitionDate: dateString }));
   };
 
   // When species changes, update the ID
@@ -250,31 +231,13 @@ export default function AddAnimalScreen() {
               containerStyle={{ opacity: 0.8 }}
             />
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.text }]}>Species *</Text>
-                <View style={{ marginBottom: 8 }}>
-                  <Picker
-                    selectedValue={formData.species}
-                    onValueChange={(value) => {
-                      setFormData(prev => ({ ...prev, species: value as AnimalSpecies }));
-                      setShowSpeciesPicker(false);
-                    }}
-                    style={{ 
-                      color: colors.text,
-                      backgroundColor: colors.card
-                    }}
-                    dropdownIconColor={colors.text}
-                  >
-                    {speciesOptions.map((option) => (
-                      <Picker.Item 
-                        key={option} 
-                        label={option} 
-                        value={option}
-                        color={colors.text}
-                      />
-                    ))}
-                  </Picker>
-                </View>
+            <SelectField
+              label="Species *"
+              value={formData.species}
+              options={speciesOptions}
+              onChange={(value) => setFormData(prev => ({ ...prev, species: value as AnimalSpecies }))}
+              error={speciesError}
+            />
 
             <View style={styles.inputContainer}>
               <Input
@@ -303,87 +266,30 @@ export default function AddAnimalScreen() {
               </View>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.text }]}>Birth Date *</Text>
-              <TouchableOpacity
-                style={[
-                  styles.dateInput,
-                  !formData.birthDate && birthDateError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
-                  { backgroundColor: colors.card, flexDirection: "row", alignItems: "center" },
-                ]}
-                onPress={() => setShowBirthDatePicker(true)}
-                activeOpacity={0.8}
-              >
-                <Calendar size={18} color={colors.muted} style={{ marginRight: 8 }} />
-                <Text style={{ color: formData.birthDate ? colors.text : colors.muted }}>
-                  {formData.birthDate || "YYYY-MM-DD"}
-                </Text>
-              </TouchableOpacity>
-              {birthDateError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{birthDateError}</Text> : null}
-              {showBirthDatePicker && (
-                <DateTimePicker
-                  value={formData.birthDate ? new Date(formData.birthDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={onBirthDateChange}
-                  maximumDate={new Date()}
-                />
-              )}
-            </View>
+            <DatePickerField
+              label="Birth Date *"
+              value={formData.birthDate}
+              onChange={onBirthDateChange}
+              placeholder="YYYY-MM-DD"
+              maximumDate={new Date()}
+              containerStyle={styles.inputContainer}
+            />
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.text }]}>Acquisition Date *</Text>
-              <TouchableOpacity
-                style={[
-                  styles.dateInput,
-                  !formData.acquisitionDate && acquisitionDateError ? { borderColor: Colors.light.danger } : { borderColor: colors.border },
-                  { backgroundColor: colors.card, flexDirection: "row", alignItems: "center" },
-                ]}
-                onPress={() => setShowAcquisitionDatePicker(true)}
-                activeOpacity={0.8}
-              >
-                <Calendar size={18} color={colors.muted} style={{ marginRight: 8 }} />
-                <Text style={{ color: formData.acquisitionDate ? colors.text : colors.muted }}>
-                  {formData.acquisitionDate || "YYYY-MM-DD"}
-                </Text>
-              </TouchableOpacity>
-              {acquisitionDateError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{acquisitionDateError}</Text> : null}
-              {showAcquisitionDatePicker && (
-                <DateTimePicker
-                  value={formData.acquisitionDate ? new Date(formData.acquisitionDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={onAcquisitionDateChange}
-                />
-              )}
-            </View>
+            <DatePickerField
+              label="Acquisition Date *"
+              value={formData.acquisitionDate}
+              onChange={onAcquisitionDateChange}
+              placeholder="YYYY-MM-DD"
+              containerStyle={styles.inputContainer}
+            />
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.text }]}>Status *</Text>
-                <View style={{ marginBottom: 8 }}>
-                  <Picker
-                    selectedValue={formData.status}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, status: value as AnimalStatus });
-                    }}
-                    style={{
-                      color: colors.text,
-                      backgroundColor: colors.card
-                    }}
-                    dropdownIconColor={colors.text}
-                  >
-                    {statusOptions.map((option) => (
-                      <Picker.Item
-                        key={option}
-                        label={option}
-                        value={option}
-                        color={colors.text}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              {statusError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{statusError}</Text> : null}
-            </View>
+            <SelectField
+              label="Status *"
+              value={formData.status}
+              options={statusOptions}
+              onChange={(value) => setFormData(prev => ({ ...prev, status: value as AnimalStatus }))}
+              error={statusError}
+            />
 
             <View style={styles.row}>
               <Input
@@ -395,33 +301,14 @@ export default function AddAnimalScreen() {
                 containerStyle={styles.weightInput}
               />
 
-              <View style={[styles.inputContainer, styles.unitInput]}>
-                <Text style={[styles.label, { color: colors.text }]}>Unit</Text>
-                <View style={{ marginBottom: 8 }}>
-                  <Picker
-                    selectedValue={formData.weightUnit}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, weightUnit: value as string });
-                    }}
-                    style={{
-                      color: colors.text,
-                      backgroundColor: colors.card
-                    }}
-                    dropdownIconColor={colors.text}
-                  >
-                    {weightUnitOptions.map((unit) => (
-                      <Picker.Item
-                        key={unit}
-                        label={unit}
-                        value={unit}
-                        color={colors.text}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-                {weightUnitError ? <Text style={{ color: Colors.light.danger, fontSize: 13, marginTop: 4 }}>{weightUnitError}</Text> : null}
-              </View>
-              </View>
+              <SelectField
+                label="Unit"
+                value={formData.weightUnit}
+                options={weightUnitOptions}
+                onChange={(value) => setFormData(prev => ({ ...prev, weightUnit: value }))}
+                error={weightUnitError}
+                containerStyle={styles.unitInput}
+              />
             </View>
 
             <View style={styles.row}>

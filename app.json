@@ -36,12 +36,12 @@
     ],
     "experiments": { "typedRoutes": true },
     "sdkVersion": "54.0.0",
-    "platforms": ["ios", "android"],
+    "platforms": ["ios", "android", "web"],
     "assetBundlePatterns": ["**/*"],
     "extra": {
       "router": { "origin": "https://rork.com/" },
       "eas": { "projectId": "08378048-5ed1-4eb9-8f0a-a56795788b45" },
-      "demoMode": true
+      "demoMode": false
     }
   }
 }

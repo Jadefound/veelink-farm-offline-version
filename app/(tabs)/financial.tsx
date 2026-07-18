@@ -15,6 +15,8 @@ import {
 } from "lucide-react-native";
 import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
+import { useAnimalStore } from "@/store/animalStore";
+import { useHealthStore } from "@/store/healthStore";
 import { useThemeStore } from "@/store/themeStore";
 import { Transaction } from "@/types";
 import { formatCurrency } from "@/utils/helpers";
@@ -46,6 +48,9 @@ export default function FinancialScreen() {
   const fetchTransactions = useFinancialStore(state => state.fetchTransactions);
   const getFinancialStats = useFinancialStore(state => state.getFinancialStats);
   const { farms, currentFarm } = useFarmStore();
+  const animals = useAnimalStore(state => state.animals);
+  const healthRecords = useHealthStore(state => state.healthRecords);
+  const fetchHealthRecords = useHealthStore(state => state.fetchHealthRecords);
   const farmTransactions = useMemo(() => {
     if (!currentFarm?.id) return [];
     return transactions.filter(t => t.farmId === currentFarm.id);
@@ -53,20 +58,31 @@ export default function FinancialScreen() {
   const { isDarkMode } = useThemeStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
-  // Load data on mount and when farm changes
   useEffect(() => {
     if (currentFarm) {
       loadFinancialData();
     }
   }, [currentFarm?.id]);
 
+  // Recompute stats when animals or transactions change (e.g. after editing an animal)
+  useEffect(() => {
+    if (currentFarm) {
+      getFinancialStats(currentFarm.id)
+        .then(setFinancialStats)
+        .catch(() => {});
+    }
+  }, [animals, transactions, healthRecords, currentFarm?.id]);
+
   const loadFinancialData = useCallback(async () => {
     if (currentFarm) {
-      await fetchTransactions(currentFarm.id);
+      await Promise.all([
+        fetchTransactions(currentFarm.id),
+        fetchHealthRecords(currentFarm.id),
+      ]);
       const stats = await getFinancialStats(currentFarm.id);
       setFinancialStats(stats);
     }
-  }, [currentFarm?.id, fetchTransactions, getFinancialStats]);
+  }, [currentFarm?.id, fetchTransactions, fetchHealthRecords, getFinancialStats]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

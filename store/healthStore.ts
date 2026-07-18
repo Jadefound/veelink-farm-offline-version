@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
 import { HealthRecord, HealthRecordType } from "@/types";
 import { useFarmStore } from "./farmStore";
-import { getMockData } from "@/utils/mockData";
+import { getMockData, getDemoIds, getDemoFarmIds } from "@/utils/mockData";
 
 interface HealthState {
   healthRecords: HealthRecord[];
@@ -26,6 +26,9 @@ interface HealthState {
     totalCost: number;
     recentRecords: number;
   };
+  deleteHealthRecordsForAnimal: (animalId: string, farmId: string) => Promise<void>;
+  clearDemoData: () => void;
+  resetStore: () => void;
 }
 
 export const useHealthStore = create<HealthState>()(
@@ -43,10 +46,11 @@ export const useHealthStore = create<HealthState>()(
           const state = get();
           let allRecords = [...state.healthRecords];
 
-          // Initialize with mock data if first run OR data is empty (e.g., after clear)
-          if (!state._initialized || allRecords.length === 0) {
-            const mockHealthRecords = getMockData("healthRecords") as HealthRecord[];
-            allRecords = mockHealthRecords;
+          const demoDataEnabled = (await AsyncStorage.getItem("demoDataEnabled")) === "1";
+
+          // Only seed demo data when explicitly enabled
+          if ((!state._initialized || allRecords.length === 0) && demoDataEnabled) {
+            allRecords = getMockData("healthRecords") as HealthRecord[];
           }
 
           // Filter by farm if farmId is provided
@@ -301,6 +305,26 @@ export const useHealthStore = create<HealthState>()(
           totalCost,
           recentRecords
         };
+      },
+      deleteHealthRecordsForAnimal: async (animalId, farmId) => {
+        const healthRecords = get().healthRecords.filter(
+          r => !(r.animalId === animalId && r.farmId === farmId)
+        );
+        set({ healthRecords });
+      },
+      clearDemoData: () => {
+        const demoRecordIds = getDemoIds("healthRecords");
+        const demoFarmIds = getDemoFarmIds();
+        const healthRecords = get().healthRecords.filter(r => !demoRecordIds.has(r.id) && !demoFarmIds.has(r.farmId));
+        set({ healthRecords });
+      },
+      resetStore: () => {
+        set({
+          healthRecords: [],
+          isLoading: false,
+          error: null,
+          _initialized: false,
+        });
       },
     }),
     {

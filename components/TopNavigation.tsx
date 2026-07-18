@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Modal, FlatList, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronDown, User, Plus } from "lucide-react-native";
@@ -17,14 +17,6 @@ export default function TopNavigation() {
   const [showFarmSelector, setShowFarmSelector] = useState(false);
   
   const colors = isDarkMode ? Colors.dark : Colors.light;
-
-  // #region agent log
-  useEffect(() => {
-    if (showFarmSelector) {
-      fetch('http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'TopNavigation.tsx:FarmModal', message: 'Farm selector modal opened', data: { cardColor: colors.card, isDarkMode }, timestamp: Date.now(), hypothesisId: 'F' }) }).catch(() => {});
-    }
-  }, [showFarmSelector, colors.card, isDarkMode]);
-  // #endregion
 
   const handleFarmSelect = (farm: Farm) => {
     setCurrentFarm(farm);
@@ -48,7 +40,7 @@ export default function TopNavigation() {
         </View>
 
         <View style={styles.rightSection}>
-          {farms.length > 1 && (
+          {farms.length > 0 && (
             <TouchableOpacity
               style={[styles.farmSelector, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={() => setShowFarmSelector(true)}
@@ -158,7 +150,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
     justifyContent: "center",
     alignItems: "center",
   },

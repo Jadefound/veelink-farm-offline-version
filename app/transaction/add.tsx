@@ -8,20 +8,23 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useTransactionStore } from "@/store/transactionStore";
+import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
+import { useThemeStore } from "@/store/themeStore";
 import { TransactionType, TransactionCategory } from "@/types";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import FarmSelector from "@/components/FarmSelector";
-import { Picker } from "@react-native-picker/picker";
+import SelectField from "@/components/SelectField";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
 
-  const { createTransaction, isLoading, error } = useTransactionStore();
+  const { createTransaction, isLoading, error } = useFinancialStore();
   const { farms, currentFarm, setCurrentFarm } = useFarmStore();
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [type, setType] = useState<TransactionType>("Expense");
@@ -43,7 +46,6 @@ export default function AddTransactionScreen() {
       return;
     }
 
-    // Validate form
     if (!date || !type || !amount || !category) {
       setFormError("Please fill in all required fields");
       return;
@@ -76,16 +78,16 @@ export default function AddTransactionScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Add New Transaction</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Add New Transaction</Text>
 
         {(error || formError) && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error || formError}</Text>
+          <View style={[styles.errorContainer, { backgroundColor: colors.danger + "20" }]}>
+            <Text style={[styles.errorText, { color: colors.danger }]}>{error || formError}</Text>
           </View>
         )}
 
@@ -103,19 +105,12 @@ export default function AddTransactionScreen() {
           onChangeText={setDate}
         />
 
-        <Text style={styles.label}>Type *</Text>
-        <View style={{ borderWidth: 1, borderColor: Colors.light.border, borderRadius: 8, backgroundColor: Colors.light.card, marginBottom: 16 }}>
-          <Picker
-            selectedValue={type}
-            onValueChange={(value) => setType(value as TransactionType)}
-            style={{ color: Colors.light.text }}
-            dropdownIconColor={Colors.light.text}
-          >
-            {typeOptions.map((option) => (
-              <Picker.Item key={option} label={option} value={option} />
-            ))}
-          </Picker>
-        </View>
+        <SelectField
+          label="Type *"
+          value={type}
+          options={typeOptions}
+          onChange={(value) => setType(value as TransactionType)}
+        />
 
         <Input
           label="Amount *"
@@ -125,19 +120,12 @@ export default function AddTransactionScreen() {
           onChangeText={setAmount}
         />
 
-        <Text style={styles.label}>Category *</Text>
-        <View style={{ borderWidth: 1, borderColor: Colors.light.border, borderRadius: 8, backgroundColor: Colors.light.card, marginBottom: 16 }}>
-          <Picker
-            selectedValue={category}
-            onValueChange={(value) => setCategory(value as TransactionCategory)}
-            style={{ color: Colors.light.text }}
-            dropdownIconColor={Colors.light.text}
-          >
-            {categoryOptions.map((option) => (
-              <Picker.Item key={option} label={option} value={option} />
-            ))}
-          </Picker>
-        </View>
+        <SelectField
+          label="Category *"
+          value={category}
+          options={categoryOptions}
+          onChange={(value) => setCategory(value as TransactionCategory)}
+        />
 
         <Input
           label="Description"
@@ -184,7 +172,6 @@ export default function AddTransactionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
   },
   scrollContent: {
     padding: 16,
@@ -192,17 +179,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "600",
-    color: Colors.light.text,
     marginBottom: 24,
   },
   errorContainer: {
-    backgroundColor: Colors.light.danger + "20",
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: Colors.light.danger,
     fontSize: 14,
   },
   buttonContainer: {
@@ -218,7 +202,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.light.text,
     marginBottom: 8,
   },
 });

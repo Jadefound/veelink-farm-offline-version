@@ -5,7 +5,7 @@ import { generateId } from "@/utils/helpers";
 import { Transaction, TransactionType, TransactionCategory, Animal } from "@/types";
 import { useFarmStore } from "./farmStore";
 import { useHealthStore } from "./healthStore";
-import { getMockData } from "@/utils/mockData";
+import { getMockData, getDemoIds, getDemoFarmIds } from "@/utils/mockData";
 
 // Pagination constants
 const PAGE_SIZE = 20;
@@ -76,6 +76,8 @@ interface FinancialState {
     animalCount: number;
     soldCount: number;
   }>;
+  clearDemoData: () => void;
+  resetStore: () => void;
 }
 
 export const useFinancialStore = create<FinancialState>()(
@@ -95,10 +97,11 @@ export const useFinancialStore = create<FinancialState>()(
           const state = get();
           let allTransactions = [...state.transactions];
 
-          // Initialize with mock data if first run OR data is empty (e.g., after clear)
-          if (!state._initialized || allTransactions.length === 0) {
-            const mockTransactions = getMockData("transactions") as Transaction[];
-            allTransactions = mockTransactions;
+          const demoDataEnabled = (await AsyncStorage.getItem("demoDataEnabled")) === "1";
+
+          // Only seed demo data when explicitly enabled
+          if ((!state._initialized || allTransactions.length === 0) && demoDataEnabled) {
+            allTransactions = getMockData("transactions") as Transaction[];
           }
 
           // Filter by farm if farmId is provided
@@ -179,29 +182,9 @@ export const useFinancialStore = create<FinancialState>()(
             updatedAt: new Date().toISOString(),
           };
 
-          // Handle animal sale transactions
-          // Prefer explicit animalId, fall back to reference format ANIMAL-<animalId>
-          if (transactionData.category === 'Sales') {
-            const { useAnimalStore } = await import("./animalStore");
-            const animalStore = useAnimalStore.getState();
-            const animalId =
-              transactionData.animalId ||
-              (transactionData.reference?.startsWith('ANIMAL-')
-                ? transactionData.reference.replace('ANIMAL-', '')
-                : undefined);
-
-            if (animalId) {
-              await animalStore.updateAnimal(animalId, {
-                status: 'Sold',
-                price: transactionData.amount,
-              });
-            }
-          }
-
           const state = get();
           const updatedTransactions = [...state.transactions, newTransaction];
 
-          // Update state - Zustand persist handles storage automatically
           set({
             transactions: updatedTransactions,
             isLoading: false
@@ -549,6 +532,22 @@ export const useFinancialStore = create<FinancialState>()(
             soldCount: 0,
           };
         }
+      },
+      clearDemoData: () => {
+        const demoTransIds = getDemoIds("transactions");
+        const demoFarmIds = getDemoFarmIds();
+        const transactions = get().transactions.filter(t => !demoTransIds.has(t.id) && !demoFarmIds.has(t.farmId));
+        set({ transactions });
+      },
+      resetStore: () => {
+        set({
+          transactions: [],
+          isLoading: false,
+          error: null,
+          _initialized: false,
+          currentPage: 1,
+          hasMore: true,
+        });
       },
     }),
     {

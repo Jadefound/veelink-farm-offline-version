@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "@/utils/helpers";
 import { Animal, AnimalSpecies, AnimalStatus } from "@/types";
 import { useFarmStore } from "./farmStore";
-import { getMockData } from "@/utils/mockData";
+import { getMockData, getDemoIds, getDemoFarmIds } from "@/utils/mockData";
 
 // Pagination constants
 const PAGE_SIZE = 15;
@@ -39,6 +39,8 @@ interface AnimalState {
   };
   searchAnimals: (query: string) => Animal[];
   getAnimalsByAge: (minAge?: number, maxAge?: number) => Animal[];
+  clearDemoData: () => void;
+  resetStore: () => void;
 }
 
 export const useAnimalStore = create<AnimalState>()(
@@ -58,10 +60,11 @@ export const useAnimalStore = create<AnimalState>()(
           const state = get();
           let allAnimals = [...state.animals];
 
-          // Initialize with mock data if first run OR data is empty (e.g., after clear)
-          if (!state._initialized || allAnimals.length === 0) {
-            const mockAnimals = getMockData("animals") as Animal[];
-            allAnimals = mockAnimals;
+          const demoDataEnabled = (await AsyncStorage.getItem("demoDataEnabled")) === "1";
+
+          // Only seed demo data when explicitly enabled
+          if ((!state._initialized || allAnimals.length === 0) && demoDataEnabled) {
+            allAnimals = getMockData("animals") as Animal[];
           }
 
           // Filter by farm if farmId is provided
@@ -159,6 +162,41 @@ export const useAnimalStore = create<AnimalState>()(
             isLoading: false
           });
 
+          // Keep acquisition cost in sync with linked Purchase transaction.
+          try {
+            const acquisitionPrice = newAnimal.acquisitionPrice || 0;
+            if (acquisitionPrice > 0) {
+              const { useFinancialStore } = await import("./financialStore");
+              const financialStore = useFinancialStore.getState();
+              const purchaseRef = `ANIMAL-PURCHASE-${newAnimal.id}`;
+              const existingPurchase = financialStore.transactions.find(
+                transaction => transaction.reference === purchaseRef
+              );
+
+              if (existingPurchase) {
+                await financialStore.updateTransaction(existingPurchase.id, {
+                  amount: acquisitionPrice,
+                  date: newAnimal.acquisitionDate,
+                  description: `Purchase animal ${newAnimal.identificationNumber}`,
+                });
+              } else {
+                await financialStore.createTransaction({
+                  type: "Expense",
+                  category: "Purchase",
+                  amount: acquisitionPrice,
+                  date: newAnimal.acquisitionDate,
+                  description: `Purchase animal ${newAnimal.identificationNumber}`,
+                  farmId: newAnimal.farmId,
+                  paymentMethod: "Cash",
+                  reference: purchaseRef,
+                  animalId: newAnimal.id,
+                });
+              }
+            }
+          } catch (syncError) {
+            console.warn("Failed to sync purchase transaction for new animal:", syncError);
+          }
+
           return newAnimal;
         } catch (error: any) {
           set({
@@ -175,7 +213,6 @@ export const useAnimalStore = create<AnimalState>()(
         try {
           const state = get();
 
-          // If updating identification number, check for duplicates
           if (animalData.identificationNumber) {
             const existingAnimal = state.animals.find(
               animal => animal.identificationNumber === animalData.identificationNumber &&
@@ -188,7 +225,6 @@ export const useAnimalStore = create<AnimalState>()(
             }
           }
 
-          // Find and update animal
           const index = state.animals.findIndex(a => a.id === id);
           if (index === -1) throw new Error("Animal not found");
 
@@ -198,35 +234,85 @@ export const useAnimalStore = create<AnimalState>()(
             updatedAt: new Date().toISOString()
           };
 
-          // Handle financial impacts for sold animals
-          if (animalData.status === 'Sold') {
-            const { useFinancialStore } = await import("./financialStore");
-            const financialStore = useFinancialStore.getState();
-            await financialStore.createTransaction({
-              type: 'Income',
-              category: 'Sales',
-              amount: updatedAnimal.price,
-              date: new Date().toISOString(),
-              description: `Sold animal ${updatedAnimal.identificationNumber}`,
-              farmId: updatedAnimal.farmId,
-              paymentMethod: 'Cash',
-              // Use a stable ID that can be used to link back to the animal reliably
-              reference: `ANIMAL-${updatedAnimal.id}`,
-              animalId: updatedAnimal.id,
-            });
-          }
-
           const updatedAnimals = [
             ...state.animals.slice(0, index),
             updatedAnimal,
             ...state.animals.slice(index + 1)
           ];
 
-          // Update state - Zustand persist handles storage automatically
-          set({
-            animals: updatedAnimals,
-            isLoading: false
-          });
+          set({ animals: updatedAnimals, isLoading: false });
+
+          // Sync linked financial transactions (Purchase + Sales) without recursion.
+          // financialStore.updateTransaction / createTransaction will NOT call back
+          // into animalStore because the Sales→animal auto-sync has been removed.
+          try {
+            const { useFinancialStore } = await import("./financialStore");
+            const financialStore = useFinancialStore.getState();
+            const allTxns = financialStore.transactions;
+
+            // --- Purchase transaction ---
+            const purchaseRef = `ANIMAL-PURCHASE-${updatedAnimal.id}`;
+            const existingPurchase = allTxns.find(t => t.reference === purchaseRef);
+            const acquisitionPrice = updatedAnimal.acquisitionPrice || 0;
+
+            if (acquisitionPrice > 0) {
+              if (existingPurchase) {
+                if (existingPurchase.amount !== acquisitionPrice || existingPurchase.date !== updatedAnimal.acquisitionDate) {
+                  await financialStore.updateTransaction(existingPurchase.id, {
+                    amount: acquisitionPrice,
+                    date: updatedAnimal.acquisitionDate,
+                    description: `Purchase animal ${updatedAnimal.identificationNumber}`,
+                  });
+                }
+              } else {
+                await financialStore.createTransaction({
+                  type: 'Expense',
+                  category: 'Purchase',
+                  amount: acquisitionPrice,
+                  date: updatedAnimal.acquisitionDate,
+                  description: `Purchase animal ${updatedAnimal.identificationNumber}`,
+                  farmId: updatedAnimal.farmId,
+                  paymentMethod: 'Cash',
+                  reference: purchaseRef,
+                  animalId: updatedAnimal.id,
+                });
+              }
+            } else if (existingPurchase) {
+              await financialStore.deleteTransaction(existingPurchase.id);
+            }
+
+            // --- Sales transaction ---
+            const saleRef = `ANIMAL-${updatedAnimal.id}`;
+            const existingSale = allTxns.find(t => t.reference === saleRef && t.category === 'Sales');
+
+            if (updatedAnimal.status === 'Sold') {
+              const saleAmount = updatedAnimal.price || 0;
+              if (existingSale) {
+                if (existingSale.amount !== saleAmount) {
+                  await financialStore.updateTransaction(existingSale.id, {
+                    amount: saleAmount,
+                    description: `Sold animal ${updatedAnimal.identificationNumber}`,
+                  });
+                }
+              } else {
+                await financialStore.createTransaction({
+                  type: 'Income',
+                  category: 'Sales',
+                  amount: saleAmount,
+                  date: new Date().toISOString(),
+                  description: `Sold animal ${updatedAnimal.identificationNumber}`,
+                  farmId: updatedAnimal.farmId,
+                  paymentMethod: 'Cash',
+                  reference: saleRef,
+                  animalId: updatedAnimal.id,
+                });
+              }
+            } else if (existingSale) {
+              await financialStore.deleteTransaction(existingSale.id);
+            }
+          } catch (e) {
+            console.warn("Failed to sync linked financial transactions for animal:", e);
+          }
 
           return updatedAnimal;
         } catch (error: any) {
@@ -335,6 +421,22 @@ export const useAnimalStore = create<AnimalState>()(
           healthy,
           needsAttention
         };
+      },
+      clearDemoData: () => {
+        const demoAnimalIds = getDemoIds("animals");
+        const demoFarmIds = getDemoFarmIds();
+        const animals = get().animals.filter(a => !demoAnimalIds.has(a.id) && !demoFarmIds.has(a.farmId));
+        set({ animals });
+      },
+      resetStore: () => {
+        set({
+          animals: [],
+          isLoading: false,
+          error: null,
+          _initialized: false,
+          currentPage: 1,
+          hasMore: true,
+        });
       },
     }),
     {

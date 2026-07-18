@@ -36,9 +36,9 @@ export default function DashboardScreen() {
   });
 
   const { farms, currentFarm, isLoading: farmsLoading } = useFarmStore();
-  const { fetchAnimals, getAnimalStats } = useAnimalStore();
-  const { fetchHealthRecords } = useHealthStore();
-  const { fetchTransactions, getFinancialStats } = useFinancialStore();
+  const { fetchAnimals, getAnimalStats, animals } = useAnimalStore();
+  const { fetchHealthRecords, healthRecords } = useHealthStore();
+  const { fetchTransactions, getFinancialStats, transactions } = useFinancialStore();
   const { isDarkMode } = useThemeStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
@@ -48,6 +48,15 @@ export default function DashboardScreen() {
       loadData();
     }
   }, [currentFarm]);
+
+  // Recompute stats when animals or transactions change
+  useEffect(() => {
+    if (currentFarm) {
+      getFinancialStats(currentFarm.id)
+        .then(setFinancialStats)
+        .catch(() => {});
+    }
+  }, [animals, transactions, healthRecords, currentFarm?.id]);
 
   const loadData = async () => {
     if (currentFarm) {

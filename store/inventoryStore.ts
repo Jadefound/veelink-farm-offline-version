@@ -1,11 +1,7 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-// Helper function to generate unique IDs
-const generateId = (): string => {
-    return Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
-};
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { generateId } from '@/utils/helpers';
 
 interface InventoryItem {
     id: string;
@@ -63,6 +59,9 @@ export const useInventoryStore = create<InventoryState>()(
                 });
             },
         }),
-        { name: 'inventory-storage' }
+        {
+            name: 'inventory-storage',
+            storage: createJSONStorage(() => AsyncStorage),
+        }
     )
 ); 

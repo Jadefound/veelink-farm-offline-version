@@ -1,21 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   Text,
   View,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-  Modal,
-  FlatList,
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronDown } from "lucide-react-native";
 import { useHealthStore } from "@/store/healthStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useAnimalStore } from "@/store/animalStore";
+import { useThemeStore } from "@/store/themeStore";
 import { HealthRecordType } from "@/types";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
@@ -23,6 +19,7 @@ import Button from "@/components/Button";
 import FarmSelector from "@/components/FarmSelector";
 import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
+import SelectField from "@/components/SelectField";
 
 export default function AddHealthRecordScreen() {
   const { animalId } = useLocalSearchParams<{ animalId: string }>();
@@ -31,10 +28,10 @@ export default function AddHealthRecordScreen() {
   const { createHealthRecord, isLoading, error } = useHealthStore();
   const { farms, currentFarm, setCurrentFarm } = useFarmStore();
   const { animals, fetchAnimals } = useAnimalStore();
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const [selectedAnimalId, setSelectedAnimalId] = useState(animalId || "");
-  const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
-  const [showAnimalPicker, setShowAnimalPicker] = useState(false);
   const [type, setType] = useState<HealthRecordType>("Checkup");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [description, setDescription] = useState("");
@@ -46,21 +43,40 @@ export default function AddHealthRecordScreen() {
   const [cost, setCost] = useState("");
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState("");
+  const healthRecordTypes: HealthRecordType[] = [
+    "Vaccination",
+    "Treatment",
+    "Checkup",
+    "Surgery",
+    "Medication",
+    "Other",
+  ];
+  const farmAnimals = useMemo(
+    () => (currentFarm ? animals.filter((animal) => animal.farmId === currentFarm.id) : []),
+    [animals, currentFarm?.id]
+  );
+
+  const animalOptions = useMemo(
+    () => farmAnimals.map((animal) => ({
+      label: `ID: ${animal.identificationNumber} (${animal.species})`,
+      value: animal.id,
+    })),
+    [farmAnimals]
+  );
 
   useEffect(() => {
     if (currentFarm) {
       fetchAnimals(currentFarm.id);
     }
-  }, [currentFarm]);
+  }, [currentFarm?.id, fetchAnimals]);
 
   useEffect(() => {
-    if (selectedAnimalId && animals.length > 0) {
-      const animal = animals.find(a => a.id === selectedAnimalId);
-      if (animal) {
-        setSelectedAnimal(animal);
-      }
+    if (!selectedAnimalId) return;
+    const stillExists = farmAnimals.some((item) => item.id === selectedAnimalId);
+    if (!stillExists) {
+      setSelectedAnimalId("");
     }
-  }, [selectedAnimalId, animals]);
+  }, [selectedAnimalId, farmAnimals]);
 
   const handleCreateHealthRecord = async () => {
     if (!currentFarm) {
@@ -103,25 +119,19 @@ export default function AddHealthRecordScreen() {
     }
   };
 
-  const handleSelectAnimal = (animal: any) => {
-    setSelectedAnimalId(animal.id);
-    setSelectedAnimal(animal);
-    setShowAnimalPicker(false);
-  };
-
   return (
-    <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <Card style={[styles.formCard, { backgroundColor: Colors.light.card }]}>
-          <Text style={[styles.title, { color: Colors.light.text }]}>
+        <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
+          <Text style={[styles.title, { color: colors.text }]}>
             Add Health Record
           </Text>
 
           {(error || formError) && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error || formError}</Text>
+            <View style={[styles.errorContainer, { backgroundColor: colors.danger + "20" }]}>
+              <Text style={[styles.errorText, { color: colors.danger }]}>{error || formError}</Text>
             </View>
           )}
 
@@ -132,27 +142,20 @@ export default function AddHealthRecordScreen() {
             onAddFarm={() => router.push("/farm/add")}
           />
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Animal *</Text>
-            <TouchableOpacity
-              style={styles.animalSelector}
-              onPress={() => setShowAnimalPicker(true)}
-            >
-              <Text style={styles.animalSelectorText}>
-                {selectedAnimal
-                  ? `ID: ${selectedAnimal.identificationNumber} (${selectedAnimal.species})`
-                  : "Select an animal"
-                }
-              </Text>
-              <ChevronDown size={20} color={Colors.light.text} />
-            </TouchableOpacity>
-          </View>
+          <SelectField
+            label="Animal *"
+            value={selectedAnimalId}
+            options={animalOptions}
+            onChange={setSelectedAnimalId}
+            placeholder="Select an animal"
+            emptyText="No animals available for this farm"
+          />
 
-          <Input
+          <SelectField
             label="Record Type *"
-            placeholder="e.g., Vaccination, Treatment, Checkup"
             value={type}
-            onChangeText={(text) => setType(text as HealthRecordType)}
+            options={healthRecordTypes}
+            onChange={(value) => setType(value as HealthRecordType)}
           />
 
           <Input
@@ -241,53 +244,6 @@ export default function AddHealthRecordScreen() {
           />
         </View>
       </ScrollView>
-
-      <Modal
-        animationType="slide"
-        transparent
-        visible={showAnimalPicker}
-        statusBarTranslucent={Platform.OS === "android"}
-        onRequestClose={() => setShowAnimalPicker(false)}
-      >
-        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : styles.modalOverlay}>
-          <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Animal</Text>
-              <TouchableOpacity onPress={() => setShowAnimalPicker(false)}>
-                <Text style={styles.closeButton}>Close</Text>
-              </TouchableOpacity>
-            </View>
-
-            {animals.length > 0 ? (
-              <FlatList
-                data={animals}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.animalItem,
-                      selectedAnimalId === item.id && styles.selectedAnimalItem,
-                    ]}
-                    onPress={() => handleSelectAnimal(item)}
-                  >
-                    <Text style={styles.animalId}>ID: {item.identificationNumber}</Text>
-                    <Text style={styles.animalDetails}>
-                      {item.species} • {item.breed} • {item.gender}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-              />
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>No animals available</Text>
-              </View>
-            )}
-          </View>
-        </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -316,13 +272,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   errorContainer: {
-    backgroundColor: Colors.light.danger + "20",
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: Colors.light.danger,
     fontSize: 14,
   },
   inputContainer: {
@@ -331,24 +285,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
-    color: Colors.light.text,
     fontWeight: "500",
-  },
-  animalSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  animalSelectorText: {
-    fontSize: 16,
-    color: Colors.light.text,
-    flex: 1,
-    marginRight: 8,
   },
   notesInput: {
     height: 100,
@@ -361,62 +298,5 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: "80%",
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: Colors.light.text,
-  },
-  closeButton: {
-    fontSize: 16,
-    color: Colors.light.tint,
-  },
-  animalItem: {
-    paddingVertical: 12,
-  },
-  selectedAnimalItem: {
-    backgroundColor: Colors.light.tint + "10",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-  },
-  animalId: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  animalDetails: {
-    fontSize: 14,
-    color: Colors.light.muted,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: Colors.light.border,
-  },
-  emptyState: {
-    padding: 24,
-    alignItems: "center",
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: Colors.light.muted,
   },
 });

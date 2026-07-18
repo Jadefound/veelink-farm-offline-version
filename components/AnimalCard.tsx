@@ -30,7 +30,7 @@ const getStatusColor = (status: string, colors: any) => {
       return colors.warning;
     case "Sold":
       return colors.muted;
-    case "Deceased":
+    case "Dead":
       return "#000000";
     default:
       return colors.muted;

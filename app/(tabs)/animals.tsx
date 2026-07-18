@@ -216,15 +216,6 @@ export default function AnimalsScreen() {
   // Check if there are more items to load
   const hasMore = displayedCount < filteredAnimals.length;
 
-  // #region agent log
-  useEffect(() => {
-    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:mount", message: "Animals tab mounted", data: { animalsCount: Array.isArray(animals) ? animals.length : 0 }, timestamp: Date.now(), hypothesisId: "G" }) }).catch(() => {});
-  }, []);
-  useEffect(() => {
-    if (paginatedAnimals.length > 0) fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "animals.tsx:list", message: "Animals list with data", data: { count: paginatedAnimals.length }, timestamp: Date.now(), hypothesisId: "G" }) }).catch(() => {});
-  }, [paginatedAnimals.length]);
-  // #endregion
-
   // Load more handler for infinite scroll
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {
@@ -256,23 +247,8 @@ export default function AnimalsScreen() {
     return { length, offset: length * index, index };
   }, []);
 
-  if (farms.length === 0) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <EmptyState
-          title="No Farms Available"
-          message="Add a farm before managing animals"
-          buttonTitle="Add Farm"
-          onButtonPress={handleAddFarm}
-        />
-      </View>
-    );
-  }
-
-  // Memoized ListHeaderComponent
   const ListHeader = useMemo(() => (
     <View style={styles.filterContainer}>
-      {/* Species Filter */}
       <View style={styles.filterRow}>
         <Text style={[styles.filterLabel, { color: colors.muted }]}>Species:</Text>
         <View style={styles.filterPillsRow}>
@@ -292,7 +268,6 @@ export default function AnimalsScreen() {
         </View>
       </View>
 
-      {/* Status Filter */}
       <View style={styles.filterRow}>
         <Text style={[styles.filterLabel, { color: colors.muted }]}>Status:</Text>
         <View style={styles.filterPillsRow}>
@@ -312,7 +287,6 @@ export default function AnimalsScreen() {
         </View>
       </View>
 
-      {/* Search Input */}
       <View style={styles.searchContainer}>
         <TextInput
           style={[styles.searchInput, { 
@@ -337,7 +311,6 @@ export default function AnimalsScreen() {
     </View>
   ), [colors.muted]);
 
-  // Footer component for loading indicator
   const ListFooter = useMemo(() => {
     if (!hasMore) return null;
     if (isLoadingMore) {
@@ -350,6 +323,19 @@ export default function AnimalsScreen() {
     }
     return null;
   }, [hasMore, isLoadingMore, colors.tint, colors.muted]);
+
+  if (farms.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <EmptyState
+          title="No Farms Available"
+          message="Add a farm before managing animals"
+          buttonTitle="Add Farm"
+          onButtonPress={handleAddFarm}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

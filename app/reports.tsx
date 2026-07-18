@@ -119,17 +119,6 @@ export default function ReportsScreen() {
     setTimeout(() => setRefreshing(false), 500);
   }, []);
 
-  // #region agent log
-  useEffect(() => {
-    fetch("http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location: "reports.tsx:mount", message: "Reports screen mounted", data: { animals: (animals || []).length, health: (healthRecords || []).length, transactions: (transactions || []).length }, timestamp: Date.now(), hypothesisId: "G" }) }).catch(() => {});
-  }, []);
-  useEffect(() => {
-    if (showAnimalModal && selectedAnimal) {
-      fetch('http://127.0.0.1:7246/ingest/79193bdc-f2c4-4e7b-8086-16038e987145', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'reports.tsx:AnimalModal', message: 'Animal modal opened', data: { cardColor: colors.card, isDarkMode }, timestamp: Date.now(), hypothesisId: 'E' }) }).catch(() => {});
-    }
-  }, [showAnimalModal, selectedAnimal, colors.card, isDarkMode]);
-  // #endregion
-
   // Split heavy calculations into smaller, focused memoized chunks for better performance
 
   // Scope all report inputs to the current farm (critical once stores keep full datasets)
@@ -1070,7 +1059,7 @@ export default function ReportsScreen() {
       {/* Animal Details Modal */}
       <Modal
         visible={showAnimalModal && !!selectedAnimal}
-        animationType="slide"
+        animationType="fade"
         transparent
         statusBarTranslucent={Platform.OS === "android"}
         onRequestClose={() => setShowAnimalModal(false)}
@@ -1655,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
     justifyContent: 'flex-end',
   },
   modalContent: {

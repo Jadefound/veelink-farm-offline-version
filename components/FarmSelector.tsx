@@ -12,6 +12,7 @@ import {
 import { ChevronDown } from "lucide-react-native";
 import { Farm } from "@/types";
 import Colors from "@/constants/colors";
+import { useThemeStore } from "@/store/themeStore";
 
 interface FarmSelectorProps {
   farms: Farm[];
@@ -27,6 +28,8 @@ export default function FarmSelector({
   onAddFarm,
 }: FarmSelectorProps) {
   const [modalVisible, setModalVisible] = useState(false);
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const toggleModal = () => {
     setModalVisible(!modalVisible);
@@ -40,31 +43,30 @@ export default function FarmSelector({
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={styles.selector}
+        style={[styles.selector, { backgroundColor: colors.card, borderColor: colors.border }]}
         onPress={toggleModal}
         activeOpacity={0.7}
       >
-        <Text style={styles.selectorText} numberOfLines={1}>
+        <Text style={[styles.selectorText, { color: colors.text }]} numberOfLines={1}>
           {selectedFarm ? selectedFarm.name : "Select a farm"}
         </Text>
-        <ChevronDown size={20} color={Colors.light.text} />
+        <ChevronDown size={20} color={colors.text} />
       </TouchableOpacity>
 
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent
         visible={modalVisible}
         statusBarTranslucent={Platform.OS === "android"}
         onRequestClose={toggleModal}
       >
-        <View style={Platform.OS === "android" ? { flex: 1, backgroundColor: "transparent" } : styles.modalOverlay}>
-          <Pressable style={styles.modalOverlay} onPress={toggleModal}>
-          <View style={styles.modalContainer}>
+        <Pressable style={styles.modalOverlay} onPress={toggleModal}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
             <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select Farm</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Select Farm</Text>
                 <TouchableOpacity onPress={toggleModal}>
-                  <Text style={styles.closeButton}>Close</Text>
+                  <Text style={[styles.closeButton, { color: colors.tint }]}>Close</Text>
                 </TouchableOpacity>
               </View>
 
@@ -76,24 +78,24 @@ export default function FarmSelector({
                     <TouchableOpacity
                       style={[
                         styles.farmItem,
-                        selectedFarm?.id === item.id && styles.selectedFarmItem,
+                        selectedFarm?.id === item.id && [styles.selectedFarmItem, { backgroundColor: colors.tint + "10" }],
                       ]}
                       onPress={() => handleSelectFarm(item)}
                     >
-                      <Text style={styles.farmName}>{item.name}</Text>
-                      <Text style={styles.farmLocation}>{item.location}</Text>
+                      <Text style={[styles.farmName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.farmLocation, { color: colors.muted }]}>{item.location}</Text>
                     </TouchableOpacity>
                   )}
-                  ItemSeparatorComponent={() => <View style={styles.separator} />}
+                  ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.border }]} />}
                 />
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>No farms available</Text>
+                  <Text style={[styles.emptyStateText, { color: colors.muted }]}>No farms available</Text>
                 </View>
               )}
 
               <TouchableOpacity
-                style={styles.addButton}
+                style={[styles.addButton, { backgroundColor: colors.tint }]}
                 onPress={() => {
                   toggleModal();
                   onAddFarm();
@@ -104,7 +106,6 @@ export default function FarmSelector({
             </Pressable>
           </View>
         </Pressable>
-        </View>
       </Modal>
     </View>
   );
@@ -118,26 +119,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: Colors.light.card,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: Colors.light.border,
   },
   selectorText: {
     fontSize: 16,
-    color: Colors.light.text,
     fontWeight: "500",
     flex: 1,
     marginRight: 8,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: "white",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: "80%",
@@ -154,33 +151,27 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: Colors.light.text,
   },
   closeButton: {
     fontSize: 16,
-    color: Colors.light.tint,
   },
   farmItem: {
     paddingVertical: 12,
   },
   selectedFarmItem: {
-    backgroundColor: Colors.light.tint + "10", // 10% opacity
     borderRadius: 8,
     paddingHorizontal: 8,
   },
   farmName: {
     fontSize: 16,
     fontWeight: "500",
-    color: Colors.light.text,
     marginBottom: 4,
   },
   farmLocation: {
     fontSize: 14,
-    color: Colors.light.muted,
   },
   separator: {
     height: 1,
-    backgroundColor: Colors.light.border,
   },
   emptyState: {
     padding: 24,
@@ -188,11 +179,9 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: Colors.light.muted,
   },
   addButton: {
     marginTop: 16,
-    backgroundColor: Colors.light.tint,
     borderRadius: 8,
     padding: 12,
     alignItems: "center",

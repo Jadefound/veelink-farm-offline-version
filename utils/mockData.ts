@@ -1,15 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { Animal, Farm, Transaction, HealthRecord } from '../types';
-
-/**
- * Demo mode: enabled in dev, or when EXPO_PUBLIC_DEMO_MODE=1, or when app.json extra.demoMode is true.
- * Mock data is always bundled; when demo mode is on, getMockData returns it for initial population.
- */
-const DEMO_MODE =
-  __DEV__ ||
-  process.env.EXPO_PUBLIC_DEMO_MODE === '1' ||
-  (Constants.expoConfig?.extra as { demoMode?: boolean } | undefined)?.demoMode === true;
 
 // Mock Farms Data
 const mockFarms: Farm[] = [
@@ -352,6 +342,111 @@ const mockAnimals: Animal[] = [
     healthStatus: 'healthy',
     type: 'Cattle',
   },
+  {
+    id: 'animal-16',
+    farmId: 'farm-1',
+    identificationNumber: 'C004',
+    species: 'Cattle',
+    breed: 'Simmental',
+    gender: 'Female',
+    birthDate: '2022-03-11',
+    acquisitionDate: '2022-04-01',
+    status: 'Healthy',
+    weight: 430,
+    weightUnit: 'kg',
+    price: 1300,
+    acquisitionPrice: 1100,
+    notes: 'Good milk yield and temperament',
+    createdAt: new Date('2022-04-01').toISOString(),
+    updatedAt: new Date('2024-02-10').toISOString(),
+    age: 2,
+    healthStatus: 'healthy',
+    type: 'Cattle',
+  },
+  {
+    id: 'animal-17',
+    farmId: 'farm-2',
+    identificationNumber: 'P002',
+    species: 'Pig',
+    breed: 'Duroc',
+    gender: 'Female',
+    birthDate: '2023-01-19',
+    acquisitionDate: '2023-02-05',
+    status: 'Healthy',
+    weight: 95,
+    weightUnit: 'kg',
+    price: 380,
+    acquisitionPrice: 320,
+    notes: 'Strong growth performance',
+    createdAt: new Date('2023-02-05').toISOString(),
+    updatedAt: new Date('2024-02-08').toISOString(),
+    age: 1,
+    healthStatus: 'healthy',
+    type: 'Pig',
+  },
+  {
+    id: 'animal-18',
+    farmId: 'farm-1',
+    identificationNumber: 'CH002',
+    species: 'Chicken',
+    breed: 'Leghorn',
+    gender: 'Female',
+    birthDate: '2023-10-10',
+    acquisitionDate: '2023-10-25',
+    status: 'Healthy',
+    weight: 2.1,
+    weightUnit: 'kg',
+    price: 22,
+    acquisitionPrice: 18,
+    notes: 'High egg production layer',
+    createdAt: new Date('2023-10-25').toISOString(),
+    updatedAt: new Date('2024-02-09').toISOString(),
+    age: 0,
+    healthStatus: 'healthy',
+    type: 'Chicken',
+  },
+  {
+    id: 'animal-19',
+    farmId: 'farm-2',
+    identificationNumber: 'H002',
+    species: 'Horse',
+    breed: 'Arabian',
+    gender: 'Female',
+    birthDate: '2018-06-02',
+    acquisitionDate: '2019-01-10',
+    status: 'Healthy',
+    weight: 470,
+    weightUnit: 'kg',
+    price: 6500,
+    acquisitionPrice: 6000,
+    notes: 'Endurance horse, calm under saddle',
+    createdAt: new Date('2019-01-10').toISOString(),
+    updatedAt: new Date('2024-02-11').toISOString(),
+    age: 6,
+    healthStatus: 'healthy',
+    type: 'Horse',
+  },
+  {
+    id: 'animal-20',
+    farmId: 'farm-1',
+    identificationNumber: 'S003',
+    species: 'Sheep',
+    breed: 'Dorper',
+    gender: 'Female',
+    birthDate: '2023-02-22',
+    acquisitionDate: '2023-03-15',
+    status: 'Healthy',
+    weight: 62,
+    weightUnit: 'kg',
+    price: 210,
+    acquisitionPrice: 185,
+    notes: 'Good meat conformation',
+    createdAt: new Date('2023-03-15').toISOString(),
+    updatedAt: new Date('2024-02-12').toISOString(),
+    age: 1,
+    healthStatus: 'healthy',
+    type: 'Sheep',
+  },
 ];
 
 // Mock Transactions Data
@@ -476,14 +571,65 @@ const mockHealthRecords: HealthRecord[] = [
     createdAt: new Date('2024-01-12').toISOString(),
     updatedAt: new Date('2024-01-12').toISOString(),
   },
+  {
+    id: 'health-4',
+    description: 'Post-partum check',
+    diagnosis: 'Normal recovery after calving',
+    dosage: 'Observation only',
+    farmId: 'farm-1',
+    animalId: 'animal-16',
+    type: 'Checkup',
+    date: '2024-02-14',
+    treatment: 'Physical examination and observation',
+    medication: 'None',
+    cost: 35,
+    veterinarian: 'Dr. Smith',
+    notes: 'No complications detected',
+    createdAt: new Date('2024-02-14').toISOString(),
+    updatedAt: new Date('2024-02-14').toISOString(),
+  },
+  {
+    id: 'health-5',
+    description: 'Respiratory infection treatment',
+    diagnosis: 'Mild upper respiratory infection',
+    dosage: '10ml antibiotic once daily for 5 days',
+    farmId: 'farm-2',
+    animalId: 'animal-17',
+    type: 'Treatment',
+    date: '2024-02-09',
+    treatment: 'Antibiotic and anti-inflammatory',
+    medication: 'Long-acting oxytetracycline',
+    cost: 55,
+    veterinarian: 'Dr. Johnson',
+    notes: 'Responding well to treatment, follow-up in 7 days',
+    createdAt: new Date('2024-02-09').toISOString(),
+    updatedAt: new Date('2024-02-10').toISOString(),
+  },
+  {
+    id: 'health-6',
+    description: 'De-worming and Parasite control',
+    diagnosis: 'Routine De-worming program',
+    dosage: 'Weight-based oral drench',
+    farmId: 'farm-1',
+    animalId: 'animal-20',
+    type: 'Other',
+    date: '2024-02-05',
+    treatment: 'Broad-spectrum dewormer',
+    medication: 'Ivermectin oral drench',
+    cost: 30,
+    veterinarian: 'Dr. Williams',
+    notes: 'Scheduled as part of quarterly parasite control plan',
+    createdAt: new Date('2024-02-05').toISOString(),
+    updatedAt: new Date('2024-02-05').toISOString(),
+  },
 ];
 
-// Mock User Data - Only available in demo mode
-const mockUsers = DEMO_MODE ? [
+// Mock User Data — only populated when EXPO_PUBLIC_DEMO_MODE env var is explicitly set
+const mockUsers = process.env.EXPO_PUBLIC_DEMO_MODE === '1' ? [
   {
     id: 'user-1',
     email: 'demo@veelink.com',
-    password: 'demo123', // Only exposed in demo mode
+    password: 'demo123',
     name: 'Demo User',
     createdAt: new Date('2023-01-01').toISOString(),
     updatedAt: new Date('2024-01-15').toISOString(),
@@ -491,21 +637,29 @@ const mockUsers = DEMO_MODE ? [
 ] : [];
 
 /**
- * Check if demo mode is enabled
+ * Returns a Set of IDs for the given demo data type.
+ * Used by "Clear Demo Data" to remove only demo-seeded records while
+ * keeping any user-created data intact.
  */
-export const isDemoMode = () => DEMO_MODE;
-
-/**
- * Get mock data for initial app population.
- * In production builds (without EXPO_PUBLIC_DEMO_MODE=1), returns empty arrays.
- * This is called by Zustand stores on first initialization only.
- */
-export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords' | 'users') => {
-  // In production without demo mode, return empty arrays
-  if (!DEMO_MODE) {
-    return [];
+export const getDemoIds = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords'): Set<string> => {
+  switch (type) {
+    case 'farms':
+      return new Set(mockFarms.map(f => f.id));
+    case 'animals':
+      return new Set(mockAnimals.map(a => a.id));
+    case 'transactions':
+      return new Set(mockTransactions.map(t => t.id));
+    case 'healthRecords':
+      return new Set(mockHealthRecords.map(r => r.id));
+    default:
+      return new Set();
   }
+};
 
+/** Returns the Set of demo farm IDs so stores can also remove records tied to demo farms. */
+export const getDemoFarmIds = (): Set<string> => new Set(mockFarms.map(f => f.id));
+
+export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'healthRecords' | 'users') => {
   switch (type) {
     case 'farms':
       return mockFarms;
@@ -529,10 +683,13 @@ export const getMockData = (type: 'farms' | 'animals' | 'transactions' | 'health
 export const clearAllData = async () => {
   try {
     await AsyncStorage.multiRemove([
+      // Demo mode runtime flag
+      'demoDataEnabled',
       // Zustand persisted stores
       'farm-storage',
       'animal-storage',
       'financial-storage',
+      'transaction-storage',
       'health-storage',
       'theme-storage',
       'auth-storage',
