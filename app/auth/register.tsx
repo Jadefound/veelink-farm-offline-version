@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { User, Fingerprint, ArrowRight, CheckCircle } from "lucide-react-native";
+import { User, Fingerprint, ArrowRight, CheckCircle, Lock } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
 import Colors from "@/constants/colors";
@@ -19,12 +19,13 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import { FARM_LOGO_BASE64 } from "@/assets/images/farm-logo";
 
-type OnboardingStep = "profile" | "biometric";
+type OnboardingStep = "profile" | "security" | "biometric";
 
 const OnboardingScreen = () => {
   const router = useRouter();
   const {
     completeFirstRunOnboarding,
+    setupAuth,
     checkBiometricSupport,
     verifyBiometric,
     isBiometricSupported,
@@ -37,6 +38,12 @@ const OnboardingScreen = () => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("profile");
   const [userName, setUserName] = useState("");
   const [nameError, setNameError] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [usePin, setUsePin] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
   const [useBiometric, setUseBiometric] = useState(false);
   const [biometricVerified, setBiometricVerified] = useState(false);
 
@@ -59,6 +66,30 @@ const OnboardingScreen = () => {
       return;
     }
     setNameError("");
+    setCurrentStep("security");
+  };
+
+  const handleSecurityContinue = () => {
+    if (!password) {
+      setPasswordError("Password is required");
+      return;
+    }
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+    if (usePin) {
+      if (!pin || pin.length < 4) {
+        setPinError("PIN must be at least 4 digits");
+        return;
+      }
+    }
+    setPasswordError("");
+    setPinError("");
     setCurrentStep("biometric");
   };
 
@@ -82,38 +113,44 @@ const OnboardingScreen = () => {
 
   const handleFinishOnboarding = async () => {
     try {
-      await completeFirstRunOnboarding(userName.trim(), useBiometric);
+      await setupAuth(
+        userName.trim(),
+        password,
+        usePin,
+        usePin ? pin : undefined,
+        useBiometric
+      );
       router.replace("/farm/add");
     } catch {
       Alert.alert("Error", "Failed to complete setup. Please try again.");
     }
   };
 
-  const renderStepIndicator = () => (
+  const renderStepIndicator = () => {
+    const stepIndex = currentStep === "profile" ? 0 : currentStep === "security" ? 1 : 2;
+    return (
     <View style={styles.stepIndicator}>
       <View style={[styles.stepDot, { backgroundColor: colors.tint }]}>
-        {currentStep === "biometric" ? (
+        {stepIndex > 0 ? (
           <CheckCircle size={16} color="white" />
         ) : (
           <Text style={styles.stepNumber}>1</Text>
         )}
       </View>
-      <View
-        style={[
-          styles.stepLine,
-          { backgroundColor: currentStep === "biometric" ? colors.tint : colors.muted },
-        ]}
-      />
-      <View
-        style={[
-          styles.stepDot,
-          { backgroundColor: currentStep === "biometric" ? colors.tint : colors.muted },
-        ]}
-      >
-        <Text style={styles.stepNumber}>2</Text>
+      <View style={[styles.stepLine, { backgroundColor: stepIndex >= 1 ? colors.tint : colors.muted }]} />
+      <View style={[styles.stepDot, { backgroundColor: stepIndex >= 1 ? colors.tint : colors.muted }]}>
+        {stepIndex > 1 ? (
+          <CheckCircle size={16} color="white" />
+        ) : (
+          <Text style={styles.stepNumber}>2</Text>
+        )}
+      </View>
+      <View style={[styles.stepLine, { backgroundColor: stepIndex >= 2 ? colors.tint : colors.muted }]} />
+      <View style={[styles.stepDot, { backgroundColor: stepIndex >= 2 ? colors.tint : colors.muted }]}>
+        <Text style={styles.stepNumber}>3</Text>
       </View>
     </View>
-  );
+  )};
 
   const renderProfileStep = () => (
     <View style={[styles.formContainer, { backgroundColor: colors.card }]}>
@@ -145,6 +182,75 @@ const OnboardingScreen = () => {
         style={styles.continueButton}
         rightIcon={<ArrowRight size={20} color="white" />}
       />
+    </View>
+  );
+
+  const renderSecurityStep = () => (
+    <View style={[styles.formContainer, { backgroundColor: colors.card }]}>
+      <Text style={[styles.stepTitle, { color: colors.text }]}>
+        Set Your Password
+      </Text>
+      <Text style={[styles.stepSubtitle, { color: colors.muted }]}>
+        Choose a password to secure your farm data. You'll use this if biometric unlock is unavailable.
+      </Text>
+
+      <Input
+        label="Password *"
+        placeholder="At least 6 characters"
+        value={password}
+        onChangeText={(text) => { setPassword(text); if (passwordError) setPasswordError(""); }}
+        secureTextEntry
+        leftIcon={<Lock size={20} color={colors.muted} />}
+        error={passwordError}
+      />
+
+      <Input
+        label="Confirm Password *"
+        placeholder="Re-enter password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+        leftIcon={<Lock size={20} color={colors.muted} />}
+      />
+
+      <TouchableOpacity
+        style={styles.pinToggleRow}
+        onPress={() => setUsePin(!usePin)}
+      >
+        <View style={[styles.checkbox, { borderColor: usePin ? colors.tint : colors.border, backgroundColor: usePin ? colors.tint : "transparent" }]}>
+          {usePin && <CheckCircle size={16} color="white" />}
+        </View>
+        <Text style={[styles.pinToggleText, { color: colors.text }]}>
+          Also set a quick PIN (4+ digits)
+        </Text>
+      </TouchableOpacity>
+
+      {usePin && (
+        <Input
+          label="PIN"
+          placeholder="4+ digits"
+          value={pin}
+          onChangeText={(text) => { setPin(text.replace(/[^0-9]/g, "")); if (pinError) setPinError(""); }}
+          keyboardType="numeric"
+          secureTextEntry
+          error={pinError}
+        />
+      )}
+
+      <View style={styles.buttonRow}>
+        <Button
+          title="Back"
+          onPress={() => setCurrentStep("profile")}
+          variant="outline"
+          style={styles.backButton}
+        />
+        <Button
+          title="Continue"
+          onPress={handleSecurityContinue}
+          style={styles.finishButton}
+          rightIcon={<ArrowRight size={20} color="white" />}
+        />
+      </View>
     </View>
   );
 
@@ -206,7 +312,7 @@ const OnboardingScreen = () => {
       <View style={styles.buttonRow}>
         <Button
           title="Back"
-          onPress={() => setCurrentStep("profile")}
+          onPress={() => setCurrentStep("security")}
           variant="outline"
           style={styles.backButton}
         />
@@ -245,7 +351,11 @@ const OnboardingScreen = () => {
 
         {renderStepIndicator()}
 
-        {currentStep === "profile" ? renderProfileStep() : renderBiometricStep()}
+        {currentStep === "profile"
+          ? renderProfileStep()
+          : currentStep === "security"
+          ? renderSecurityStep()
+          : renderBiometricStep()}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -377,5 +487,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
     marginTop: 16,
+  },
+  pinToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 12,
+    gap: 10,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pinToggleText: {
+    fontSize: 15,
+    flex: 1,
   },
 });
