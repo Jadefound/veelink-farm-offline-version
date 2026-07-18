@@ -9,6 +9,7 @@ import Colors from "@/constants/colors";
 import Card from "./Card";
 import { useRouter } from "expo-router";
 import { getAnimalImage, getSpeciesColor } from "@/utils/animalImages";
+import { getStatusColor } from "@/utils/statusColors";
 
 interface AnimalCardProps {
   animal: Animal;
@@ -16,26 +17,6 @@ interface AnimalCardProps {
   onEdit?: (animal: Animal) => void;
   compact?: boolean;
 }
-
-// Get status color
-const getStatusColor = (status: string, colors: any) => {
-  switch (status) {
-    case "Healthy":
-      return colors.success;
-    case "Sick":
-      return colors.danger;
-    case "Pregnant":
-      return colors.info;
-    case "ForSale":
-      return colors.warning;
-    case "Sold":
-      return colors.muted;
-    case "Dead":
-      return "#000000";
-    default:
-      return colors.muted;
-  }
-};
 
 function AnimalCard({
   animal,

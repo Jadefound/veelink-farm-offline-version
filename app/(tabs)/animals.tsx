@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   Text,
-  Dimensions,
   ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
@@ -22,39 +21,10 @@ import EmptyState from "@/components/EmptyState";
 import TopNavigation from "@/components/TopNavigation";
 import { Ionicons } from "@expo/vector-icons";
 import { getAnimalImage, getSpeciesColor } from "@/utils/animalImages";
+import { generateAnimalId } from "@/utils/animalId";
 
-const { width } = Dimensions.get("window");
 const CARD_HEIGHT = 100; // Fixed height for getItemLayout optimization
 const PAGE_SIZE = 15; // Items per page for infinite scroll
-
-// Generate species-based ID
-export const generateAnimalId = (species: string, existingAnimals: Animal[]) => {
-  const speciesPrefixes: Record<string, string> = {
-    Cattle: "C",
-    Sheep: "S",
-    Goat: "G",
-    Pig: "P",
-    Chicken: "CH",
-    Duck: "D",
-    Turkey: "T",
-    Horse: "H",
-    Rabbit: "R",
-    Other: "O",
-  };
-
-  const prefix = speciesPrefixes[species] || "O";
-
-  const speciesIds = existingAnimals
-    .filter((animal: Animal) => animal.species === species)
-    .map(animal => {
-      const id = animal.id || '';
-      return id.startsWith(prefix) ? parseInt(id.replace(prefix, '')) : 0;
-    });
-
-  const maxNumber = speciesIds.length > 0 ? Math.max(...speciesIds) : 0;
-  const nextNumber = (maxNumber + 1).toString().padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
 
 
 // Filter pill component for better performance

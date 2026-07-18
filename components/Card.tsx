@@ -5,6 +5,7 @@ import Colors from "@/constants/colors";
 import { useThemeStore } from "@/store/themeStore";
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, Image } from 'react-native';
+import { getStatusColor } from '@/utils/statusColors';
 
 interface CardProps {
   children?: React.ReactNode;
@@ -110,26 +111,6 @@ export default function Card({
     }
   };
 
-  const getStatusColor = (status?: string) => {
-    if (!status) return '#6B7280';
-
-    switch (status.toLowerCase()) {
-      case 'healthy':
-      case 'active':
-      case 'good':
-        return '#10B981';
-      case 'sick':
-      case 'critical':
-      case 'poor':
-        return '#EF4444';
-      case 'recovering':
-      case 'moderate':
-        return '#F59E0B';
-      default:
-        return '#6B7280';
-    }
-  };
-
   if (variant === "gradient" as any) {
     const defaultGradientColors = isDarkMode
       ? Colors.dark.gradient.primary
@@ -187,7 +168,7 @@ export default function Card({
             resizeMode="cover"
           />
           {status && (
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status, colors) }]}>
               <View style={styles.statusDot} />
             </View>
           )}
@@ -230,8 +211,8 @@ export default function Card({
 
         {status && (
           <View style={styles.statusContainer}>
-            <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+            <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(status, colors) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(status, colors) }]}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Text>
           </View>

@@ -20,6 +20,8 @@ import { useHealthStore } from "@/store/healthStore";
 import { useThemeStore } from "@/store/themeStore";
 import { Animal, HealthRecord } from "@/types";
 import { formatDate, calculateAge } from "@/utils/helpers";
+import { getAnimalImage, getSpeciesColor } from "@/utils/animalImages";
+import { getStatusColor } from "@/utils/statusColors";
 import Colors from "@/constants/colors";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -148,53 +150,6 @@ export default function AnimalDetailScreen() {
     });
   };
 
-  // Get species-specific image
-  const getAnimalImage = (species: string) => {
-    const animalImages = {
-      Cattle:
-        "https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-      Sheep:
-        "https://th.bing.com/th/id/OIP.cHOpiC21p07NjMl7nY8YxgHaEK?w=327&h=183&c=7&r=0&o=7&pid=1.7&rm=3",
-      Goat: "https://images.pexels.com/photos/751689/pexels-photo-751689.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-      Pig: "https://images.pexels.com/photos/1300361/pexels-photo-1300361.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-      Chicken:
-        "https://images.pexels.com/photos/1300358/pexels-photo-1300358.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-      Duck: "https://images.pexels.com/photos/416179/pexels-photo-416179.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-      Turkey:
-        "https://th.bing.com/th/id/OIP.0b24h87IrPK3cHoNPsV_qAHaGU?w=220&h=187&c=7&r=0&o=7&pid=1.7&rm=3",
-      Horse:
-        "https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-      Rabbit:
-        "https://images.pexels.com/photos/326012/pexels-photo-326012.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-      Other:
-        "https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-    };
-
-    return (
-      animalImages[species as keyof typeof animalImages] || animalImages.Other
-    );
-  };
-
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Healthy":
-        return colors.success;
-      case "Sick":
-        return colors.danger;
-      case "Pregnant":
-        return colors.info;
-      case "ForSale":
-        return colors.warning;
-      case "Sold":
-        return colors.muted;
-      case "Dead":
-        return "#000000";
-      default:
-        return colors.muted;
-    }
-  };
-
 
   if (isLoading) {
     return (
@@ -230,9 +185,11 @@ export default function AnimalDetailScreen() {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Image
-            source={{ uri: getAnimalImage(animal.species || "Other") }}
-            style={styles.image}
+            source={getAnimalImage(animal.species || "Other")}
+            style={[styles.image, { backgroundColor: getSpeciesColor(animal.species || "Other") }]}
             contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
           />
 
           <View style={styles.overlay}>
@@ -240,7 +197,7 @@ export default function AnimalDetailScreen() {
             <View
               style={[
                 styles.statusBadge,
-                { backgroundColor: getStatusColor(animal.status) },
+                { backgroundColor: getStatusColor(animal.status, colors) },
               ]}
             >
               <Text style={styles.statusText}>{animal.status}</Text>

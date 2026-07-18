@@ -20,26 +20,7 @@ import TopNavigation from "@/components/TopNavigation";
 import SelectField from "@/components/SelectField";
 import DatePickerField from "@/components/DatePickerField";
 import { ChevronDown } from "lucide-react-native";
-
-// Helper to generate animal ID
-const getNextAnimalId = (species: string, animals: any[]) => {
-  const speciesPrefixes: Record<string, string> = {
-    Cattle: "C",
-    Sheep: "S",
-    Goat: "G",
-    Pig: "P",
-    Chicken: "CH",
-    Duck: "D",
-    Turkey: "T",
-    Horse: "H",
-    Rabbit: "R",
-    Other: "O",
-  };
-  const prefix = speciesPrefixes[species] || "O";
-  const count = animals.filter((a) => a.species === species).length;
-  const nextNumber = (count + 1).toString().padStart(3, "0");
-  return `${prefix}${nextNumber}`;
-};
+import { generateAnimalId } from "@/utils/animalId";
 
 export default function AddAnimalScreen() {
   const router = useRouter();
@@ -90,7 +71,7 @@ export default function AddAnimalScreen() {
 
   // Initialize formData with default species and generate ID
   useEffect(() => {
-    const nextId = getNextAnimalId(formData.species, animals);
+    const nextId = generateAnimalId(formData.species, animals);
     setFormData(prev => ({ ...prev, identificationNumber: nextId }));
   }, [animals]);
 
@@ -104,7 +85,7 @@ export default function AddAnimalScreen() {
 
   // When species changes, update the ID
   useEffect(() => {
-    const nextId = getNextAnimalId(formData.species, animals);
+    const nextId = generateAnimalId(formData.species, animals);
     setFormData((prev) => ({ ...prev, identificationNumber: nextId }));
   }, [formData.species, animals]);
 
