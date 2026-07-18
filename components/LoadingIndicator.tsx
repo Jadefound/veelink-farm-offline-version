@@ -14,18 +14,20 @@ interface LoadingIndicatorProps {
 export default function LoadingIndicator({
   message,
   size = "large",
-  color = Colors.light.tint,
+  color,
   style,
   fullScreen = false,
 }: LoadingIndicatorProps) {
   const { isDarkMode } = useThemeStore();
   const themeColors = isDarkMode ? Colors.dark : Colors.light;
-  const messageColor = isDarkMode ? "#FFFFFF" : themeColors.muted;
+  const indicatorColor = color || themeColors.tint;
+  const messageColor = themeColors.muted;
+  const overlayBg = isDarkMode ? "rgba(15, 23, 42, 0.9)" : "rgba(248, 250, 252, 0.9)";
 
   if (fullScreen) {
     return (
-      <View style={[styles.fullScreen, style]}>
-        <ActivityIndicator size={size} color={color} />
+      <View style={[styles.fullScreen, { backgroundColor: overlayBg }, style]}>
+        <ActivityIndicator size={size} color={indicatorColor} />
         {message && <Text style={[styles.message, { color: messageColor }]}>{message}</Text>}
       </View>
     );
@@ -33,7 +35,7 @@ export default function LoadingIndicator({
 
   return (
     <View style={[styles.container, style]}>
-      <ActivityIndicator size={size} color={color} />
+      <ActivityIndicator size={size} color={indicatorColor} />
       {message && <Text style={[styles.message, { color: messageColor }]}>{message}</Text>}
     </View>
   );
@@ -49,7 +51,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
   },
   message: {
     marginTop: 12,

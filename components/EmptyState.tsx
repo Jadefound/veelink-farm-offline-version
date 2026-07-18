@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import Button from "./Button";
 import Colors from "@/constants/colors";
+import { useThemeStore } from "@/store/themeStore";
 
 interface EmptyStateProps {
   title: string;
@@ -20,11 +21,33 @@ export default function EmptyState({
   icon,
   style,
 }: EmptyStateProps) {
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
+  const tintColor = colors.tint;
+
   return (
-    <View style={[styles.container, style]}>
-      {icon && <View style={styles.iconContainer}>{icon}</View>}
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.message}>{message}</Text>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: `${tintColor}05`,
+          borderColor: `${tintColor}14`,
+        },
+        style,
+      ]}
+    >
+      {icon && (
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: `${tintColor}14` },
+          ]}
+        >
+          {icon}
+        </View>
+      )}
+      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.message, { color: colors.muted }]}>{message}</Text>
       {buttonTitle && onButtonPress && (
         <Button
           title={buttonTitle}
@@ -42,16 +65,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
-    backgroundColor: "rgba(56, 161, 105, 0.02)",
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(56, 161, 105, 0.08)",
     margin: 16,
   },
   iconContainer: {
     marginBottom: 20,
     padding: 16,
-    backgroundColor: "rgba(56, 161, 105, 0.08)",
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -62,14 +82,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "800",
-    color: Colors.light.text,
     textAlign: "center",
     marginBottom: 12,
     letterSpacing: 0.3,
   },
   message: {
     fontSize: 16,
-    color: Colors.light.muted,
     textAlign: "center",
     marginBottom: 28,
     lineHeight: 24,
@@ -77,7 +95,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   button: {
-    backgroundColor: "#38A169",
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 32,

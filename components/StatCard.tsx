@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import Colors from "@/constants/colors";
+import { useThemeStore } from "@/store/themeStore";
 import Card from "./Card";
 
 interface StatCardProps {
@@ -16,22 +17,26 @@ export default function StatCard({
   title,
   value,
   icon,
-  color = Colors.light.tint,
+  color,
   style,
   healthId,
 }: StatCardProps) {
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
+  const accentColor = color || colors.tint;
+
   return (
     <Card style={{ ...styles.card, ...style }}>
       <View style={styles.content}>
         <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={{ ...styles.value, color }}>{value}</Text>
+          <Text style={[styles.title, { color: colors.muted }]}>{title}</Text>
+          <Text style={{ ...styles.value, color: accentColor }}>{value}</Text>
         </View>
         {icon && (
           <View
             style={{
               ...styles.iconContainer,
-              backgroundColor: color + "20",
+              backgroundColor: accentColor + "20",
             }}
           >
             {icon}
@@ -44,13 +49,10 @@ export default function StatCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
     flex: 1,
     marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.05)",
   },
   content: {
     flexDirection: "row",
@@ -62,7 +64,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    color: Colors.light.muted,
     marginBottom: 6,
     fontWeight: "600",
     letterSpacing: 0.2,

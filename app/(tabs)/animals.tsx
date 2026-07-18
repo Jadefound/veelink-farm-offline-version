@@ -31,17 +31,26 @@ const PAGE_SIZE = 15; // Items per page for infinite scroll
 const FilterPill = React.memo(({ 
   label, 
   isActive, 
-  onPress 
+  onPress,
+  colors,
 }: { 
   label: string; 
   isActive: boolean; 
   onPress: () => void;
+  colors: typeof Colors.light;
 }) => (
   <TouchableOpacity
     onPress={onPress}
-    style={[styles.filterPill, isActive && styles.filterPillActive]}
+    style={[
+      styles.filterPill,
+      { backgroundColor: isActive ? colors.tint : colors.surface },
+    ]}
   >
-    <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+    <Text style={[
+      styles.filterPillText,
+      { color: isActive ? "white" : colors.muted },
+      isActive && { fontWeight: 'bold' },
+    ]}>
       {label}
     </Text>
   </TouchableOpacity>
@@ -56,9 +65,11 @@ const AnimalCard = React.memo(({
   onPress: (id: string) => void;
 }) => {
   if (!item?.id) return null;
+  const { isDarkMode } = useThemeStore();
+  const colors = isDarkMode ? Colors.dark : Colors.light;
   return (
   <TouchableOpacity
-    style={styles.horizontalCard}
+    style={[styles.horizontalCard, { backgroundColor: colors.card }]}
     onPress={() => onPress(item.id)}
     activeOpacity={0.85}
   >
@@ -70,31 +81,31 @@ const AnimalCard = React.memo(({
       transition={200}
     />
     <View style={styles.horizontalCardContent}>
-      <Text style={styles.horizontalCardTitle} numberOfLines={1}>
+      <Text style={[styles.horizontalCardTitle, { color: colors.text }]} numberOfLines={1}>
         {item.identificationNumber}
       </Text>
       <View style={styles.horizontalCardVitalsRow}>
-        <Text style={styles.horizontalCardVital}>{item.species}</Text>
-        <Text style={styles.horizontalCardDot}>•</Text>
-        <Text style={styles.horizontalCardVital}>{item.gender}</Text>
-        <Text style={styles.horizontalCardDot}>•</Text>
-        <Text style={styles.horizontalCardVital}>{item.age || 0}y</Text>
-        <Text style={styles.horizontalCardDot}>•</Text>
-        <Text style={styles.horizontalCardVital}>{item.weight || 0}{item.weightUnit || "kg"}</Text>
+        <Text style={[styles.horizontalCardVital, { color: colors.muted }]}>{item.species}</Text>
+        <Text style={[styles.horizontalCardDot, { color: colors.muted }]}>•</Text>
+        <Text style={[styles.horizontalCardVital, { color: colors.muted }]}>{item.gender}</Text>
+        <Text style={[styles.horizontalCardDot, { color: colors.muted }]}>•</Text>
+        <Text style={[styles.horizontalCardVital, { color: colors.muted }]}>{item.age || 0}y</Text>
+        <Text style={[styles.horizontalCardDot, { color: colors.muted }]}>•</Text>
+        <Text style={[styles.horizontalCardVital, { color: colors.muted }]}>{item.weight || 0}{item.weightUnit || "kg"}</Text>
       </View>
       <View style={styles.horizontalCardStatsRow}>
         <View style={styles.horizontalCardStatItem}>
-          <Ionicons name="heart-outline" size={18} color="#10B981" />
-          <Text style={styles.horizontalCardStatText}>{item.status}</Text>
+          <Ionicons name="heart-outline" size={18} color={colors.success} />
+          <Text style={[styles.horizontalCardStatText, { color: colors.text }]}>{item.status}</Text>
         </View>
         <View style={styles.horizontalCardStatItem}>
-          <Ionicons name="pricetag-outline" size={18} color="#10B981" />
-          <Text style={styles.horizontalCardStatText}>
+          <Ionicons name="pricetag-outline" size={18} color={colors.success} />
+          <Text style={[styles.horizontalCardStatText, { color: colors.text }]}>
             ${(item.estimatedValue || item.price || 0).toLocaleString()}
           </Text>
         </View>
         <View style={styles.horizontalCardStatItem}>
-          <Ionicons name="eye-outline" size={18} color="#10B981" />
+          <Ionicons name="eye-outline" size={18} color={colors.success} />
         </View>
       </View>
     </View>
@@ -226,6 +237,7 @@ export default function AnimalsScreen() {
             label="All"
             isActive={!animalSpeciesFilter}
             onPress={() => setAnimalSpeciesFilter(null)}
+            colors={colors}
           />
           {allSpecies.map(species => (
             <FilterPill
@@ -233,6 +245,7 @@ export default function AnimalsScreen() {
               label={species}
               isActive={animalSpeciesFilter === species}
               onPress={() => setAnimalSpeciesFilter(species)}
+              colors={colors}
             />
           ))}
         </View>
@@ -245,6 +258,7 @@ export default function AnimalsScreen() {
             label="All"
             isActive={!animalStatusFilter}
             onPress={() => setAnimalStatusFilter(null)}
+            colors={colors}
           />
           {allStatuses.map(status => (
             <FilterPill
@@ -252,6 +266,7 @@ export default function AnimalsScreen() {
               label={status}
               isActive={animalStatusFilter === status}
               onPress={() => setAnimalStatusFilter(status)}
+              colors={colors}
             />
           ))}
         </View>
@@ -376,21 +391,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterPill: {
-    backgroundColor: '#e0e7ef',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  filterPillActive: {
-    backgroundColor: '#3498db',
-  },
   filterPillText: {
-    color: '#555',
     fontSize: 13,
-  },
-  filterPillTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
   searchContainer: {
     marginTop: 4,
@@ -439,7 +445,6 @@ const styles = StyleSheet.create({
   horizontalCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 16,
     marginBottom: 12,
     padding: 10,
@@ -455,7 +460,6 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 12,
     marginRight: 14,
-    backgroundColor: '#F3F4F6',
   },
   horizontalCardContent: {
     flex: 1,
@@ -464,7 +468,6 @@ const styles = StyleSheet.create({
   horizontalCardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222',
     marginBottom: 2,
   },
   horizontalCardVitalsRow: {
@@ -475,12 +478,10 @@ const styles = StyleSheet.create({
   },
   horizontalCardVital: {
     fontSize: 13,
-    color: '#10B981',
     fontWeight: '600',
   },
   horizontalCardDot: {
     fontSize: 13,
-    color: '#A7F3D0',
     marginHorizontal: 4,
   },
   horizontalCardStatsRow: {
@@ -497,7 +498,6 @@ const styles = StyleSheet.create({
   },
   horizontalCardStatText: {
     fontSize: 13,
-    color: '#10B981',
     fontWeight: '600',
     marginLeft: 2,
   },

@@ -164,7 +164,7 @@ export default function Card({
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: image }}
-            style={styles.cardImage}
+            style={[styles.cardImage, { backgroundColor: colors.surface }]}
             resizeMode="cover"
           />
           {status && (
@@ -179,11 +179,11 @@ export default function Card({
         {title && (
           <View style={styles.headerRow}>
             <View style={styles.titleContainer}>
-              <Text style={styles.cardTitle} numberOfLines={1}>
+              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                 {title}
               </Text>
               {subtitle && (
-                <Text style={styles.cardSubtitle} numberOfLines={1}>
+                <Text style={[styles.cardSubtitle, { color: colors.muted }]} numberOfLines={1}>
                   {subtitle}
                 </Text>
               )}
@@ -191,10 +191,10 @@ export default function Card({
 
             {onActionPress && (
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: colors.success + '15' }]}
                 onPress={onActionPress}
               >
-                <Ionicons name={actionIcon} size={20} color="#059669" />
+                <Ionicons name={actionIcon} size={20} color={colors.success} />
               </TouchableOpacity>
             )}
           </View>
@@ -202,9 +202,9 @@ export default function Card({
 
         {value && (
           <View style={styles.valueContainer}>
-            <Text style={styles.valueText}>{value}</Text>
+            <Text style={[styles.valueText, { color: colors.success }]}>{value}</Text>
             {valueLabel && (
-              <Text style={styles.valueLabel}>{valueLabel}</Text>
+              <Text style={[styles.valueLabel, { color: colors.muted }]}>{valueLabel}</Text>
             )}
           </View>
         )}
@@ -226,12 +226,10 @@ export default function Card({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.05)",
   },
   elevated: {
     // No shadow styles
@@ -250,7 +248,6 @@ const styles = StyleSheet.create({
   cardImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#F3F4F6',
   },
   statusBadge: {
     position: 'absolute',
@@ -286,18 +283,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
   },
   actionButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -307,11 +301,9 @@ const styles = StyleSheet.create({
   valueText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#059669',
   },
   valueLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
     marginTop: 2,
   },
   statusContainer: {
