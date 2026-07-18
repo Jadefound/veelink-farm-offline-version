@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import { documentDirectory, writeAsStringAsync, readAsStringAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -27,9 +27,9 @@ export const createDataBackup = async () => {
 
         const backupJson = JSON.stringify(backupData, null, 2);
         const fileName = `veelink_backup_${new Date().toISOString().split('T')[0]}.json`;
-        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        const fileUri = `${documentDirectory}${fileName}`;
 
-        await FileSystem.writeAsStringAsync(fileUri, backupJson);
+        await writeAsStringAsync(fileUri, backupJson);
         await Sharing.shareAsync(fileUri);
 
         return { success: true, fileUri };
@@ -46,7 +46,7 @@ export const createDataBackup = async () => {
 // loaded at launch.
 export const restoreDataBackup = async (fileUri: string) => {
     try {
-        const backupJson = await FileSystem.readAsStringAsync(fileUri);
+        const backupJson = await readAsStringAsync(fileUri);
         const backup = JSON.parse(backupJson);
 
         if (!backup?.data || typeof backup.data !== 'object') {

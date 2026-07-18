@@ -19,12 +19,9 @@ import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   User,
-  Building2,
   Info,
   Shield,
-  Bell,
   Moon,
-  PawPrint,
   FileBarChart,
   Database,
   Trash2,
@@ -158,15 +155,16 @@ export default function SettingsScreen() {
 
   const handleLoadMockData = () => {
     Alert.alert(
-      "Load Mock Data",
-      "This will add sample farms, animals, transactions, and health records to your app. Continue?",
+      "Load Demo Data",
+      "WARNING: This will erase ALL existing data and replace it with sample farms, animals, transactions, and health records. This cannot be undone. Continue?",
       [
         {
           text: "Cancel",
           style: "cancel",
         },
         {
-          text: "Load Data",
+          text: "Erase & Load",
+          style: "destructive",
           onPress: async () => {
             try {
               const success = await clearAllData();
@@ -283,36 +281,7 @@ export default function SettingsScreen() {
           icon: <Shield size={20} color={colors.text} />,
           title: "Privacy & Security",
           onPress: () =>
-            Alert.alert("Privacy", "Privacy settings would go here"),
-        },
-      ],
-    },
-    {
-      title: "Animal Management",
-      items: [
-        {
-          icon: <PawPrint size={20} color={colors.text} />,
-          title: "Animal Preferences",
-          onPress: () =>
-            Alert.alert(
-              "Animal Settings",
-              "Animal management preferences would go here"
-            ),
-        },
-        {
-          icon: <Building2 size={20} color={colors.text} />,
-          title: "Farm Settings",
-          onPress: () =>
-            Alert.alert(
-              "Farm Settings",
-              "Farm management settings would go here"
-            ),
-        },
-        {
-          icon: <Bell size={20} color={colors.text} />,
-          title: "Health Reminders",
-          onPress: () =>
-            Alert.alert("Reminders", "Set up health care reminders"),
+            Alert.alert("Privacy", "Privacy settings coming soon"),
         },
       ],
     },

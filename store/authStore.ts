@@ -30,16 +30,6 @@ const setStoredUsers = async (users: User[]): Promise<void> => {
   await saveSecurely(SECURE_STORE_KEYS.USERS, users);
 };
 
-export interface FarmData {
-  id: string;
-  name: string;
-  size: string;
-  location: string;
-  animalTypes: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface AuthSettings {
   useBiometric: boolean;
   usePin: boolean;
@@ -48,7 +38,6 @@ export interface AuthSettings {
 
 interface AuthState {
   user: User | null;
-  farmData: FarmData | null;
   isAuthenticated: boolean;
   isFirstTimeUser: boolean;
   isLoading: boolean;
@@ -63,7 +52,6 @@ interface AuthState {
   checkBiometricSupport: () => Promise<void>;
   completeFirstRunOnboarding: (name: string, useBiometric: boolean) => Promise<void>;
   verifyBiometric: () => Promise<boolean>;
-  setupFarm: (farmData: Omit<FarmData, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   setupAuth: (farmName: string, password: string, usePin?: boolean, pin?: string, useBiometric?: boolean) => Promise<void>;
   authenticateWithPassword: (farmName: string, password: string) => Promise<void>;
   authenticateWithPin: (pin: string) => Promise<void>;
@@ -79,7 +67,6 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      farmData: null,
       isAuthenticated: false,
       isFirstTimeUser: true,
       isLoading: false,
@@ -165,31 +152,6 @@ export const useAuthStore = create<AuthState>()(
 
       lockApp: () => {
         set({ isAuthenticated: false });
-      },
-
-      setupFarm: async (farmData) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const newFarmData: FarmData = {
-            id: generateId(),
-            ...farmData,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          await AsyncStorage.setItem('farmData', JSON.stringify(newFarmData));
-
-          set({
-            farmData: newFarmData,
-            isLoading: false,
-          });
-        } catch (error: any) {
-          set({
-            error: error.message || "Farm setup failed",
-            isLoading: false
-          });
-        }
       },
 
       setupAuth: async (farmName, password, usePin = false, pin = '', useBiometric = false) => {
@@ -405,13 +367,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           // 'users'/'authSettings' are only removed here to clean up any
           // pre-migration leftovers; they are no longer written to.
-          await AsyncStorage.multiRemove(['users', 'farmData', 'authSettings', 'demoDataEnabled']);
+          await AsyncStorage.multiRemove(['users', 'authSettings', 'demoDataEnabled']);
           await deleteSecurely(SECURE_STORE_KEYS.USERS);
           await deleteSecurely('pinHash');
 
           set({
             user: null,
-            farmData: null,
             isAuthenticated: false,
             isFirstTimeUser: true,
             authSettings: {
@@ -424,18 +385,6 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Error resetting app:', error);
         }
-      },
-
-      // Legacy methods for backward compatibility
-      register: async (name: string, email: string, password: string) => {
-        // Redirect to new setup flow
-        await get().setupAuth(name, password);
-      },
-
-      login: async (email: string, password: string) => {
-        // Extract farm name from email or use name directly
-        const farmName = email.includes('@') ? email.split('@')[0] : email;
-        await get().authenticateWithPassword(farmName, password);
       },
 
       updateProfile: async (userData: Partial<User>) => {
@@ -494,7 +443,6 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isFirstTimeUser: state.isFirstTimeUser,
         authSettings: state.authSettings,
-        farmData: state.farmData,
       }),
     }
   )
