@@ -45,6 +45,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { formatCurrency, formatDate } from "@/utils/helpers";
 import { Animal, HealthRecord, Transaction } from "@/types";
 import TopNavigation from "@/components/TopNavigation";
+import { BarChart, DonutChart } from "@/components/Charts";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from "expo-router";
 
@@ -631,6 +632,38 @@ export default function ReportsScreen() {
             </View>
           ))}
         </View>
+      )}
+
+      {/* Income vs Expenses Chart */}
+      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Income vs Expenses</Text>
+      <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
+        <BarChart
+          data={[
+            { label: "Income", value: stats.financial.totalIncome, color: colors.success },
+            { label: "Expenses", value: stats.financial.totalExpenses, color: colors.danger },
+            { label: "Profit", value: stats.financial.netProfit, color: stats.financial.netProfit >= 0 ? colors.tint : colors.danger },
+          ]}
+          height={200}
+          formatValue={(v) => formatCurrency(v)}
+        />
+      </View>
+
+      {/* Animal Species Distribution */}
+      {Object.keys(stats.animals.speciesData).length > 0 && (
+        <>
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Animal Distribution</Text>
+          <View style={[styles.chartCard, { backgroundColor: colors.card }]}>
+            <DonutChart
+              data={Object.entries(stats.animals.speciesData).map(([species, count], i) => ({
+                label: species,
+                value: count,
+                color: [colors.tint, colors.secondary, colors.warning, colors.info, colors.success, colors.danger, colors.muted, "#8B4513", "#FFD700", "#90EE90"][i % 10],
+              }))}
+              centerValue={String(stats.animals.total)}
+              centerLabel="animals"
+            />
+          </View>
+        </>
       )}
 
       {/* Financial Categories */}
@@ -1320,6 +1353,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
     marginTop: 8,
+  },
+  chartCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
   },
   metricsGrid: {
     flexDirection: 'row',
