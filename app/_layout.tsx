@@ -127,6 +127,8 @@ const RootLayout = () => {
         <Stack.Screen name="farm/add" options={{ title: "Add Farm", headerShown: true }} />
         <Stack.Screen name="health/add" options={{ title: "Add Health Record" }} />
         <Stack.Screen name="financial/add" options={{ title: "Add Transaction" }} />
+        <Stack.Screen name="inventory" options={{ headerShown: false }} />
+        <Stack.Screen name="inventory/add" options={{ title: "Add Inventory Item" }} />
         <Stack.Screen name="reports" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
