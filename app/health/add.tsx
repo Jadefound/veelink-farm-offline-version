@@ -5,7 +5,7 @@ import {
   View,
   ScrollView,
   KeyboardAvoidingView,
-  Alert,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useHealthStore } from "@/store/healthStore";
@@ -20,6 +20,7 @@ import FarmSelector from "@/components/FarmSelector";
 import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
 import SelectField from "@/components/SelectField";
+import DatePickerField from "@/components/DatePickerField";
 
 export default function AddHealthRecordScreen() {
   const { animalId } = useLocalSearchParams<{ animalId: string }>();
@@ -123,7 +124,11 @@ export default function AddHealthRecordScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TopNavigation />
 
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+      <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
         <Card style={[styles.formCard, { backgroundColor: colors.card }]}>
           <Text style={[styles.title, { color: colors.text }]}>
             Add Health Record
@@ -158,11 +163,11 @@ export default function AddHealthRecordScreen() {
             onChange={(value) => setType(value as HealthRecordType)}
           />
 
-          <Input
+          <DatePickerField
             label="Date *"
-            placeholder="YYYY-MM-DD"
             value={date}
-            onChangeText={setDate}
+            onChange={setDate}
+            placeholder="YYYY-MM-DD"
           />
 
           <Input
@@ -244,6 +249,7 @@ export default function AddHealthRecordScreen() {
           />
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

@@ -27,8 +27,6 @@ import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 
-const ITEM_HEIGHT = 80; // Approximate height for transaction cards
-
 export default function FinancialScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -118,12 +116,6 @@ export default function FinancialScreen() {
   ), [handleTransactionPress]);
 
   const keyExtractor = useCallback((item: Transaction) => item.id, []);
-
-  const getItemLayout = useCallback((_: any, index: number) => ({
-    length: ITEM_HEIGHT,
-    offset: ITEM_HEIGHT * index,
-    index,
-  }), []);
 
   // Memoize the header component
   const ListHeader = useMemo(() => (
@@ -239,7 +231,7 @@ export default function FinancialScreen() {
       <TopNavigation />
 
       <FlatList
-        data={farmTransactions.slice(0, 10)} // Show recent transactions for current farm
+        data={farmTransactions}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
@@ -251,7 +243,6 @@ export default function FinancialScreen() {
         maxToRenderPerBatch={5}
         windowSize={5}
         removeClippedSubviews={true}
-        getItemLayout={getItemLayout}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

@@ -230,6 +230,7 @@ export default function EditAnimalScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.form}>
           {formError ? (

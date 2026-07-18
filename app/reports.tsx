@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -81,14 +81,8 @@ type ReportType = "overview" | "animals" | "health" | "financial";
 type FilterPeriod = "all" | "week" | "month" | "quarter" | "year";
 type SortDirection = "asc" | "desc";
 
-// Animated number component
-const AnimatedValue = ({ value, prefix = "", suffix = "", color }: { value: number; prefix?: string; suffix?: string; color: string }) => {
-  return (
-    <Text style={[styles.metricValue, { color }]}>
-      {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
-    </Text>
-  );
-};
+// Maximum rows to include in PDF to prevent memory crashes on low-end devices
+const MAX_PDF_ROWS = 100;
 
 export default function ReportsScreen() {
   const router = useRouter();
@@ -108,16 +102,30 @@ export default function ReportsScreen() {
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const animals = useAnimalStore(state => state.animals);
+  const fetchAnimals = useAnimalStore(state => state.fetchAnimals);
   const healthRecords = useHealthStore(state => state.healthRecords);
+  const fetchHealthRecords = useHealthStore(state => state.fetchHealthRecords);
   const transactions = useFinancialStore(state => state.transactions);
+  const fetchTransactions = useFinancialStore(state => state.fetchTransactions);
   const { currentFarm } = useFarmStore();
-  const isLoading = false;
   const insets = useSafeAreaInsets();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 500);
-  }, []);
+    try {
+      if (currentFarm?.id) {
+        await Promise.all([
+          fetchAnimals(currentFarm.id),
+          fetchHealthRecords(currentFarm.id),
+          fetchTransactions(currentFarm.id),
+        ]);
+      }
+    } catch (e) {
+      console.warn("Reports refresh failed:", e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [currentFarm?.id, fetchAnimals, fetchHealthRecords, fetchTransactions]);
 
   // Split heavy calculations into smaller, focused memoized chunks for better performance
 
@@ -304,9 +312,6 @@ export default function ReportsScreen() {
     filteredHealth,
     filteredTransactions,
   }), [animalStats, financialStats, healthStats, filteredAnimals, filteredHealth, filteredTransactions]);
-
-  // Maximum rows to include in PDF to prevent memory crashes on low-end devices
-  const MAX_PDF_ROWS = 100;
 
   // Generate PDF HTML
   const generateReportHtml = () => {
@@ -698,7 +703,7 @@ export default function ReportsScreen() {
           <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}></Text>
         </View>
         <ScrollView style={styles.tableBody} nestedScrollEnabled>
-          {stats.filteredAnimals
+          {[...stats.filteredAnimals]
             .sort((a, b) => sortDirection === 'desc'
               ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -790,7 +795,7 @@ export default function ReportsScreen() {
           <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Cost</Text>
         </View>
         <ScrollView style={styles.tableBody} nestedScrollEnabled>
-          {stats.filteredHealth
+          {[...stats.filteredHealth]
             .sort((a, b) => sortDirection === 'desc'
               ? new Date(b.date).getTime() - new Date(a.date).getTime()
               : new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -876,7 +881,7 @@ export default function ReportsScreen() {
           <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Amount</Text>
         </View>
         <ScrollView style={styles.tableBody} nestedScrollEnabled>
-          {stats.filteredTransactions
+          {[...stats.filteredTransactions]
             .sort((a, b) => sortDirection === 'desc'
               ? new Date(b.date).getTime() - new Date(a.date).getTime()
               : new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -946,7 +951,7 @@ export default function ReportsScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {isLoading && !refreshing ? (
+        {refreshing ? (
           <LoadingIndicator message="Loading report data..." />
         ) : (
           <>

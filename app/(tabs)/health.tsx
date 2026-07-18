@@ -17,8 +17,6 @@ import HealthRecordCard from "@/components/HealthRecordCard";
 import EmptyState from "@/components/EmptyState";
 import FarmSelector from "@/components/FarmSelector";
 
-const ITEM_HEIGHT = 120; // Approximate height for health record cards
-
 export default function HealthScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -75,11 +73,6 @@ export default function HealthScreen() {
 
   const keyExtractor = useCallback((item: HealthRecord) => item.id, []);
 
-  const getItemLayout = useCallback((_: any, index: number) => {
-    const length = Number(ITEM_HEIGHT) || 120;
-    return { length, offset: length * index, index };
-  }, []);
-
   const ListEmpty = useMemo(() => (
     <EmptyState
       title="No Health Records"
@@ -126,7 +119,6 @@ export default function HealthScreen() {
         maxToRenderPerBatch={5}
         windowSize={5}
         removeClippedSubviews={true}
-        getItemLayout={getItemLayout}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

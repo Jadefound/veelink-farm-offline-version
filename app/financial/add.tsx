@@ -17,6 +17,7 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import FarmSelector from "@/components/FarmSelector";
 import SelectField from "@/components/SelectField";
+import DatePickerField from "@/components/DatePickerField";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
@@ -86,7 +87,7 @@ export default function AddTransactionScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={100}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={[styles.title, { color: colors.text }]}>Add Transaction</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>Record a financial transaction for your farm</Text>
 
@@ -133,11 +134,11 @@ export default function AddTransactionScreen() {
             onChangeText={setDescription}
           />
 
-          <Input
+          <DatePickerField
             label="Date *"
-            placeholder="YYYY-MM-DD"
             value={date}
-            onChangeText={setDate}
+            onChange={setDate}
+            placeholder="YYYY-MM-DD"
           />
 
           <Input
