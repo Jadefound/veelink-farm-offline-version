@@ -12,7 +12,9 @@
         "start-web": "bun expo start -p 2zjt8hw804mb845pi3je4 --web --tunnel",
         "start-web-dev": "DEBUG=expo* bun expo start -p 2zjt8hw804mb845pi3je4 --web --tunnel",
         "test": "jest",
-        "test:watch": "jest --watch"
+        "test:watch": "jest --watch",
+        "deploy": "npx expo export -p web && wrangler deploy",
+        "preview": "npx expo export -p web && wrangler dev"
     },
     "dependencies": {
         "@babel/runtime": "^7.27.4",
@@ -78,7 +80,8 @@
         "jest-environment-jsdom": "^30.4.1",
         "jest-expo": "^57.0.2",
         "patch-package": "^8.0.0",
-        "typescript": "~5.9.2"
+        "typescript": "~5.9.2",
+        "wrangler": "^4.112.0"
     },
     "private": true,
     "expo": {
