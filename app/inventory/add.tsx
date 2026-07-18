@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { useFarmStore } from '@/store/farmStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useToastStore } from '@/store/toastStore';
 import Colors from '@/constants/colors';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
@@ -29,6 +30,7 @@ export default function AddInventoryScreen() {
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const { addItem } = useInventoryStore();
   const { currentFarm } = useFarmStore();
+  const { show } = useToastStore();
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -71,10 +73,10 @@ export default function AddInventoryScreen() {
         supplier: supplier || undefined,
         expiryDate: expiryDate || undefined,
       });
-      Alert.alert('Success', 'Inventory item added successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      show("Inventory item added successfully", "success");
+      router.back();
     } catch (e: any) {
+      show(e.message || 'Failed to add item', "error");
       setError(e.message || 'Failed to add item');
     }
   };

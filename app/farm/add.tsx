@@ -10,6 +10,7 @@ import {
 import { useRouter, useNavigation } from "expo-router";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
@@ -20,6 +21,7 @@ export default function AddFarmScreen() {
   const navigation = useNavigation();
   const { createFarm, isLoading, error } = useFarmStore();
   const { isDarkMode } = useThemeStore();
+  const { show } = useToastStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
   
   const canGoBack = navigation.canGoBack();
@@ -85,8 +87,10 @@ export default function AddFarmScreen() {
         sizeUnit,
         type,
       });
+      show("Farm created successfully", "success");
       router.replace("/(tabs)");
     } catch (error: any) {
+      show(error.message || "Failed to create farm", "error");
       setFormError(error.message || "Failed to create farm");
     }
   };

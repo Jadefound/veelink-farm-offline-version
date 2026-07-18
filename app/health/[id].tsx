@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Edit, Trash2, Calendar, DollarSign, FileText, User, Clock } from "lucide-react-native";
 import { useHealthStore } from "@/store/healthStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import { HealthRecord } from "@/types";
 import { formatDate, formatCurrency } from "@/utils/helpers";
 import Colors from "@/constants/colors";
@@ -22,6 +23,7 @@ export default function HealthRecordDetailScreen() {
     isLoading,
   } = useHealthStore();
   const { isDarkMode } = useThemeStore();
+  const { show } = useToastStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const [record, setRecord] = useState<HealthRecord | null>(null);
@@ -55,6 +57,7 @@ export default function HealthRecordDetailScreen() {
           onPress: async () => {
             if (record) {
               await deleteHealthRecord(record.id);
+              show("Health record deleted successfully", "success");
               router.back();
             }
           },

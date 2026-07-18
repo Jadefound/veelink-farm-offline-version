@@ -13,6 +13,7 @@ import { Plus, AlertTriangle, Clock, Package } from 'lucide-react-native';
 import { useInventoryStore, InventoryItem } from '@/store/inventoryStore';
 import { useFarmStore } from '@/store/farmStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useToastStore } from '@/store/toastStore';
 import Colors from '@/constants/colors';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import TopNavigation from '@/components/TopNavigation';
@@ -25,6 +26,7 @@ export default function InventoryScreen() {
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const { items, deleteItem, getLowStockItems, getExpiringItems } = useInventoryStore();
   const { currentFarm } = useFarmStore();
+  const { show } = useToastStore();
   const [refreshing, setRefreshing] = React.useState(false);
 
   const farmItems = useMemo(
@@ -56,7 +58,10 @@ export default function InventoryScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteItem(item.id),
+          onPress: () => {
+            deleteItem(item.id);
+            show("Inventory item deleted successfully", "success");
+          },
         },
       ]
     );

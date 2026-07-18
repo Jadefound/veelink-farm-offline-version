@@ -6,19 +6,22 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Plus,
   TrendingUp,
   TrendingDown,
+  Search,
+  X,
 } from "lucide-react-native";
 import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useAnimalStore } from "@/store/animalStore";
 import { useHealthStore } from "@/store/healthStore";
 import { useThemeStore } from "@/store/themeStore";
-import { Transaction } from "@/types";
+import { Transaction, TransactionCategory } from "@/types";
 import { formatCurrency } from "@/utils/helpers";
 import Colors from "@/constants/colors";
 import TransactionCard from "@/components/TransactionCard";
@@ -27,9 +30,16 @@ import TopNavigation from "@/components/TopNavigation";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 
+const TRANSACTION_CATEGORIES: TransactionCategory[] = [
+  "Feed", "Medication", "Equipment", "Veterinary", "Labor", "Sales", "Purchase", "Utilities", "Other",
+];
+
 export default function FinancialScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [financialStats, setFinancialStats] = useState({
     totalIncome: 0,
     totalExpenses: 0,
@@ -51,8 +61,24 @@ export default function FinancialScreen() {
   const fetchHealthRecords = useHealthStore(state => state.fetchHealthRecords);
   const farmTransactions = useMemo(() => {
     if (!currentFarm?.id) return [];
-    return transactions.filter(t => t.farmId === currentFarm.id);
-  }, [transactions, currentFarm?.id]);
+    let txns = transactions.filter(t => t.farmId === currentFarm.id);
+    if (typeFilter) {
+      txns = txns.filter(t => t.type === typeFilter);
+    }
+    if (categoryFilter) {
+      txns = txns.filter(t => t.category === categoryFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      txns = txns.filter(t =>
+        t.description?.toLowerCase().includes(q) ||
+        t.category?.toLowerCase().includes(q) ||
+        t.paymentMethod?.toLowerCase().includes(q) ||
+        t.type?.toLowerCase().includes(q)
+      );
+    }
+    return txns;
+  }, [transactions, currentFarm?.id, typeFilter, categoryFilter, searchQuery]);
   const { isDarkMode } = useThemeStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
@@ -188,7 +214,7 @@ export default function FinancialScreen() {
       {/* Recent Transactions Header */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Recent
+          Transactions ({farmTransactions.length})
         </Text>
         <TouchableOpacity onPress={handleViewAll}>
           <Text style={[styles.viewAllText, { color: colors.tint }]}>
@@ -196,8 +222,70 @@ export default function FinancialScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Search Bar */}
+      <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.card }]}>
+        <Search size={18} color={colors.muted} style={{ marginRight: 8 }} />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder="Search transactions..."
+          placeholderTextColor={colors.muted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <X size={18} color={colors.muted} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Type Filter Pills */}
+      <View style={styles.filterRow}>
+        <View style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[styles.filterPill, { backgroundColor: !typeFilter ? colors.tint : colors.surface }]}
+            onPress={() => setTypeFilter(null)}
+          >
+            <Text style={[styles.filterPillText, { color: !typeFilter ? "white" : colors.muted }]}>All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, { backgroundColor: typeFilter === "Income" ? colors.success : colors.surface }]}
+            onPress={() => setTypeFilter(typeFilter === "Income" ? null : "Income")}
+          >
+            <Text style={[styles.filterPillText, { color: typeFilter === "Income" ? "white" : colors.muted }]}>Income</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, { backgroundColor: typeFilter === "Expense" ? colors.danger : colors.surface }]}
+            onPress={() => setTypeFilter(typeFilter === "Expense" ? null : "Expense")}
+          >
+            <Text style={[styles.filterPillText, { color: typeFilter === "Expense" ? "white" : colors.muted }]}>Expense</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Category Filter Pills */}
+      <View style={styles.filterRow}>
+        <View style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[styles.filterPill, { backgroundColor: !categoryFilter ? colors.tint : colors.surface }]}
+            onPress={() => setCategoryFilter(null)}
+          >
+            <Text style={[styles.filterPillText, { color: !categoryFilter ? "white" : colors.muted }]}>All Categories</Text>
+          </TouchableOpacity>
+          {TRANSACTION_CATEGORIES.map(cat => (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.filterPill, { backgroundColor: categoryFilter === cat ? colors.tint : colors.surface }]}
+              onPress={() => setCategoryFilter(categoryFilter === cat ? null : cat)}
+            >
+              <Text style={[styles.filterPillText, { color: categoryFilter === cat ? "white" : colors.muted }]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
     </View>
-  ), [financialStats, colors, handleViewAll]);
+  ), [financialStats, colors, handleViewAll, searchQuery, typeFilter, categoryFilter, farmTransactions.length]);
 
   const ListEmpty = useMemo(() => (
     <Card variant="outlined" style={styles.emptyCard}>
@@ -348,6 +436,36 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 0,
+  },
+  filterRow: {
+    marginBottom: 10,
+  },
+  filterPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  filterPill: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  filterPillText: {
+    fontSize: 13,
   },
   emptyCard: {
     alignItems: "center",

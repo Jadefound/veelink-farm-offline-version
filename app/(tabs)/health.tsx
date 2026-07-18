@@ -5,21 +5,29 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
+  TextInput,
+  Text,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus } from "lucide-react-native";
+import { Plus, Search, X } from "lucide-react-native";
 import { useHealthStore } from "@/store/healthStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
-import { HealthRecord, Farm } from "@/types";
+import { HealthRecord, Farm, HealthRecordType } from "@/types";
 import Colors from "@/constants/colors";
 import HealthRecordCard from "@/components/HealthRecordCard";
 import EmptyState from "@/components/EmptyState";
 import FarmSelector from "@/components/FarmSelector";
 
+const HEALTH_TYPES: HealthRecordType[] = [
+  "Vaccination", "Treatment", "Checkup", "Surgery", "Medication", "Other",
+];
+
 export default function HealthScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   const healthRecords = useHealthStore(state => state.healthRecords);
   const fetchHealthRecords = useHealthStore(state => state.fetchHealthRecords);
@@ -60,8 +68,24 @@ export default function HealthScreen() {
 
   const farmHealthRecords = useMemo(() => {
     if (!currentFarm?.id) return [];
-    return (healthRecords || []).filter((r): r is HealthRecord => !!r && !!r.id && r.farmId === currentFarm.id);
-  }, [healthRecords, currentFarm?.id]);
+    let records = (healthRecords || []).filter(
+      (r): r is HealthRecord => !!r && !!r.id && r.farmId === currentFarm.id
+    );
+    if (typeFilter) {
+      records = records.filter(r => r.type === typeFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      records = records.filter(r =>
+        r.description?.toLowerCase().includes(q) ||
+        r.type?.toLowerCase().includes(q) ||
+        r.diagnosis?.toLowerCase().includes(q) ||
+        r.medication?.toLowerCase().includes(q) ||
+        r.veterinarian?.toLowerCase().includes(q)
+      );
+    }
+    return records;
+  }, [healthRecords, currentFarm?.id, typeFilter, searchQuery]);
 
   // Memoize renderItem for better performance
   const renderItem = useCallback(({ item }: { item: HealthRecord }) => (
@@ -72,6 +96,53 @@ export default function HealthScreen() {
   ), [handleHealthRecordPress]);
 
   const keyExtractor = useCallback((item: HealthRecord) => item.id, []);
+
+  const ListHeader = useMemo(() => (
+    <View style={styles.headerContainer}>
+      {/* Search Bar */}
+      <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.card }]}>
+        <Search size={18} color={colors.muted} style={{ marginRight: 8 }} />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder="Search records..."
+          placeholderTextColor={colors.muted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <X size={18} color={colors.muted} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Filter Pills */}
+      <View style={styles.filterRow}>
+        <Text style={[styles.filterLabel, { color: colors.muted }]}>Type:</Text>
+        <View style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[styles.filterPill, { backgroundColor: !typeFilter ? colors.tint : colors.surface }]}
+            onPress={() => setTypeFilter(null)}
+          >
+            <Text style={[styles.filterPillText, { color: !typeFilter ? "white" : colors.muted }]}>All</Text>
+          </TouchableOpacity>
+          {HEALTH_TYPES.map(type => (
+            <TouchableOpacity
+              key={type}
+              style={[styles.filterPill, { backgroundColor: typeFilter === type ? colors.tint : colors.surface }]}
+              onPress={() => setTypeFilter(typeFilter === type ? null : type)}
+            >
+              <Text style={[styles.filterPillText, { color: typeFilter === type ? "white" : colors.muted }]}>{type}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <Text style={[styles.countText, { color: colors.muted }]}>
+        {farmHealthRecords.length} record{farmHealthRecords.length !== 1 ? "s" : ""}
+      </Text>
+    </View>
+  ), [colors, searchQuery, typeFilter, farmHealthRecords.length]);
 
   const ListEmpty = useMemo(() => (
     <EmptyState
@@ -108,6 +179,7 @@ export default function HealthScreen() {
         data={farmHealthRecords}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}
         contentContainerStyle={[
           styles.listContent,
@@ -143,6 +215,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  headerContainer: {
+    marginBottom: 12,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 0,
+  },
+  filterRow: {
+    marginBottom: 12,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 6,
+  },
+  filterPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  filterPill: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  filterPillText: {
+    fontSize: 13,
+  },
+  countText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
   },
   listContent: {
     paddingBottom: 80,

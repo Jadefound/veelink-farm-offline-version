@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useAnimalStore } from "@/store/animalStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import { AnimalSpecies, AnimalStatus } from "@/types";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
@@ -27,6 +28,7 @@ export default function AddAnimalScreen() {
   const { createAnimal, isLoading, error, animals } = useAnimalStore();
   const { currentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
+  const { show } = useToastStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
@@ -164,8 +166,10 @@ export default function AddAnimalScreen() {
         estimatedValue: formData.currentValue ? parseFloat(formData.currentValue) : 0,
       });
 
+      show("Animal added successfully", "success");
       router.back();
     } catch (error: any) {
+      show(error.message || "Failed to create animal", "error");
       setFormError(error.message || "Failed to create animal");
     }
   };

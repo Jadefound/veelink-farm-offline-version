@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Modal, FlatList, Platform } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, Modal, FlatList, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { ChevronDown, User, Plus } from "lucide-react-native";
+import { ChevronDown, User, Plus, Pencil, Trash2 } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
@@ -12,7 +12,7 @@ import Card from "./Card";
 export default function TopNavigation() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { farms, currentFarm, setCurrentFarm } = useFarmStore();
+  const { farms, currentFarm, setCurrentFarm, deleteFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
   const [showFarmSelector, setShowFarmSelector] = useState(false);
   
@@ -26,6 +26,33 @@ export default function TopNavigation() {
   const handleAddFarm = () => {
     setShowFarmSelector(false);
     router.push("/farm/add");
+  };
+
+  const handleEditFarm = (farm: Farm) => {
+    setShowFarmSelector(false);
+    router.push({ pathname: "/farm/edit/[id]", params: { id: farm.id } });
+  };
+
+  const handleDeleteFarm = (farm: Farm) => {
+    if (farms.length <= 1) {
+      Alert.alert("Cannot Delete", "You must have at least one farm. Add another farm before deleting this one.");
+      return;
+    }
+    Alert.alert(
+      "Delete Farm",
+      `Delete "${farm.name}"? This will also delete ALL animals, health records, and transactions belonging to this farm. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Everything",
+          style: "destructive",
+          onPress: async () => {
+            await deleteFarm(farm.id);
+            setShowFarmSelector(false);
+          },
+        },
+      ]
+    );
   };
 
   const handleProfilePress = () => {
@@ -76,19 +103,36 @@ export default function TopNavigation() {
                 data={farms}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.farmOption,
-                      { borderBottomColor: colors.border },
-                      currentFarm?.id === item.id && { backgroundColor: colors.surface }
-                    ]}
-                    onPress={() => handleFarmSelect(item)}
-                  >
-                    <Text style={[styles.farmOptionName, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={[styles.farmOptionDetails, { color: colors.muted }]}>
-                      {item.type} • {item.location}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={[styles.farmOption, { borderBottomColor: colors.border }]}>
+                    <TouchableOpacity
+                      style={[
+                        styles.farmOptionContent,
+                        currentFarm?.id === item.id && { backgroundColor: colors.surface }
+                      ]}
+                      onPress={() => handleFarmSelect(item)}
+                    >
+                      <Text style={[styles.farmOptionName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.farmOptionDetails, { color: colors.muted }]}>
+                        {item.type} - {item.location}
+                      </Text>
+                    </TouchableOpacity>
+                    <View style={styles.farmActions}>
+                      <TouchableOpacity
+                        onPress={() => handleEditFarm(item)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={styles.farmActionBtn}
+                      >
+                        <Pencil size={16} color={colors.muted} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteFarm(item)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={styles.farmActionBtn}
+                      >
+                        <Trash2 size={16} color={colors.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 )}
               />
               <TouchableOpacity
@@ -167,8 +211,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   farmOption: {
-    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
     borderBottomWidth: 1,
+  },
+  farmOptionContent: {
+    flex: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  farmActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  farmActionBtn: {
+    padding: 6,
   },
   farmOptionName: {
     fontSize: 16,

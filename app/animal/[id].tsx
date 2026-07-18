@@ -18,6 +18,7 @@ import { Edit, Trash2, Plus, Tag } from "lucide-react-native";
 import { useAnimalStore } from "@/store/animalStore";
 import { useHealthStore } from "@/store/healthStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import { Animal, HealthRecord } from "@/types";
 import { formatDate, calculateAge } from "@/utils/helpers";
 import { getAnimalImage, getSpeciesColor } from "@/utils/animalImages";
@@ -45,6 +46,7 @@ export default function AnimalDetailScreen() {
     isLoading: healthLoading,
   } = useHealthStore();
   const { isDarkMode } = useThemeStore();
+  const { show } = useToastStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
   const [animal, setAnimal] = useState<Animal | null>(null);
@@ -86,6 +88,7 @@ export default function AnimalDetailScreen() {
           onPress: async () => {
             if (animal) {
               await deleteAnimal(animal.id);
+              show("Animal deleted successfully", "success");
               router.back();
             }
           },
@@ -130,8 +133,9 @@ export default function AnimalDetailScreen() {
 
       setShowSellModal(false);
       await loadAnimalData();
-      Alert.alert("Success", "Animal marked as sold.");
+      show("Animal marked as sold successfully", "success");
     } catch (e: any) {
+      show(e?.message || "Failed to mark animal as sold.", "error");
       Alert.alert("Error", e?.message || "Failed to mark animal as sold.");
     }
   };

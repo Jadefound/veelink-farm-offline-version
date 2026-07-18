@@ -12,6 +12,7 @@ import { useHealthStore } from "@/store/healthStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useAnimalStore } from "@/store/animalStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import { HealthRecordType } from "@/types";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
@@ -30,6 +31,7 @@ export default function AddHealthRecordScreen() {
   const { farms, currentFarm, setCurrentFarm } = useFarmStore();
   const { animals, fetchAnimals } = useAnimalStore();
   const { isDarkMode } = useThemeStore();
+  const { show } = useToastStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const [selectedAnimalId, setSelectedAnimalId] = useState(animalId || "");
@@ -114,8 +116,10 @@ export default function AddHealthRecordScreen() {
         notes,
       });
 
+      show("Health record added successfully", "success");
       router.back();
     } catch (error: any) {
+      show(error.message || "Failed to create health record", "error");
       setFormError(error.message || "Failed to create health record");
     }
   };

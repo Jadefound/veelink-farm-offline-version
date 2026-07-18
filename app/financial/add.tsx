@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { useFinancialStore } from "@/store/financialStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import { TransactionType, TransactionCategory } from "@/types";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
@@ -24,6 +25,7 @@ export default function AddTransactionScreen() {
   const { createTransaction, isLoading, error } = useFinancialStore();
   const { farms, currentFarm, setCurrentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
+  const { show } = useToastStore();
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
   const [type, setType] = useState<TransactionType>("Expense");
@@ -75,8 +77,10 @@ export default function AddTransactionScreen() {
         reference,
       });
 
+      show("Transaction added successfully", "success");
       router.back();
     } catch (error: any) {
+      show(error.message || "Failed to create transaction", "error");
       setFormError(error.message || "Failed to create transaction");
     }
   };

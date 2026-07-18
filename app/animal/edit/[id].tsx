@@ -13,6 +13,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAnimalStore } from "@/store/animalStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import { AnimalSpecies, AnimalStatus, Animal } from "@/types";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
@@ -28,6 +29,7 @@ export default function EditAnimalScreen() {
   const { getAnimal, updateAnimal, isLoading, error } = useAnimalStore();
   const { currentFarm } = useFarmStore();
   const { isDarkMode } = useThemeStore();
+  const { show } = useToastStore();
 
   const colors = isDarkMode ? Colors.dark : Colors.light;
 
@@ -199,13 +201,10 @@ export default function EditAnimalScreen() {
 
     try {
       await updateAnimal(animal.id, updatedAnimal);
-      Alert.alert("Success", "Animal updated successfully", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      show("Animal updated successfully", "success");
+      router.back();
     } catch (error) {
+      show("Failed to update animal. Please try again.", "error");
       setFormError("Failed to update animal. Please try again.");
     }
   };

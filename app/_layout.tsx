@@ -9,6 +9,7 @@ import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
 import { Platform, View, Text } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
+import ToastContainer from "@/components/Toast";
 
 ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -125,6 +126,7 @@ const RootLayout = () => {
         <Stack.Screen name="health/[id]" options={{ title: "Health Record" }} />
         <Stack.Screen name="financial/[id]" options={{ title: "Transaction Details" }} />
         <Stack.Screen name="farm/add" options={{ title: "Add Farm", headerShown: true }} />
+        <Stack.Screen name="farm/edit/[id]" options={{ title: "Edit Farm" }} />
         <Stack.Screen name="health/add" options={{ title: "Add Health Record" }} />
         <Stack.Screen name="financial/add" options={{ title: "Add Transaction" }} />
         <Stack.Screen name="inventory" options={{ headerShown: false }} />
@@ -132,6 +134,7 @@ const RootLayout = () => {
         <Stack.Screen name="reports" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
+      <ToastContainer />
     </>
   );
 };

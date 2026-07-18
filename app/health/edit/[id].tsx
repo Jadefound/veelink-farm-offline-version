@@ -13,6 +13,7 @@ import { useHealthStore } from "@/store/healthStore";
 import { useAnimalStore } from "@/store/animalStore";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
+import { useToastStore } from "@/store/toastStore";
 import { HealthRecordType, HealthRecord } from "@/types";
 import Colors from "@/constants/colors";
 import Input from "@/components/Input";
@@ -30,6 +31,7 @@ export default function EditHealthRecordScreen() {
     const { animals } = useAnimalStore();
     const { currentFarm } = useFarmStore();
     const { isDarkMode } = useThemeStore();
+    const { show } = useToastStore();
 
     const colors = isDarkMode ? Colors.dark : Colors.light;
 
@@ -127,8 +129,10 @@ export default function EditHealthRecordScreen() {
                 notes: formData.notes,
             });
 
+            show("Health record updated successfully", "success");
             router.back();
         } catch (error: any) {
+            show(error.message || "Failed to update health record", "error");
             setFormError(error.message || "Failed to update health record");
         }
     };

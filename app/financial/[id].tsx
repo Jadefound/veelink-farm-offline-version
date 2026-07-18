@@ -5,6 +5,7 @@ import { Edit, Trash2, Calendar, DollarSign, FileText, CreditCard, Tag, User } f
 import { useFinancialStore } from '@/store/financialStore';
 import { useAnimalStore } from '@/store/animalStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useToastStore } from '@/store/toastStore';
 import { Transaction } from '@/types';
 import Colors from '@/constants/colors';
 import { formatDate, formatCurrency } from '@/utils/helpers';
@@ -17,6 +18,7 @@ export default function TransactionDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const { isDarkMode } = useThemeStore();
+    const { show } = useToastStore();
     const { getTransactionById, deleteTransaction } = useFinancialStore();
     const { getAnimal } = useAnimalStore();
     const [transaction, setTransaction] = useState<Transaction | null>(null);
@@ -44,6 +46,7 @@ export default function TransactionDetailScreen() {
                     onPress: async () => {
                         if (transaction) {
                             await deleteTransaction(transaction.id);
+                            show("Transaction deleted successfully", "success");
                             router.back();
                         }
                     },
