@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { Edit, Trash2, Plus, Tag } from "lucide-react-native";
@@ -75,7 +76,7 @@ export default function AnimalDetailScreen() {
   };
 
   const handleDeleteAnimal = () => {
-    Alert.alert(
+    showAlert(
       "Delete Animal",
       "Are you sure you want to delete this animal? This action cannot be undone.",
       [
@@ -115,7 +116,7 @@ export default function AnimalDetailScreen() {
 
     const parsedPrice = Number(String(salePrice).replace(/,/g, "").trim());
     if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      Alert.alert("Invalid price", "Please enter a valid sale price greater than 0.");
+      showAlert("Invalid price", "Please enter a valid sale price greater than 0.");
       return;
     }
 
@@ -136,7 +137,7 @@ export default function AnimalDetailScreen() {
       show("Animal marked as sold successfully", "success");
     } catch (e: any) {
       show(e?.message || "Failed to mark animal as sold.", "error");
-      Alert.alert("Error", e?.message || "Failed to mark animal as sold.");
+      showAlert("Error", e?.message || "Failed to mark animal as sold.");
     }
   };
 

@@ -8,6 +8,7 @@ import {
   Text,
   Alert,
 } from 'react-native';
+import { showAlert } from '@/utils/crossPlatformAlert';
 import { useRouter } from 'expo-router';
 import { Plus, AlertTriangle, Clock, Package } from 'lucide-react-native';
 import { useInventoryStore, InventoryItem } from '@/store/inventoryStore';
@@ -50,7 +51,7 @@ export default function InventoryScreen() {
   }, []);
 
   const handleDelete = (item: InventoryItem) => {
-    Alert.alert(
+    showAlert(
       'Delete Item',
       `Delete "${item.name}"?`,
       [

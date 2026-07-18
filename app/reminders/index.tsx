@@ -7,6 +7,7 @@ import {
   Text,
   Alert,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter } from "expo-router";
 import { Plus, Bell, Clock, CheckCircle, AlertTriangle, Trash2, BellOff } from "lucide-react-native";
 import { useReminderStore, Reminder } from "@/store/reminderStore";
@@ -62,7 +63,7 @@ export default function RemindersScreen() {
   }, [completeReminder, show]);
 
   const handleSnooze = useCallback((reminder: Reminder) => {
-    Alert.alert(
+    showAlert(
       "Snooze Reminder",
       "Push this reminder back by how many days?",
       [
@@ -75,7 +76,7 @@ export default function RemindersScreen() {
   }, [snoozeReminder, show]);
 
   const handleDelete = useCallback((reminder: Reminder) => {
-    Alert.alert(
+    showAlert(
       "Delete Reminder",
       `Delete "${reminder.title}"?`,
       [

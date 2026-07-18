@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-07-18T09:35:01.049Z",
+  "consoleErrors": [
+    "Unexpected text node: . A text node cannot be a child of a <View>."
+  ],
+  "findings": [
+    {
+      "severity": "MED",
+      "area": "DatePicker",
+      "description": "No native date input found on financial/add"
+    },
+    {
+      "severity": "MED",
+      "area": "Console",
+      "description": "1 unique console error(s): Unexpected text node: . A text node cannot be a child of a <View>."
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import {
   Text,
   Alert,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter } from "expo-router";
 import { Plus, Heart, AlertTriangle } from "lucide-react-native";
 import { useBreedingStore } from "@/store/breedingStore";
@@ -69,7 +70,7 @@ export default function BreedingScreen() {
   }, []);
 
   const handleDelete = (record: BreedingRecord) => {
-    Alert.alert("Delete Record", "Delete this breeding record?", [
+    showAlert("Delete Record", "Delete this breeding record?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",

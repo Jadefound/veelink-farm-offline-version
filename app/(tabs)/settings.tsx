@@ -14,6 +14,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -77,7 +78,7 @@ export default function SettingsScreen() {
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission required", "Please allow access to your photo library.");
+      showAlert("Permission required", "Please allow access to your photo library.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -93,7 +94,7 @@ export default function SettingsScreen() {
 
   const handleSaveProfile = async () => {
     if (!editName.trim()) {
-      Alert.alert("Validation", "Name cannot be empty.");
+      showAlert("Validation", "Name cannot be empty.");
       return;
     }
     setIsSaving(true);
@@ -106,7 +107,7 @@ export default function SettingsScreen() {
       });
       setIsEditProfileVisible(false);
     } catch {
-      Alert.alert("Error", "Failed to save profile. Please try again.");
+      showAlert("Error", "Failed to save profile. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -121,20 +122,20 @@ export default function SettingsScreen() {
   const handleToggleBiometric = async () => {
     if (authSettings.useBiometric) {
       await updateAuthSettings({ useBiometric: false, biometricEnabled: false });
-      Alert.alert("Fingerprint Disabled", "You will no longer need fingerprint to unlock the app.");
+      showAlert("Fingerprint Disabled", "You will no longer need fingerprint to unlock the app.");
     } else {
       const success = await verifyBiometric();
       if (success) {
         await updateAuthSettings({ useBiometric: true, biometricEnabled: true });
-        Alert.alert("Fingerprint Enabled", "You will need to use fingerprint to unlock the app.");
+        showAlert("Fingerprint Enabled", "You will need to use fingerprint to unlock the app.");
       } else {
-        Alert.alert("Verification Failed", "Could not verify your fingerprint.");
+        showAlert("Verification Failed", "Could not verify your fingerprint.");
       }
     }
   };
 
   const handleResetApp = () => {
-    Alert.alert(
+    showAlert(
       "Reset App",
       "This will delete ALL your data and return to the initial setup. This cannot be undone!",
       [
@@ -157,7 +158,7 @@ export default function SettingsScreen() {
   };
 
   const handleLoadMockData = () => {
-    Alert.alert(
+    showAlert(
       "Load Demo Data",
       "WARNING: This will erase ALL existing data and replace it with sample farms, animals, transactions, and health records. This cannot be undone. Continue?",
       [
@@ -188,12 +189,12 @@ export default function SettingsScreen() {
                 fetchHealthRecords(),
               ]);
 
-              Alert.alert(
+              showAlert(
                 "Success",
                 "Demo data reloaded successfully!"
               );
             } catch (error) {
-              Alert.alert(
+              showAlert(
                 "Error",
                 `Failed to load mock data: ${error instanceof Error ? error.message : 'Unknown error'}`
               );
@@ -205,7 +206,7 @@ export default function SettingsScreen() {
   };
 
   const handleClearAllData = () => {
-    Alert.alert(
+    showAlert(
       "Clear All Data",
       "⚠️ WARNING: This will permanently delete ALL your data including farms, animals, transactions, and health records. This action cannot be undone!",
       [
@@ -223,9 +224,9 @@ export default function SettingsScreen() {
               resetAnimalStore();
               resetFinancialStore();
               resetHealthStore();
-              Alert.alert("Success", "All data cleared successfully!");
+              showAlert("Success", "All data cleared successfully!");
             } else {
-              Alert.alert("Error", "Failed to clear data. Please try again.");
+              showAlert("Error", "Failed to clear data. Please try again.");
             }
           },
           style: "destructive",
@@ -235,7 +236,7 @@ export default function SettingsScreen() {
   };
 
   const handleClearDemoData = () => {
-    Alert.alert(
+    showAlert(
       "Clear Demo Data",
       "This will remove only demo/sample data (farms, animals, transactions, health records) while keeping any data you created yourself. Continue?",
       [
@@ -250,9 +251,9 @@ export default function SettingsScreen() {
               clearDemoAnimals();
               clearDemoTransactions();
               clearDemoHealthRecords();
-              Alert.alert("Success", "Demo data cleared successfully! Your own data is untouched.");
+              showAlert("Success", "Demo data cleared successfully! Your own data is untouched.");
             } catch (error) {
-              Alert.alert("Error", "Failed to clear demo data. Please try again.");
+              showAlert("Error", "Failed to clear demo data. Please try again.");
             }
           },
         },
@@ -284,7 +285,7 @@ export default function SettingsScreen() {
           icon: <Shield size={20} color={colors.text} />,
           title: "Privacy & Security",
           onPress: () =>
-            Alert.alert("Privacy", "Privacy settings coming soon"),
+            showAlert("Privacy", "Privacy settings coming soon"),
         },
       ],
     },
@@ -342,7 +343,7 @@ export default function SettingsScreen() {
           icon: <Info size={20} color={colors.text} />,
           title: "About Veelink Farm",
           onPress: () =>
-            Alert.alert(
+            showAlert(
               "About",
               "Veelink Farm is a comprehensive farm animal management app for livestock tracking, health records, and financial management."
             ),

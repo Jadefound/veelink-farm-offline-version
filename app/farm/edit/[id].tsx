@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFarmStore } from "@/store/farmStore";
 import { useThemeStore } from "@/store/themeStore";
@@ -78,7 +79,7 @@ export default function EditFarmScreen() {
 
   const handleDelete = () => {
     if (!farm) return;
-    Alert.alert(
+    showAlert(
       "Delete Farm",
       `Delete "${farm.name}"? This will also delete ALL animals, health records, and transactions belonging to this farm. This cannot be undone.`,
       [

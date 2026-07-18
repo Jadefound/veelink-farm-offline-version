@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAnimalStore } from "@/store/animalStore";
 import { useFarmStore } from "@/store/farmStore";
@@ -76,11 +77,11 @@ export default function EditAnimalScreen() {
         setAnimal(animalData);
         populateForm(animalData);
       } else {
-        Alert.alert("Error", "Animal not found");
+        showAlert("Error", "Animal not found");
         router.back();
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to load animal data");
+      showAlert("Error", "Failed to load animal data");
       router.back();
     } finally {
       setLoading(false);

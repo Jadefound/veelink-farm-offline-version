@@ -243,7 +243,7 @@ export default function DashboardScreen() {
                 onPress={() => router.push("/financial/add")}
                 activeOpacity={0.85}
               >
-                <Feather name="dollar-sign" size={20} color={colors.tint} />
+                <Feather name="credit-card" size={20} color={colors.tint} />
                 <Text style={[styles.actionBtnText, { color: colors.text }]}>Expense</Text>
               </TouchableOpacity>
 

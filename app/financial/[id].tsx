@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { showAlert } from '@/utils/crossPlatformAlert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Edit, Trash2, Calendar, DollarSign, FileText, CreditCard, Tag, User } from 'lucide-react-native';
 import { useFinancialStore } from '@/store/financialStore';
@@ -35,7 +36,7 @@ export default function TransactionDetailScreen() {
     }, [id]);
 
     const handleDelete = () => {
-        Alert.alert(
+        showAlert(
             "Delete Transaction",
             "Are you sure you want to delete this transaction? This action cannot be undone.",
             [

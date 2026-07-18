@@ -23,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getAnimalImage, getSpeciesColor } from "@/utils/animalImages";
 import { generateAnimalId } from "@/utils/animalId";
 import { useResponsive } from "@/hooks/useResponsive";
+import { formatCurrency } from "@/utils/helpers";
 
 const CARD_HEIGHT = 100; // Fixed height for getItemLayout optimization
 const PAGE_SIZE = 15; // Items per page for infinite scroll
@@ -102,7 +103,7 @@ const AnimalCard = React.memo(({
         <View style={styles.horizontalCardStatItem}>
           <Ionicons name="pricetag-outline" size={18} color={colors.success} />
           <Text style={[styles.horizontalCardStatText, { color: colors.text }]}>
-            ${(item.estimatedValue || item.price || 0).toLocaleString()}
+            {formatCurrency(item.estimatedValue || item.price || 0)}
           </Text>
         </View>
         <View style={styles.horizontalCardStatItem}>

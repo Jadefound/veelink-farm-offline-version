@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, ScrollView, Alert } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Edit, Trash2, Calendar, DollarSign, FileText, User, Clock } from "lucide-react-native";
 import { useHealthStore } from "@/store/healthStore";
@@ -44,7 +45,7 @@ export default function HealthRecordDetailScreen() {
   };
 
   const handleDeleteRecord = () => {
-    Alert.alert(
+    showAlert(
       "Delete Health Record",
       "Are you sure you want to delete this health record? This action cannot be undone.",
       [

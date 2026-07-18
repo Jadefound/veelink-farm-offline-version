@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Modal, FlatList, Platform, Alert } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter } from "expo-router";
 import { ChevronDown, User, Plus, Pencil, Trash2 } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
@@ -35,10 +36,10 @@ export default function TopNavigation() {
 
   const handleDeleteFarm = (farm: Farm) => {
     if (farms.length <= 1) {
-      Alert.alert("Cannot Delete", "You must have at least one farm. Add another farm before deleting this one.");
+      showAlert("Cannot Delete", "You must have at least one farm. Add another farm before deleting this one.");
       return;
     }
-    Alert.alert(
+    showAlert(
       "Delete Farm",
       `Delete "${farm.name}"? This will also delete ALL animals, health records, and transactions belonging to this farm. This cannot be undone.`,
       [

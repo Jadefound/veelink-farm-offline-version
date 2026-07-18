@@ -11,6 +11,7 @@ import {
   Modal,
   Platform,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter } from "expo-router";
 import {
   Download,
@@ -489,7 +490,7 @@ export default function ReportsScreen() {
       setIsGeneratingPdf(false);
     } catch (error) {
       setIsGeneratingPdf(false);
-      Alert.alert("Error", "Failed to generate PDF report.");
+      showAlert("Error", "Failed to generate PDF report.");
     }
   };
 

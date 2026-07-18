@@ -10,6 +10,7 @@ import {
   Image,
   Alert,
 } from "react-native";
+import { showAlert } from "@/utils/crossPlatformAlert";
 import { useRouter } from "expo-router";
 import { User, Fingerprint, ArrowRight, CheckCircle, Lock } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
@@ -99,7 +100,7 @@ const OnboardingScreen = () => {
       setUseBiometric(true);
       setBiometricVerified(true);
     } else {
-      Alert.alert(
+      showAlert(
         "Verification Failed",
         "Could not verify your fingerprint. Please try again or skip this step."
       );
@@ -122,7 +123,7 @@ const OnboardingScreen = () => {
       );
       router.replace("/farm/add");
     } catch {
-      Alert.alert("Error", "Failed to complete setup. Please try again.");
+      showAlert("Error", "Failed to complete setup. Please try again.");
     }
   };
 
